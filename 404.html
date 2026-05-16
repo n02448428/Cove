@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Cove</title>
+    <script>
+      // SPA redirect hack for GitHub Pages.
+      // When GH Pages returns a 404 for a deep route (e.g. /dashboard),
+      // this script encodes the path into a query param and redirects
+      // to the root, where the React router picks it up.
+      (function () {
+        var l = window.location;
+        var segmentCount = 1; // number of path segments in the repo name (1 for /Cove)
+        var path = l.pathname
+          .slice(1)
+          .split('/')
+          .slice(segmentCount)
+          .join('/')
+          .replace(/&/g, '~and~');
+        if (path) {
+          l.replace(
+            l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+            l.pathname.split('/').slice(0, 1 + segmentCount).join('/') + '/?p=/' +
+            path + (l.search ? '&q=' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+            l.hash
+          );
+        }
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>

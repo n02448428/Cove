@@ -10,7 +10,7 @@ export default function Admin() {
       // Admin: fetch all call_logs across all users, ordered by most recent
       const { data, error } = await supabase
         .from('call_logs')
-        .select('*, user_profiles(real_phone)')
+        .select('*, profiles(real_phone)')
         .order('created_at', { ascending: false })
         .limit(200);
 
@@ -41,14 +41,12 @@ export default function Admin() {
             <tbody>
               {logs.map(log => (
                 <tr key={log.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  <td style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>{new Date(log.created_at).toLocaleString()}</td>
-                  <td style={{ padding: '0.75rem 1rem' }}>{log.user_profiles?.real_phone || '—'}</td>
-                  <td style={{ padding: '0.75rem 1rem' }}>{log.from_number || '—'}</td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <span className={`badge badge-${log.outcome}`}>{log.outcome}</span>
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem' }}>{log.duration_ms ? `${(log.duration_ms / 1000).toFixed(1)}s` : '—'}</td>
-                  <td style={{ padding: '0.75rem 1rem', color: 'var(--color-danger)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{log.error || '—'}</td>
+                  <td style={{ padding: '0.5rem 1rem' }}>{new Date(log.created_at).toLocaleString()}</td>
+                  <td style={{ padding: '0.5rem 1rem' }}>{log.profiles?.real_phone || log.user_id}</td>
+                  <td style={{ padding: '0.5rem 1rem' }}>{log.caller_number}</td>
+                  <td style={{ padding: '0.5rem 1rem' }}>{log.outcome}</td>
+                  <td style={{ padding: '0.5rem 1rem' }}>{log.duration_seconds}s</td>
+                  <td style={{ padding: '0.5rem 1rem', color: '#f55' }}>{log.error_message}</td>
                 </tr>
               ))}
             </tbody>

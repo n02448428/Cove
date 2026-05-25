@@ -36,7 +36,7 @@ function RequireAuth({ children }) {
 
 export default function App() {
   return (
-    <BrowserRouter basename="/Cove">
+    <BrowserRouter>
       <Routes>
         {/* Public */}
         <Route path="/" element={<Landing />} />

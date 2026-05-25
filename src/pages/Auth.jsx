@@ -25,7 +25,7 @@ export default function Auth() {
         if (error) throw error;
         // After login, check if onboarding is complete
         const { data: profile } = await supabase
-          .from('user_profiles')
+          .from('profiles')
           .select('provisioning_status')
           .eq('id', data.user.id)
           .maybeSingle();

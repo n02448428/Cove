@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Cove</title>
+    <script>
+      // SPA redirect for GitHub Pages custom domain (base path /).
+      (function () {
+        var l = window.location;
+        var path = l.pathname.slice(1).replace(/&/g, '~and~');
+        if (path) {
+          l.replace(
+            l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+            '/?p=/' + path +
+            (l.search ? '&q=' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+            l.hash
+          );
+        } else {
+          l.replace('/');
+        }
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>

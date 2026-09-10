@@ -18,18 +18,18 @@ export default function Auth() {
       if (mode === 'signup') {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        // After signup, go to onboarding
+        // Profile row is created by the auth.users trigger; complete setup next.
         navigate('/onboarding');
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        // After login, check if onboarding is complete
-        const { data: profile } = await supabase
-          .from('profiles')
+        // provisioning_status lives on phone_numbers, not profiles
+        const { data: phoneRow } = await supabase
+          .from('phone_numbers')
           .select('provisioning_status')
-          .eq('id', data.user.id)
+          .eq('user_id', data.user.id)
           .maybeSingle();
-        if (profile?.provisioning_status === 'active') {
+        if (phoneRow?.provisioning_status === 'active') {
           navigate('/dashboard');
         } else {
           navigate('/onboarding');

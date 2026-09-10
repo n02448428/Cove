@@ -2,12 +2,23 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
 
+function toE164(raw) {
+  const trimmed = (raw || '').trim();
+  if (!trimmed) return '';
+  if (trimmed.startsWith('+')) return trimmed.replace(/\s+/g, '');
+  const digits = trimmed.replace(/\D/g, '');
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
+  return trimmed.startsWith('+') ? trimmed : `+${digits}`;
+}
+
 export default function Settings() {
   const navigate = useNavigate();
   const [realPhone, setRealPhone] = useState('');
   const [contacts, setContacts] = useState('');
   const [urgentKeywords, setUrgentKeywords] = useState('');
   const [blockKeywords, setBlockKeywords] = useState('');
+  const [smsNotifs, setSmsNotifs] = useState(false);
   const [emailNotifs, setEmailNotifs] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -19,20 +30,23 @@ export default function Settings() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [profileRes, rulesRes, contactsRes] = await Promise.all([
-        supabase.from('user_profiles').select('real_phone').eq('id', user.id).maybeSingle(),
-        supabase.from('screening_rules').select('*').eq('user_id', user.id).maybeSingle(),
-        supabase.from('trusted_contacts').select('name,phone').eq('user_id', user.id),
+      const [phoneRes, rulesRes, contactsRes] = await Promise.all([
+        supabase.from('phone_numbers').select('real_number, notify_sms, notify_email').eq('user_id', user.id).maybeSingle(),
+        supabase.from('screening_rules').select('urgent_keywords, block_keywords').eq('user_id', user.id).maybeSingle(),
+        supabase.from('trusted_contacts').select('contact_name, phone_number').eq('user_id', user.id),
       ]);
 
-      if (profileRes.data) setRealPhone(profileRes.data.real_phone || '');
+      if (phoneRes.data) {
+        setRealPhone(phoneRes.data.real_number || '');
+        setSmsNotifs(!!phoneRes.data.notify_sms);
+        setEmailNotifs(phoneRes.data.notify_email ?? true);
+      }
       if (rulesRes.data) {
         setUrgentKeywords((rulesRes.data.urgent_keywords || []).join(', '));
         setBlockKeywords((rulesRes.data.block_keywords || []).join(', '));
-        setEmailNotifs(rulesRes.data.email_notifications ?? true);
       }
       if (contactsRes.data) {
-        setContacts(contactsRes.data.map(c => `${c.name} ${c.phone}`).join('\n'));
+        setContacts(contactsRes.data.map(c => `${c.contact_name} ${c.phone_number}`).join('\n'));
       }
       setLoading(false);
     }
@@ -46,23 +60,45 @@ export default function Settings() {
     setSuccess(false);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
 
-      await supabase.from('user_profiles').upsert({ id: user.id, real_phone: realPhone.trim() }, { onConflict: 'id' });
-      await supabase.from('screening_rules').upsert({
+      const realNumber = toE164(realPhone);
+      if (realNumber && !/^\+[1-9]\d{1,14}$/.test(realNumber)) {
+        throw new Error('Enter your real phone in E.164 format, e.g. +16195551234');
+      }
+
+      const { error: phoneErr } = await supabase.from('phone_numbers').upsert({
+        user_id: user.id,
+        real_number: realNumber,
+        notify_sms: smsNotifs,
+        notify_email: emailNotifs,
+      }, { onConflict: 'user_id' });
+      if (phoneErr) throw phoneErr;
+
+      const { error: rulesErr } = await supabase.from('screening_rules').upsert({
         user_id: user.id,
         urgent_keywords: urgentKeywords.split(',').map(k => k.trim()).filter(Boolean),
         block_keywords: blockKeywords.split(',').map(k => k.trim()).filter(Boolean),
-        email_notifications: emailNotifs,
       }, { onConflict: 'user_id' });
+      if (rulesErr) throw rulesErr;
 
       const parsedContacts = contacts.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
         const parts = line.split(/\s+/);
-        const phone = parts[parts.length - 1];
+        const phone = toE164(parts[parts.length - 1]);
         const name = parts.slice(0, -1).join(' ') || phone;
-        return { user_id: user.id, name, phone };
+        return { user_id: user.id, contact_name: name, phone_number: phone };
       });
+      for (const c of parsedContacts) {
+        if (!/^\+[1-9]\d{1,14}$/.test(c.phone_number)) {
+          throw new Error(`Invalid trusted contact number: ${c.phone_number}`);
+        }
+      }
+
+      const { error: delErr } = await supabase.from('trusted_contacts').delete().eq('user_id', user.id);
+      if (delErr) throw delErr;
       if (parsedContacts.length > 0) {
-        await supabase.from('trusted_contacts').upsert(parsedContacts, { onConflict: 'user_id,phone' });
+        const { error: contactsErr } = await supabase.from('trusted_contacts').insert(parsedContacts);
+        if (contactsErr) throw contactsErr;
       }
 
       setSuccess(true);
@@ -99,6 +135,10 @@ export default function Settings() {
         <div className="field">
           <label>Block Keywords</label>
           <input value={blockKeywords} onChange={e => setBlockKeywords(e.target.value)} />
+        </div>
+        <div className="field" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <input type="checkbox" id="smsNotifs" checked={smsNotifs} onChange={e => setSmsNotifs(e.target.checked)} style={{ width: 'auto' }} />
+          <label htmlFor="smsNotifs" style={{ margin: 0, textTransform: 'none', letterSpacing: 'normal', fontSize: '0.9rem', color: 'var(--color-text)' }}>SMS notifications</label>
         </div>
         <div className="field" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <input type="checkbox" id="emailNotifs" checked={emailNotifs} onChange={e => setEmailNotifs(e.target.checked)} style={{ width: 'auto' }} />

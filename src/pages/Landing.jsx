@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
 import AppHeader from '../components/AppHeader.jsx';
-import CoveWordmark from '../components/CoveWordmark.jsx';
 
 const FEATURES = [
   {
@@ -21,90 +20,103 @@ export default function Landing() {
   const navigate = useNavigate();
 
   return (
-    <main className="page">
-      <AppHeader homeTo="/" />
+    <div className="landing">
+      <div className="landing-wash" aria-hidden="true">
+        <img
+          className="landing-wash__img"
+          src="/cove-wash.jpg"
+          alt=""
+          width={1600}
+          height={1067}
+        />
+        <div className="landing-wash__veil" />
+      </div>
 
-      <section className="landing-hero page-narrow" style={{ paddingTop: '2rem', maxWidth: 520 }}>
-        <p
-          className="landing-pain"
-          style={{
-            color: 'var(--color-text-muted)',
-            fontSize: '0.95rem',
-            lineHeight: 1.55,
-            maxWidth: 420,
-            margin: '0 auto 1.75rem',
-          }}
-        >
-          Unknown numbers. Sales pitches. Another interruption while you’re mid-something.
-          <br />
-          You shouldn’t have to decide whether to answer every time the phone rings.
-        </p>
-
-        <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'center' }}>
-          <CoveWordmark markSize={56} />
-        </div>
-
-        <h1
-          style={{
-            fontSize: '2rem',
-            fontWeight: 700,
-            letterSpacing: '-0.02em',
-            margin: '0 0 0.5rem',
-            color: 'var(--color-text)',
-          }}
-        >
-          Your cove.
-        </h1>
-        <p
-          style={{
-            fontSize: '1.15rem',
-            fontWeight: 600,
-            lineHeight: 1.45,
-            margin: '0 auto',
-            maxWidth: 420,
-            color: 'var(--color-text)',
-          }}
-        >
-          People you trust get through. Everyone else waits.
-        </p>
-
-        <p className="landing-tagline" style={{ maxWidth: 440 }}>
-          Cove is your personal space for calls. Trusted contacts ring your phone. Unknown callers get a
-          short, simple check. What’s left lands in a log you open when you’re ready.
-        </p>
-
-        <p
-          style={{
-            color: 'var(--color-text-muted)',
-            fontSize: '0.95rem',
-            lineHeight: 1.55,
-            maxWidth: 420,
-            margin: '1rem auto 0',
-          }}
-        >
-          Keep the relationships. Cut the noise. One calm place for the rest. Start in a minute.
-        </p>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center', marginTop: '2rem' }}>
-          <button className="btn btn-primary" style={{ width: '240px' }} onClick={() => navigate('/auth?mode=signup')}>
-            Get your cove
-          </button>
-          <button className="btn btn-ghost" style={{ width: '240px' }} onClick={() => navigate('/auth?mode=login')}>
+      <AppHeader
+        homeTo="/"
+        flush
+        actions={
+          <button
+            type="button"
+            className="header-link"
+            onClick={() => navigate('/auth?mode=login')}
+          >
             Sign In
           </button>
-        </div>
+        }
+      />
 
-        <div className="landing-features">
+      <div className="landing-shell">
+        <section className="landing-hero">
+          <div className="landing-copy">
+            <p className="landing-pain">
+              Unknown numbers. Sales pitches. Another interruption while you’re mid-something.
+              <br />
+              You shouldn’t have to decide whether to answer every time the phone rings.
+            </p>
+
+            <h1 className="landing-headline">Your cove.</h1>
+            <p className="landing-subhead">
+              People you trust get through. Everyone else waits.
+            </p>
+            <p className="landing-support">
+              Cove is your personal space for calls. Trusted contacts ring your phone. Unknown
+              callers get a short, simple check. What’s left lands in a log you open when you’re
+              ready.
+            </p>
+
+            <div className="landing-ctas">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => navigate('/auth?mode=signup')}
+              >
+                Get your cove
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => navigate('/auth?mode=login')}
+              >
+                Sign In
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section className="landing-features" aria-label="What Cove does">
           {FEATURES.map(({ title, desc }) => (
-            <div key={title} className="card" style={{ padding: '1.5rem' }}>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--cove-teal)' }}>
-                {title}
-              </h3>
-              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 1.5 }}>{desc}</p>
+            <div key={title} className="feature-row">
+              <h3>{title}</h3>
+              <p>{desc}</p>
             </div>
           ))}
-        </div>
-      </section>
-    </main>
+        </section>
+
+        <section className="price-block" aria-label="Pricing">
+          <p className="price-block__eyebrow">Membership</p>
+          <h2 className="price-block__primary">Seven days of quiet. Then $49/mo.</h2>
+          <p className="price-block__support">
+            Card on file for the trial · your Cove number provisions after payment method is saved ·
+            number stays yours while subscribed · 30-day grace if you cancel.
+          </p>
+          <p className="price-block__plan">7-day trial → $49/mo</p>
+          <p className="price-block__fine">
+            Card required. Cancel anytime in trial. Number after payment method saved. Sticky while
+            subscribed; 30-day grace after cancel. Cancel or update your card anytime in the
+            Customer Portal.
+          </p>
+          <div className="landing-ctas" style={{ marginTop: '1.25rem', marginBottom: 0 }}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => navigate('/auth?mode=signup')}
+            >
+              Get your cove
+            </button>
+          </div>
+        </section>
+      </div>
+    </div>
   );
 }

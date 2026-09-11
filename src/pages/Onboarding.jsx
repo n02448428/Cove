@@ -189,8 +189,8 @@ export default function Onboarding() {
     <main className="page-narrow">
       <AppHeader homeTo="/" />
       <div className="card">
-        <h2 style={{ marginBottom: 8, fontSize: 24, fontWeight: 700 }}>Set up your Cove</h2>
-        <p style={{ marginBottom: 24, color: 'var(--color-text-muted)', fontSize: 14 }}>Takes about 2 minutes.</p>
+        <h2 className="page-title" style={{ fontSize: '1.75rem', marginBottom: 8 }}>Set up your cove</h2>
+        <p className="page-lede" style={{ marginBottom: 24 }}>Takes about 2 minutes. Your Cove number provisions after payment method is saved.</p>
         <form onSubmit={handleSubmit}>
           <div className="field">
             <label>Your Real Phone Number</label>
@@ -201,7 +201,7 @@ export default function Onboarding() {
               placeholder="9175387426 or +19175387426"
               required
             />
-            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
+            <p className="hint">
               Trusted callers ring this number. 10-digit US numbers like 9175387426 are fine (we add +1).
             </p>
           </div>
@@ -213,7 +213,7 @@ export default function Onboarding() {
               placeholder={"Mom 9175550001\nDad +16195550002"}
               rows={4}
             />
-            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
+            <p className="hint">
               One per line: Name then number (917… or +1… OK)
             </p>
           </div>
@@ -235,7 +235,7 @@ export default function Onboarding() {
           </div>
           {error && <p className="error-msg">{error}</p>}
           <button className="btn btn-primary" type="submit" disabled={loading} style={{ width: '100%', marginTop: '0.5rem' }}>
-            {loading ? 'Saving...' : 'Continue to checkout'}
+            {loading ? 'Saving...' : 'Continue to checkout · 7-day trial → $49/mo'}
           </button>
         </form>
       </div>

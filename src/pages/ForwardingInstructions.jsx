@@ -83,8 +83,8 @@ export default function ForwardingInstructions() {
   return (
     <main className="page-narrow">
       <AppHeader homeTo="/dashboard" />
-      <h2 style={{ fontWeight: 800, fontSize: '1.5rem', marginBottom: '0.5rem' }}>Forward your number</h2>
-      <p style={{ color: 'var(--color-text-muted)', marginBottom: '2rem', fontSize: '0.9rem' }}>
+      <h2 className="page-title">Forward your number</h2>
+      <p className="page-lede">
         Forward all calls to your Cove number. Carrier steps vary — undo anytime in your phone settings.
       </p>
 
@@ -95,11 +95,16 @@ export default function ForwardingInstructions() {
       )}
 
       {needsCheckout && (
-        <div className="card" style={{ marginBottom: '1.5rem' }}>
-          <h3 style={{ fontWeight: 700, marginBottom: '0.5rem', fontSize: '0.95rem' }}>Start your 7-day trial</h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>
-            $49/mo after trial. Card required to start — your Cove number is provisioned once payment method is saved.
+        <div className="card section-card" style={{ marginBottom: '1.5rem' }}>
+          <p className="price-block__eyebrow" style={{ marginBottom: '0.5rem' }}>Trial</p>
+          <h3 className="price-block__primary" style={{ fontSize: '1.35rem', marginBottom: '0.5rem' }}>
+            Seven days of quiet. Then $49/mo.
+          </h3>
+          <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.75rem', lineHeight: 1.55 }}>
+            Card on file for the trial · your Cove number provisions after payment method is saved ·
+            number stays yours while subscribed · 30-day grace if you cancel.
           </p>
+          <p className="price-block__plan">7-day trial → $49/mo</p>
           {checkoutError && <p className="error-msg">{checkoutError}</p>}
           <button
             className="btn btn-primary"

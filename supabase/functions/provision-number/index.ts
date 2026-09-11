@@ -3,6 +3,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { releaseExpiredDids } from '../_shared/releaseExpiredDids.ts'
 
 const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
@@ -25,6 +26,13 @@ serve(async (req: Request) => {
   try {
     if (req.method !== 'POST') {
       return json({ error: 'Method not allowed' }, 405)
+    }
+
+    // Lazy DID release (post-grace) before provisioning new numbers
+    try {
+      await releaseExpiredDids()
+    } catch (e) {
+      console.error('lazy releaseExpiredDids soft-fail:', e)
     }
 
     const authHeader = req.headers.get('Authorization')

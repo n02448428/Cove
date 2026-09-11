@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
 import AppHeader from '../components/AppHeader.jsx';
+import { createPortalSession } from '../services/api.js';
 
 function toE164(raw) {
   const trimmed = (raw || '').trim();
@@ -25,16 +26,20 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [billing, setBilling] = useState({ stripeCustomerId: null, subscriptionStatus: null });
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [portalError, setPortalError] = useState('');
 
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [phoneRes, rulesRes, contactsRes] = await Promise.all([
+      const [phoneRes, rulesRes, contactsRes, profileRes] = await Promise.all([
         supabase.from('phone_numbers').select('real_number, notify_sms, notify_email').eq('user_id', user.id).maybeSingle(),
         supabase.from('screening_rules').select('urgent_keywords, block_keywords').eq('user_id', user.id).maybeSingle(),
         supabase.from('trusted_contacts').select('contact_name, phone_number').eq('user_id', user.id),
+        supabase.from('profiles').select('stripe_customer_id, subscription_status').eq('id', user.id).maybeSingle(),
       ]);
 
       if (phoneRes.data) {
@@ -49,10 +54,32 @@ export default function Settings() {
       if (contactsRes.data) {
         setContacts(contactsRes.data.map(c => `${c.contact_name} ${c.phone_number}`).join('\n'));
       }
+      if (profileRes.data) {
+        setBilling({
+          stripeCustomerId: profileRes.data.stripe_customer_id || null,
+          subscriptionStatus: profileRes.data.subscription_status || null,
+        });
+      }
       setLoading(false);
     }
     load();
   }, []);
+
+  const showBilling =
+    !!billing.stripeCustomerId ||
+    (!!billing.subscriptionStatus && billing.subscriptionStatus !== 'none');
+
+  async function handleManageBilling() {
+    setPortalError('');
+    setPortalLoading(true);
+    try {
+      const { url } = await createPortalSession();
+      window.location.assign(url);
+    } catch (err) {
+      setPortalError(err.message || 'Could not open billing portal');
+      setPortalLoading(false);
+    }
+  }
 
   async function handleSave(e) {
     e.preventDefault();
@@ -119,6 +146,28 @@ export default function Settings() {
         actions={<button className="btn btn-ghost" onClick={() => navigate('/dashboard')}>Back</button>}
       />
       <h2 style={{ fontWeight: 800, fontSize: '1.5rem', marginBottom: '1.5rem' }}>Settings</h2>
+
+      {showBilling && (
+        <div className="card" style={{ marginBottom: '1.25rem' }}>
+          <h3 style={{ fontWeight: 700, fontSize: '1.05rem', marginBottom: '0.5rem' }}>Billing</h3>
+          <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>
+            Cancel, update payment method, or view invoices in Stripe Customer Portal.
+            {billing.subscriptionStatus ? (
+              <> Status: <strong>{billing.subscriptionStatus}</strong>.</>
+            ) : null}
+          </p>
+          {portalError && <p className="error-msg">{portalError}</p>}
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={handleManageBilling}
+            disabled={portalLoading}
+            style={{ width: '100%' }}
+          >
+            {portalLoading ? 'Opening…' : 'Manage billing'}
+          </button>
+        </div>
+      )}
 
       <form className="card" onSubmit={handleSave}>
         <div className="field">

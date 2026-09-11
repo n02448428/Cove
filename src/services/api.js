@@ -172,3 +172,32 @@ export const createCheckoutSession = async () => {
   if (!payload.url) throw new Error('Checkout session missing url');
   return payload;
 };
+
+// — Stripe Customer Portal ——————————————————————
+export const createPortalSession = async () => {
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError || !session?.access_token) {
+    throw new Error('Not authenticated');
+  }
+
+  const base = import.meta.env.VITE_SUPABASE_URL;
+  if (!base) throw new Error('VITE_SUPABASE_URL is not set');
+
+  const res = await fetch(`${base.replace(/\/$/, '')}/functions/v1/create-portal-session`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      apikey: import.meta.env.VITE_SUPABASE_ANON_KEY ?? '',
+      'Content-Type': 'application/json',
+    },
+    body: '{}',
+  });
+
+  const payload = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(payload.error || `Portal failed (${res.status})`);
+  }
+  if (!payload.url) throw new Error('Portal session missing url');
+  return payload;
+};
+

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
 import AppHeader from '../components/AppHeader.jsx';
+import { createCheckoutSession } from '../services/api.js';
 
 function toE164(raw) {
   const trimmed = (raw || '').trim();
@@ -92,18 +93,37 @@ export default function Onboarding() {
         .eq('user_id', user.id)
         .maybeSingle();
 
+      const alreadyActive =
+        existingPhone?.provisioning_status === 'active' && existingPhone?.twilio_number;
+
       const phonePayload = {
         user_id: user.id,
         real_number: realNumber,
         notify_sms: smsNotifs,
         notify_email: emailNotifs,
-        provisioning_status: existingPhone?.provisioning_status === 'active' ? 'active' : 'pending',
+        provisioning_status: alreadyActive ? 'active' : 'pending',
       };
 
       const { error: phoneErr } = await supabase
         .from('phone_numbers')
         .upsert(phonePayload, { onConflict: 'user_id' });
       if (phoneErr) throw phoneErr;
+
+      // Card-gated trial: send to Stripe Checkout unless already provisioned
+      if (!alreadyActive) {
+        try {
+          const { url } = await createCheckoutSession();
+          if (url) {
+            window.location.href = url;
+            return;
+          }
+        } catch (checkoutErr) {
+          console.error('Checkout start failed:', checkoutErr);
+          // Fall through to forwarding with retry CTA
+          navigate('/forwarding?checkout=needed');
+          return;
+        }
+      }
 
       navigate('/forwarding');
     } catch (err) {
@@ -159,7 +179,7 @@ export default function Onboarding() {
           </div>
           {error && <p className="error-msg">{error}</p>}
           <button className="btn btn-primary" type="submit" disabled={loading} style={{ width: '100%', marginTop: '0.5rem' }}>
-            {loading ? 'Saving...' : 'Continue'}
+            {loading ? 'Saving...' : 'Continue to checkout'}
           </button>
         </form>
       </div>

@@ -23,7 +23,7 @@
 5. Customer Portal (`create-portal-session`) for cancel / update card — Settings → **Manage billing**
 6. On `customer.subscription.deleted` → `subscription_status=grace`, `grace_ends_at=now()+30d`, `phone_numbers.reserved_until=+30d`, **keep Twilio DID**
 7. After grace: **lazy release** (shared helper) on `stripe-webhook`, `provision-number`, `twilio-voice-inbound` start — release DID unless status became trialing/active again
-8. `invoice.payment_failed` → `subscription_status=past_due`
+8. `invoice.payment_failed` → `subscription_status=past_due` (**keep DID**; do not touch `reserved_until`)
 9. `cancel_at_period_end` while still active/trialing → stay active until `subscription.deleted` (no early grace)
 
 ## Edge Functions
@@ -96,6 +96,17 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_live_...   # optional until Elements
 3. When Stripe sends `customer.subscription.deleted`: expect `profiles.subscription_status=grace`, `grace_ends_at` ~+30d, `phone_numbers.reserved_until` ~+30d, **same** `twilio_number`
 4. (Staging) Set `reserved_until` to yesterday; invoke `provision-number` or send a test Stripe event / inbound call — expect Twilio IncomingNumber deleted, `twilio_number=null`, `released_at` set, `provisioning_status=released`
 5. Confirm live DTMF voice path unchanged for active users (trusted forward + screening still work)
+
+## Webhook hardening (stripe-webhook)
+
+- **Auth**: Stripe signature on raw body (`verify_jwt=false`). Bad/missing signature → **400**, no DB mutate.
+- **Idempotency** (minimal schema — no events table):
+  - Warm-isolate in-memory dedupe of Stripe `event.id` (marked **after** successful handle so 5xx can retry).
+  - Handlers read `profiles` billing fields and **no-op** when status/IDs already match.
+  - `subscription.deleted` already in `grace` → **do not reset** `grace_ends_at` / `reserved_until` (preserves 30d clock on retries).
+- **Defensive acks**: missing customer / `user_id` / unknown profile → **log + 200** (Stripe would retry forever on 5xx for non-retryable linkage gaps). Unexpected errors → **500** for retry.
+- **`invoice.payment_failed`**: set `subscription_status=past_due` only — **never** release DID or touch `phone_numbers.reserved_until`.
+- Pricing locked: $49 card-gated 7-day trial; sticky DID 30d cancel grace. Do not change `twilio-voice-inbound` screening in webhook harden PRs.
 
 ## Tables
 See migrations `20260911000000_billing_fields.sql`, `20260911010000_provisioning_status_released.sql`

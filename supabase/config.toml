@@ -64,3 +64,13 @@ enabled = true
 
 [analytics]
 enabled = false
+
+# ---- Cove billing Edge Functions ----
+[functions.create-checkout-session]
+verify_jwt = true
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.provision-number]
+verify_jwt = true

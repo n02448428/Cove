@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
+import { createCheckoutSession } from '../services/api.js';
 
 function toE164(raw) {
   const trimmed = (raw || '').trim();
@@ -91,18 +92,37 @@ export default function Onboarding() {
         .eq('user_id', user.id)
         .maybeSingle();
 
+      const alreadyActive =
+        existingPhone?.provisioning_status === 'active' && existingPhone?.twilio_number;
+
       const phonePayload = {
         user_id: user.id,
         real_number: realNumber,
         notify_sms: smsNotifs,
         notify_email: emailNotifs,
-        provisioning_status: existingPhone?.provisioning_status === 'active' ? 'active' : 'pending',
+        provisioning_status: alreadyActive ? 'active' : 'pending',
       };
 
       const { error: phoneErr } = await supabase
         .from('phone_numbers')
         .upsert(phonePayload, { onConflict: 'user_id' });
       if (phoneErr) throw phoneErr;
+
+      // Card-gated trial: send to Stripe Checkout unless already provisioned
+      if (!alreadyActive) {
+        try {
+          const { url } = await createCheckoutSession();
+          if (url) {
+            window.location.href = url;
+            return;
+          }
+        } catch (checkoutErr) {
+          console.error('Checkout start failed:', checkoutErr);
+          // Fall through to forwarding with retry CTA
+          navigate('/forwarding?checkout=needed');
+          return;
+        }
+      }
 
       navigate('/forwarding');
     } catch (err) {
@@ -116,7 +136,7 @@ export default function Onboarding() {
     <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0a' }}>
       <div style={{ width: '100%', maxWidth: 480, padding: '2rem', background: '#111', borderRadius: 16, boxShadow: '0 4px 32px #0006' }}>
         <h2 style={{ marginBottom: 8, fontSize: 24, fontWeight: 700 }}>Set up your Cove</h2>
-        <p style={{ marginBottom: 24, color: '#aaa', fontSize: 14 }}>Takes about 2 minutes.</p>
+        <p style={{ marginBottom: 24, color: '#aaa', fontSize: 14 }}>Takes about 2 minutes. Next you&apos;ll start a 7-day card-gated trial ($49/mo after).</p>
         <form onSubmit={handleSubmit}>
           <div className="field">
             <label>Your Real Phone Number</label>
@@ -157,7 +177,7 @@ export default function Onboarding() {
           </div>
           {error && <p className="error-msg">{error}</p>}
           <button className="btn btn-primary" type="submit" disabled={loading} style={{ width: '100%', marginTop: '0.5rem' }}>
-            {loading ? 'Saving...' : 'Continue'}
+            {loading ? 'Saving...' : 'Continue to checkout'}
           </button>
         </form>
       </div>

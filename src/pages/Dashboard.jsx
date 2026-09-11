@@ -52,7 +52,9 @@ export default function Dashboard() {
         }
       />
 
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+      <h1 className="page-title" style={{ fontSize: '1.85rem', marginBottom: '1.25rem' }}>Call log</h1>
+
+      <div className="filter-row">
         {['all', 'forwarded', 'voicemail', 'blocked'].map(f => (
           <button
             key={f}
@@ -68,19 +70,18 @@ export default function Dashboard() {
       {loading ? (
         <p style={{ color: 'var(--color-text-muted)' }}>Loading calls...</p>
       ) : filtered.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
+        <div className="card-quiet" style={{ textAlign: 'center', padding: '3rem' }}>
           <p style={{ color: 'var(--color-text-muted)' }}>No calls yet. Make sure your number is forwarded to Cove.</p>
           <button className="btn btn-ghost" style={{ marginTop: '1rem' }} onClick={() => navigate('/forwarding')}>
             View forwarding instructions
           </button>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <div className="call-list">
           {filtered.map(call => (
             <div
               key={call.id}
-              className="card"
-              style={{ cursor: 'pointer' }}
+              className="call-row"
               onClick={() => setExpanded(expanded === call.id ? null : call.id)}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -96,7 +97,7 @@ export default function Dashboard() {
               </div>
 
               {expanded === call.id && (
-                <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--color-border)' }}>
+                <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--color-rule)' }}>
                   {call.summary && <p style={{ fontSize: '0.85rem', marginBottom: '0.75rem' }}>{call.summary}</p>}
                   {call.transcript && (
                     <details>

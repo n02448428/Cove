@@ -24,7 +24,7 @@ export default function Admin() {
   return (
     <main className="page">
       <AppHeader homeTo="/dashboard" />
-      <h2 style={{ fontWeight: 800, fontSize: '1.5rem', marginBottom: '2rem' }}>Admin Console</h2>
+      <h2 className="page-title" style={{ marginBottom: '2rem' }}>Admin</h2>
 
       {loading ? (
         <p style={{ color: 'var(--color-text-muted)' }}>Loading...</p>

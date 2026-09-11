@@ -145,13 +145,13 @@ export default function Settings() {
         homeTo="/dashboard"
         actions={<button className="btn btn-ghost" onClick={() => navigate('/dashboard')}>Back</button>}
       />
-      <h2 style={{ fontWeight: 800, fontSize: '1.5rem', marginBottom: '1.5rem' }}>Settings</h2>
+      <h2 className="page-title" style={{ marginBottom: '1.5rem' }}>Settings</h2>
 
       {showBilling && (
-        <div className="card" style={{ marginBottom: '1.25rem' }}>
-          <h3 style={{ fontWeight: 700, fontSize: '1.05rem', marginBottom: '0.5rem' }}>Billing</h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>
-            Cancel, update payment method, or view invoices in Stripe Customer Portal.
+        <div className="card section-card" style={{ marginBottom: '1.25rem' }}>
+          <h3 style={{ fontFamily: 'var(--font-serif)', fontWeight: 600, fontSize: '1.25rem', marginBottom: '0.5rem' }}>Billing</h3>
+          <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.75rem', lineHeight: 1.55 }}>
+            Cancel, update your card, or view invoices in the Customer Portal. Number stays yours while subscribed; 30-day grace if you cancel.
             {billing.subscriptionStatus ? (
               <> Status: <strong>{billing.subscriptionStatus}</strong>.</>
             ) : null}
@@ -169,7 +169,7 @@ export default function Settings() {
         </div>
       )}
 
-      <form className="card" onSubmit={handleSave}>
+      <form className="card section-card" onSubmit={handleSave}>
         <div className="field">
           <label>Your Real Phone Number</label>
           <input type="tel" value={realPhone} onChange={e => setRealPhone(e.target.value)} placeholder="+16195551234" />
@@ -177,7 +177,7 @@ export default function Settings() {
         <div className="field">
           <label>Trusted Contacts</label>
           <textarea value={contacts} onChange={e => setContacts(e.target.value)} rows={4} placeholder="Mom +16195550001" />
-          <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>One per line: Name +1XXXXXXXXXX</p>
+          <p className="hint">One per line: Name +1XXXXXXXXXX</p>
         </div>
         <div className="field">
           <label>Urgent Keywords</label>

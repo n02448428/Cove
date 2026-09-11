@@ -106,13 +106,16 @@ export default function Auth() {
   return (
     <main className="page-narrow">
       <AppHeader homeTo="/" />
-      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <p style={{ color: 'var(--color-text-muted)' }}>
-          {mode === 'login'
-            ? 'Welcome back.'
-            : mode === 'signup'
-              ? 'Create your account.'
-              : 'Reset your password.'}
+      <div className="auth-lede">
+        <h1 className="page-title" style={{ marginBottom: '0.35rem' }}>
+          {mode === 'login' ? 'Welcome back.' : mode === 'signup' ? 'Create your account.' : 'Reset your password.'}
+        </h1>
+        <p style={{ margin: 0 }}>
+          {mode === 'signup'
+            ? 'Seven days of quiet starts after checkout — card on file for the trial.'
+            : mode === 'forgot'
+              ? 'We’ll email a reset link if an account exists.'
+              : 'Sign in to your cove.'}
         </p>
       </div>
 

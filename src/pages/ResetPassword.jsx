@@ -123,8 +123,9 @@ export default function ResetPassword() {
   return (
     <main className="page-narrow">
       <AppHeader homeTo="/" />
-      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <p style={{ color: 'var(--color-text-muted)' }}>Choose a new password.</p>
+      <div className="auth-lede">
+        <h1 className="page-title" style={{ marginBottom: '0.35rem' }}>Choose a new password.</h1>
+        <p style={{ margin: 0 }}>Then continue to your cove.</p>
       </div>
 
       <div className="card">

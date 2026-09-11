@@ -1,7 +1,7 @@
 {
   "name": "cove",
   "version": "0.1.0",
-  "description": "AI phone concierge — screens calls, handles voicemail, and lets trusted contacts reach you directly.",
+  "description": "Cove — trusted contacts ring through; everyone else waits. Calm personal call filter.",
   "private": true,
   "type": "module",
   "scripts": {

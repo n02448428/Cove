@@ -7,7 +7,9 @@ export default function Auth() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const modeParam = searchParams.get('mode');
-  const [mode, setMode] = useState(modeParam === 'signup' ? 'signup' : 'login');
+  const [mode, setMode] = useState(
+    modeParam === 'signup' ? 'signup' : modeParam === 'forgot' ? 'forgot' : 'login'
+  );
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -15,7 +17,8 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const next = modeParam === 'signup' ? 'signup' : 'login';
+    const next =
+      modeParam === 'signup' ? 'signup' : modeParam === 'forgot' ? 'forgot' : 'login';
     setMode(next);
   }, [modeParam]);
 
@@ -31,7 +34,33 @@ export default function Auth() {
     setMode(next);
     setError('');
     setInfo('');
-    setSearchParams(next === 'signup' ? { mode: 'signup' } : { mode: 'login' });
+    setPassword('');
+    setSearchParams(
+      next === 'signup'
+        ? { mode: 'signup' }
+        : next === 'forgot'
+          ? { mode: 'forgot' }
+          : { mode: 'login' }
+    );
+  }
+
+  async function handleForgotSubmit(e) {
+    e.preventDefault();
+    setError('');
+    setInfo('');
+    setLoading(true);
+    try {
+      const redirectTo = `${window.location.origin}/reset-password`;
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+      if (error) throw error;
+      setInfo(
+        'If an account exists for that email, a reset link is on the way. Check your inbox and spam folder. Delivery depends on project email (SMTP/Resend) being configured.'
+      );
+    } catch (err) {
+      setError(err.message || 'Could not send reset link. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleSubmit(e) {
@@ -72,58 +101,152 @@ export default function Auth() {
     }
   }
 
+  const isForgot = mode === 'forgot';
+
   return (
     <main className="page-narrow">
       <AppHeader homeTo="/" />
       <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
         <p style={{ color: 'var(--color-text-muted)' }}>
-          {mode === 'login' ? 'Welcome back.' : 'Create your account.'}
+          {mode === 'login'
+            ? 'Welcome back.'
+            : mode === 'signup'
+              ? 'Create your account.'
+              : 'Reset your password.'}
         </p>
       </div>
 
       <div className="card">
-        <form onSubmit={handleSubmit}>
-          <div className="field">
-            <label>Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
-            />
-          </div>
-          <div className="field">
-            <label>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-            />
-          </div>
-          {error && <p className="error-msg">{error}</p>}
-          {info && <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginTop: '0.75rem' }}>{info}</p>}
-          <button
-            className="btn btn-primary"
-            type="submit"
-            disabled={loading}
-            style={{ width: '100%', marginTop: '1rem' }}
-          >
-            {loading ? 'Loading...' : mode === 'login' ? 'Sign In' : 'Create Account'}
-          </button>
-        </form>
+        {isForgot ? (
+          <form onSubmit={handleForgotSubmit}>
+            <div className="field">
+              <label>Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                autoComplete="email"
+              />
+            </div>
+            {error && <p className="error-msg">{error}</p>}
+            {info && (
+              <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginTop: '0.75rem' }}>
+                {info}
+              </p>
+            )}
+            <button
+              className="btn btn-primary"
+              type="submit"
+              disabled={loading}
+              style={{ width: '100%', marginTop: '1rem' }}
+            >
+              {loading ? 'Sending...' : 'Send reset link'}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <div className="field">
+              <label>Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                autoComplete="email"
+              />
+            </div>
+            <div className="field">
+              <label>Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+              />
+            </div>
+            {mode === 'login' && (
+              <p style={{ textAlign: 'right', marginTop: '0.25rem', marginBottom: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => switchMode('forgot')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--color-accent)',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    padding: 0,
+                  }}
+                >
+                  Forgot password?
+                </button>
+              </p>
+            )}
+            {error && <p className="error-msg">{error}</p>}
+            {info && (
+              <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginTop: '0.75rem' }}>
+                {info}
+              </p>
+            )}
+            <button
+              className="btn btn-primary"
+              type="submit"
+              disabled={loading}
+              style={{ width: '100%', marginTop: '1rem' }}
+            >
+              {loading ? 'Loading...' : mode === 'login' ? 'Sign In' : 'Create Account'}
+            </button>
+          </form>
+        )}
 
-        <p style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
-          {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
-          <button
-            type="button"
-            onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')}
-            style={{ background: 'none', border: 'none', color: 'var(--color-accent)', cursor: 'pointer', fontSize: '0.85rem' }}
-          >
-            {mode === 'login' ? 'Sign up' : 'Sign in'}
-          </button>
+        <p
+          style={{
+            textAlign: 'center',
+            marginTop: '1.5rem',
+            fontSize: '0.85rem',
+            color: 'var(--color-text-muted)',
+          }}
+        >
+          {isForgot ? (
+            <>
+              Remembered your password?{' '}
+              <button
+                type="button"
+                onClick={() => switchMode('login')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--color-accent)',
+                  cursor: 'pointer',
+                  fontSize: '0.85rem',
+                }}
+              >
+                Sign in
+              </button>
+            </>
+          ) : (
+            <>
+              {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
+              <button
+                type="button"
+                onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--color-accent)',
+                  cursor: 'pointer',
+                  fontSize: '0.85rem',
+                }}
+              >
+                {mode === 'login' ? 'Sign up' : 'Sign in'}
+              </button>
+            </>
+          )}
         </p>
       </div>
     </main>

@@ -13,7 +13,7 @@ const FEATURES = [
   },
   {
     title: 'Voicemail log',
-    desc: 'Messages are saved with transcripts so you can review them on your own time.',
+    desc: 'Voicemails are saved to your log so you can review them on your own time.',
   },
 ];
 

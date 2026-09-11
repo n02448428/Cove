@@ -1,6 +1,7 @@
 // supabase/functions/twilio-voice-inbound/index.ts
 // Cove MVP - Inbound call webhook from Twilio
-// Handles: trusted contact forwarding, Retell screening, fallback voicemail
+// Handles: trusted contact forwarding, DTMF Gather screening, fallback voicemail
+// Retell removed from hot path (unknown callers → Gather → twilio-voice-screen)
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -8,14 +9,13 @@ import { releaseExpiredDids } from '../_shared/releaseExpiredDids.ts'
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
 )
 
-const TWILIO_ACCOUNT_SID = Deno.env.get('TWILIO_ACCOUNT_SID')!
-const TWILIO_AUTH_TOKEN = Deno.env.get('TWILIO_AUTH_TOKEN')!
-const RETELL_AGENT_ID = Deno.env.get('RETELL_AGENT_ID')!
-const RETELL_API_KEY = Deno.env.get('RETELL_API_KEY')!
-const APP_BASE_URL = Deno.env.get('APP_BASE_URL')!
+// Prod historically omitted APP_BASE_URL — never emit undefined action URLs
+const APP_BASE_URL = (
+  Deno.env.get('APP_BASE_URL') ?? 'https://csbstpehuunaoyehhixp.supabase.co'
+).replace(/\/$/, '')
 
 serve(async (req: Request) => {
   try {
@@ -63,7 +63,7 @@ serve(async (req: Request) => {
       provider: 'twilio',
     })
 
-    // 3. Check if caller is a trusted contact
+    // 3. Check if caller is a trusted contact (exact From match)
     const { data: trustedContacts } = await supabase
       .from('trusted_contacts')
       .select('phone_number, contact_name')
@@ -89,40 +89,7 @@ serve(async (req: Request) => {
       return new Response(twiml, { headers: { 'Content-Type': 'text/xml' } })
     }
 
-    // 4. Load screening rules for unknown caller
-    const { data: rules } = await supabase
-      .from('screening_rules')
-      .select('urgent_keywords, block_keywords')
-      .eq('user_id', user_id)
-      .single()
-
-    const urgentKeywords = rules?.urgent_keywords ?? []
-    const blockKeywords = rules?.block_keywords ?? []
-    const trustedNumbers = trustedContacts?.map(c => c.phone_number) ?? []
-
-    // 5. Connect to Retell agent for screening
-    // Pass dynamic context as custom data
-    const retellContext = JSON.stringify({
-      urgent_keywords: urgentKeywords,
-      block_keywords: blockKeywords,
-      trusted_numbers: trustedNumbers,
-      caller_number: from,
-      call_sid: callSid,
-      user_id,
-      real_number,
-      webhook_url: `${APP_BASE_URL}/functions/v1/call-completion-handler`,
-    })
-
-    // Retell SIP integration via Twilio
-    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Connect>
-    <Stream url="wss://api.retellai.com/audio-websocket/${RETELL_AGENT_ID}">
-      <Parameter name="retell_llm_dynamic_variables" value='${retellContext.replace(/'/g, "&apos;")}'  />
-    </Stream>
-  </Connect>
-</Response>`
-
+    // 4. Unknown caller: DTMF Gather → twilio-voice-screen (no Retell)
     await supabase.from('call_logs').upsert({
       user_id,
       call_sid: callSid,
@@ -132,9 +99,22 @@ serve(async (req: Request) => {
 
     await supabase.from('call_audit').insert({
       user_id, call_sid: callSid,
-      event_type: 'retell_screening_started',
-      provider: 'retell',
+      event_type: 'dtmf_screening_started',
+      provider: 'twilio',
     })
+
+    const screenAction =
+      `${APP_BASE_URL}/functions/v1/twilio-voice-screen?callSid=${encodeURIComponent(callSid)}`
+
+    // Prompt matches screen contract: 9 urgent / 1 sales / else voicemail
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Gather numDigits="1" timeout="6" action="${screenAction}" method="POST">
+    <Say>Thanks for calling. If this is urgent, press 9. If you are a salesperson, press 1. Otherwise, stay on the line to leave a message.</Say>
+  </Gather>
+  <Say>Please leave your message after the beep.</Say>
+  <Record maxLength="120" playBeep="true" timeout="30" transcribe="true" transcribeCallback="${APP_BASE_URL}/functions/v1/call-completion-handler?outcome=voicemail&amp;callSid=${callSid}" />
+</Response>`
 
     return new Response(twiml, { headers: { 'Content-Type': 'text/xml' } })
 

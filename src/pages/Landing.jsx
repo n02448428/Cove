@@ -33,10 +33,10 @@ export default function Landing() {
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center', marginTop: '2rem' }}>
-          <button className="btn btn-primary" style={{ width: '240px' }} onClick={() => navigate('/auth')}>
+          <button className="btn btn-primary" style={{ width: '240px' }} onClick={() => navigate('/auth?mode=signup')}>
             Get Started
           </button>
-          <button className="btn btn-ghost" style={{ width: '240px' }} onClick={() => navigate('/auth')}>
+          <button className="btn btn-ghost" style={{ width: '240px' }} onClick={() => navigate('/auth?mode=login')}>
             Sign In
           </button>
         </div>

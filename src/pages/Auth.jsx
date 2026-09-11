@@ -1,24 +1,53 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
 import AppHeader from '../components/AppHeader.jsx';
 
 export default function Auth() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState('login'); // 'login' | 'signup'
+  const [searchParams, setSearchParams] = useSearchParams();
+  const modeParam = searchParams.get('mode');
+  const [mode, setMode] = useState(modeParam === 'signup' ? 'signup' : 'login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const next = modeParam === 'signup' ? 'signup' : 'login';
+    setMode(next);
+  }, [modeParam]);
+
+  useEffect(() => {
+    if (!loading) return undefined;
+    const t = setTimeout(() => {
+      setError((prev) => prev || 'This is taking longer than expected. Check your connection and try again.');
+    }, 15000);
+    return () => clearTimeout(t);
+  }, [loading]);
+
+  function switchMode(next) {
+    setMode(next);
+    setError('');
+    setInfo('');
+    setSearchParams(next === 'signup' ? { mode: 'signup' } : { mode: 'login' });
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+    setInfo('');
     setLoading(true);
     try {
       if (mode === 'signup') {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
+        // Email confirmation may leave no session — don't navigate blindly.
+        if (!data.session) {
+          setInfo('Check your email to confirm your account before signing in.');
+          return;
+        }
         // Profile row is created by the auth.users trigger; complete setup next.
         navigate('/onboarding');
       } else {
@@ -37,7 +66,7 @@ export default function Auth() {
         }
       }
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -75,6 +104,7 @@ export default function Auth() {
             />
           </div>
           {error && <p className="error-msg">{error}</p>}
+          {info && <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginTop: '0.75rem' }}>{info}</p>}
           <button
             className="btn btn-primary"
             type="submit"
@@ -88,7 +118,8 @@ export default function Auth() {
         <p style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
           {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
           <button
-            onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
+            type="button"
+            onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')}
             style={{ background: 'none', border: 'none', color: 'var(--color-accent)', cursor: 'pointer', fontSize: '0.85rem' }}
           >
             {mode === 'login' ? 'Sign up' : 'Sign in'}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
 import AppHeader from '../components/AppHeader.jsx';
@@ -14,20 +14,65 @@ function toE164(raw) {
   return trimmed.startsWith('+') ? trimmed : `+${digits}`;
 }
 
+const DEFAULT_URGENT =
+  'emergency, accident, hospital, urgent, 911, police, fire, ambulance, school';
+const DEFAULT_BLOCK =
+  'survey, warranty, offer, loan, credit, investment, sales, marketing, promotion, solicitor';
+
 export default function Onboarding() {
   const navigate = useNavigate();
   const [realPhone, setRealPhone] = useState('');
   const [contacts, setContacts] = useState('');
-  const [urgentKeywords, setUrgentKeywords] = useState(
-    'emergency, accident, hospital, urgent, 911, police, fire, ambulance, school'
-  );
-  const [blockKeywords, setBlockKeywords] = useState(
-    'survey, warranty, offer, loan, credit, investment, sales, marketing, promotion, solicitor'
-  );
+  const [urgentKeywords, setUrgentKeywords] = useState(DEFAULT_URGENT);
+  const [blockKeywords, setBlockKeywords] = useState(DEFAULT_BLOCK);
   const [smsNotifs, setSmsNotifs] = useState(false);
   const [emailNotifs, setEmailNotifs] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    async function loadExisting() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const [phoneRes, rulesRes, contactsRes] = await Promise.all([
+        supabase
+          .from('phone_numbers')
+          .select('real_number, notify_sms, notify_email')
+          .eq('user_id', user.id)
+          .maybeSingle(),
+        supabase
+          .from('screening_rules')
+          .select('urgent_keywords, block_keywords')
+          .eq('user_id', user.id)
+          .maybeSingle(),
+        supabase
+          .from('trusted_contacts')
+          .select('contact_name, phone_number')
+          .eq('user_id', user.id),
+      ]);
+
+      if (phoneRes.data) {
+        if (phoneRes.data.real_number) setRealPhone(phoneRes.data.real_number);
+        setSmsNotifs(!!phoneRes.data.notify_sms);
+        setEmailNotifs(phoneRes.data.notify_email ?? true);
+      }
+      if (rulesRes.data) {
+        if (rulesRes.data.urgent_keywords?.length) {
+          setUrgentKeywords(rulesRes.data.urgent_keywords.join(', '));
+        }
+        if (rulesRes.data.block_keywords?.length) {
+          setBlockKeywords(rulesRes.data.block_keywords.join(', '));
+        }
+      }
+      if (contactsRes.data?.length) {
+        setContacts(
+          contactsRes.data.map(c => `${c.contact_name} ${c.phone_number}`).join('\n')
+        );
+      }
+    }
+    loadExisting();
+  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -37,9 +82,16 @@ export default function Onboarding() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      // Ensure public.profiles exists before any FK-dependent upserts
+      const { error: profileErr } = await supabase.from('profiles').upsert({
+        id: user.id,
+        email: user.email,
+      }, { onConflict: 'id' });
+      if (profileErr) throw profileErr;
+
       const realNumber = toE164(realPhone);
       if (!/^\+[1-9]\d{1,14}$/.test(realNumber)) {
-        throw new Error('Enter your real phone in E.164 format, e.g. +16195551234');
+        throw new Error('Enter your real phone, e.g. 9175387426 or +19175387426');
       }
 
       const parsedContacts = contacts
@@ -146,20 +198,24 @@ export default function Onboarding() {
               type="tel"
               value={realPhone}
               onChange={e => setRealPhone(e.target.value)}
-              placeholder="+16195551234"
+              placeholder="9175387426 or +19175387426"
               required
             />
-            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>Trusted callers ring this number. Use E.164 (+1…).</p>
+            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
+              Trusted callers ring this number. 10-digit US numbers like 9175387426 are fine (we add +1).
+            </p>
           </div>
           <div className="field">
             <label>Trusted Contacts</label>
             <textarea
               value={contacts}
               onChange={e => setContacts(e.target.value)}
-              placeholder={"Mom +16195550001\nDad +16195550002"}
+              placeholder={"Mom 9175550001\nDad +16195550002"}
               rows={4}
             />
-            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>One per line: Name +1XXXXXXXXXX</p>
+            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
+              One per line: Name then number (917… or +1… OK)
+            </p>
           </div>
           <div className="field">
             <label>Urgent Keywords (connect immediately)</label>

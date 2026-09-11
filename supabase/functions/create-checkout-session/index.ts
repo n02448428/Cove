@@ -16,7 +16,13 @@ const PRICE_ID =
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-const APP_BASE_URL = (Deno.env.get('APP_BASE_URL') ?? 'https://withcove.co').replace(/\/$/, '')
+// Checkout success/cancel must hit the SPA. Do NOT reuse APP_BASE_URL if that
+// secret points at Supabase (voice fns use it for /functions/v1 callbacks).
+const APP_BASE_URL = (
+  Deno.env.get('FRONTEND_URL') ??
+  Deno.env.get('CHECKOUT_RETURN_URL') ??
+  'https://withcove.co'
+).replace(/\/$/, '')
 
 const stripe = new Stripe(STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16',

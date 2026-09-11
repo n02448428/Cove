@@ -47,7 +47,8 @@ STRIPE_PRICE_ID_49_MONTHLY=price_1UEI7KBGpVuNZeuZ03lbTAtF
 SUPABASE_URL=https://csbstpehuunaoyehhixp.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=...
 SUPABASE_ANON_KEY=...          # create-checkout-session JWT validation
-APP_BASE_URL=https://withcove.co
+FRONTEND_URL=https://withcove.co   # Checkout success/cancel (preferred)
+# APP_BASE_URL remains Supabase host for voice callbacks if already set that way
 TWILIO_ACCOUNT_SID=AC...
 TWILIO_AUTH_TOKEN=...
 TWILIO_VOICE_WEBHOOK_URL=      # optional; defaults to ${SUPABASE_URL}/functions/v1/twilio-voice-inbound

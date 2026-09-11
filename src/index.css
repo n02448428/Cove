@@ -1,6 +1,7 @@
 /* =========================================
-   Cove — Global Design System
-   Minimal, bold, high-end SoCal aesthetic
+   Cove — Brand design system
+   Teal / gold / charcoal / soft-white
+   Light + dark via data-theme
    ========================================= */
 
 *, *::before, *::after {
@@ -9,24 +10,32 @@
   padding: 0;
 }
 
-:root {
-  /* Colors */
-  --color-bg:          #0a0a0f;
-  --color-surface:     #111118;
-  --color-border:      #1e1e2e;
-  --color-text:        #f0f0f5;
-  --color-text-muted:  #6b6b80;
-  --color-accent:      #6c63ff;
-  --color-accent-hover:#857dff;
-  --color-danger:      #ff4d4d;
-  --color-success:     #22c55e;
-  --color-warning:     #f59e0b;
+:root,
+[data-theme="light"] {
+  --cove-teal: #487878;
+  --cove-gold: #B88848;
+  --cove-charcoal: #2F2F33;
+  --cove-soft-white: #F7F8F6;
+  --cove-dark-bg: #161618;
+  --cove-light-ove: #F2F2F0;
 
-  /* Typography */
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --color-bg: var(--cove-soft-white);
+  --color-surface: #ffffff;
+  --color-border: #e2e4e2;
+  --color-text: var(--cove-charcoal);
+  --color-text-muted: #6B6F73;
+  --color-accent: var(--cove-teal);
+  --color-accent-hover: #3d6868;
+  --color-danger: #c44545;
+  --color-success: #2f8f5b;
+  --color-warning: var(--cove-gold);
+  --cove-ove: var(--cove-charcoal);
+  --shadow-sm: 0 1px 3px rgba(47, 47, 51, 0.08);
+  --shadow-md: 0 4px 20px rgba(47, 47, 51, 0.1);
 
-  /* Spacing */
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -37,15 +46,26 @@
   --space-16: 4rem;
   --space-24: 6rem;
 
-  /* Border radius */
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
   --radius-full: 9999px;
+}
 
-  /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
-  --shadow-md: 0 4px 20px rgba(0,0,0,0.5);
+[data-theme="dark"] {
+  --color-bg: var(--cove-dark-bg);
+  --color-surface: #1e1e22;
+  --color-border: #2c2c32;
+  --color-text: var(--cove-light-ove);
+  --color-text-muted: #A0A4A8;
+  --color-accent: var(--cove-teal);
+  --color-accent-hover: #5a8f8f;
+  --color-danger: #e06060;
+  --color-success: #3db873;
+  --color-warning: var(--cove-gold);
+  --cove-ove: var(--cove-light-ove);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.5);
 }
 
 html {
@@ -59,6 +79,7 @@ body {
   font-family: var(--font-sans);
   line-height: 1.6;
   min-height: 100dvh;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 a {
@@ -66,6 +87,66 @@ a {
   text-decoration: none;
 }
 a:hover { color: var(--color-accent-hover); }
+
+/* —— Wordmark —— */
+.cove-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15em;
+  line-height: 1;
+  color: var(--color-text);
+}
+.cove-wordmark-ove {
+  font-family: var(--font-sans);
+  font-size: 1.55em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--cove-ove);
+  line-height: 1;
+  padding-top: 0.08em;
+}
+.cove-wordmark-link {
+  display: inline-flex;
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
+}
+.cove-wordmark-link:hover { color: inherit; opacity: 0.9; }
+
+/* —— App header / shell —— */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+.app-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.theme-toggle:hover {
+  border-color: var(--cove-teal);
+  color: var(--cove-teal);
+}
 
 /* Utility classes */
 .btn {
@@ -81,6 +162,7 @@ a:hover { color: var(--color-accent-hover); }
   transition: all 0.15s ease;
   border: none;
   white-space: nowrap;
+  font-family: var(--font-sans);
 }
 
 .btn-primary {
@@ -88,6 +170,7 @@ a:hover { color: var(--color-accent-hover); }
   color: #fff;
 }
 .btn-primary:hover { background: var(--color-accent-hover); transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
 .btn-ghost {
   background: transparent;
@@ -106,6 +189,7 @@ a:hover { color: var(--color-accent-hover); }
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
 }
 
 .page {
@@ -158,8 +242,48 @@ label {
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
-.badge-forwarded  { background: rgba(34,197,94,0.15);  color: var(--color-success); }
-.badge-voicemail  { background: rgba(108,99,255,0.15); color: var(--color-accent); }
-.badge-blocked    { background: rgba(255,77,77,0.15);  color: var(--color-danger); }
+.badge-forwarded  { background: rgba(47,143,91,0.15);  color: var(--color-success); }
+.badge-voicemail  { background: rgba(72,120,120,0.18); color: var(--cove-teal); }
+.badge-blocked    { background: rgba(196,69,69,0.15);  color: var(--color-danger); }
 
 .error-msg { color: var(--color-danger); font-size: 0.85rem; margin-top: var(--space-2); }
+
+/* Landing feature grid */
+.landing-features {
+  margin-top: 4rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  text-align: left;
+}
+@media (min-width: 640px) {
+  .landing-features {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+.landing-hero {
+  text-align: center;
+  padding-top: 3rem;
+}
+
+.landing-tagline {
+  color: var(--color-text-muted);
+  margin-top: 1.25rem;
+  font-size: 1.1rem;
+  max-width: 380px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.55;
+}
+
+.landing-note {
+  margin-top: 3rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  max-width: 420px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.5;
+}

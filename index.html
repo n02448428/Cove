@@ -3,9 +3,26 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Cove — AI phone concierge that screens your calls so you don't have to." />
+    <meta name="description" content="Cove — trusted contacts ring through, DTMF call screening, and a clear voicemail log. Not coveai.dev." />
+    <meta name="theme-color" content="#487878" />
     <title>Cove</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <script>
+      // Theme bootstrap before paint (localStorage override, else prefers-color-scheme)
+      (function () {
+        try {
+          var k = 'cove-theme';
+          var t = localStorage.getItem(k);
+          if (t !== 'light' && t !== 'dark') {
+            t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      })();
+    </script>
     <script>
       // GitHub Pages SPA: restore path encoded by 404.html (?p=/auth)
       (function () {

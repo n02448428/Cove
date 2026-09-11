@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Cove">
+  <circle cx="50" cy="50" r="12" fill="#B88848"/>
+  <path d="M78.5 28.5
+           A36 36 0 1 0 78.5 71.5"
+        fill="none" stroke="#487878" stroke-width="18" stroke-linecap="butt"/>
+</svg>

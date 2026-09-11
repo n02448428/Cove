@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
+import AppHeader from '../components/AppHeader.jsx';
 import { createCheckoutSession } from '../services/api.js';
 
 export default function ForwardingInstructions() {
@@ -81,6 +82,7 @@ export default function ForwardingInstructions() {
 
   return (
     <main className="page-narrow">
+      <AppHeader homeTo="/dashboard" />
       <h2 style={{ fontWeight: 800, fontSize: '1.5rem', marginBottom: '0.5rem' }}>Forward your number</h2>
       <p style={{ color: 'var(--color-text-muted)', marginBottom: '2rem', fontSize: '0.9rem' }}>
         Forward all calls to your Cove number. Carrier steps vary — undo anytime in your phone settings.

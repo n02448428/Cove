@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
+import AppHeader from '../components/AppHeader.jsx';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -44,9 +45,9 @@ export default function Auth() {
 
   return (
     <main className="page-narrow">
-      <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: 800 }}>Cove</h1>
-        <p style={{ color: 'var(--color-text-muted)', marginTop: '0.5rem' }}>
+      <AppHeader homeTo="/" />
+      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+        <p style={{ color: 'var(--color-text-muted)' }}>
           {mode === 'login' ? 'Welcome back.' : 'Create your account.'}
         </p>
       </div>

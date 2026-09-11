@@ -30,7 +30,13 @@ function RequireAuth({ children }) {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  if (checking) return null; // or a loading spinner
+  if (checking) {
+    return (
+      <div className="page" style={{ textAlign: 'center', paddingTop: '4rem', color: 'var(--color-text-muted)' }}>
+        Loading…
+      </div>
+    );
+  }
   return user ? children : <Navigate to="/auth" replace />;
 }
 

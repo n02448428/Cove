@@ -1,5 +1,6 @@
 // supabase/functions/stripe-webhook/index.ts
 // Cove — Stripe webhook: subscription lifecycle + trigger DID provision
+// Hardened: signature-first, event/state idempotency, defensive acks (no Edge deploy in this PR)
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -19,52 +20,55 @@ const cryptoProvider = Stripe.createSubtleCryptoProvider()
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE)
 
-// In-memory idempotency for warm isolates (best-effort; DB updates are also idempotent)
+// In-memory idempotency for warm isolates (best-effort).
+// Durable safety: handlers no-op when profile billing state already matches.
 const seenEvents = new Set<string>()
+
+function json(status: number, body: Record<string, unknown>) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
 
 serve(async (req: Request) => {
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 })
   }
 
+  // --- Signature / raw body verification FIRST — never mutate before this ---
+  if (!STRIPE_WEBHOOK_SECRET) {
+    console.error('STRIPE_WEBHOOK_SECRET not set')
+    return new Response('Webhook secret not configured', { status: 500 })
+  }
+
+  const signature = req.headers.get('Stripe-Signature')
+  if (!signature) {
+    return new Response('Missing Stripe-Signature', { status: 400 })
+  }
+
+  const body = await req.text()
+  let event: Stripe.Event
   try {
-    if (!STRIPE_WEBHOOK_SECRET) {
-      console.error('STRIPE_WEBHOOK_SECRET not set')
-      return new Response('Webhook secret not configured', { status: 500 })
-    }
+    event = await stripe.webhooks.constructEventAsync(
+      body,
+      signature,
+      STRIPE_WEBHOOK_SECRET,
+      undefined,
+      cryptoProvider,
+    )
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err)
+    // 400 — do not mutate; Stripe should not retry bad signatures forever as success
+    return new Response(`Webhook Error: ${err}`, { status: 400 })
+  }
 
-    const signature = req.headers.get('Stripe-Signature')
-    if (!signature) {
-      return new Response('Missing Stripe-Signature', { status: 400 })
-    }
+  // Warm-isolate event-ID dedupe (mark after success so 5xx can retry)
+  if (seenEvents.has(event.id)) {
+    return json(200, { received: true, duplicate: true })
+  }
 
-    const body = await req.text()
-    let event: Stripe.Event
-    try {
-      event = await stripe.webhooks.constructEventAsync(
-        body,
-        signature,
-        STRIPE_WEBHOOK_SECRET,
-        undefined,
-        cryptoProvider,
-      )
-    } catch (err) {
-      console.error('Webhook signature verification failed:', err)
-      return new Response(`Webhook Error: ${err}`, { status: 400 })
-    }
-
-    if (seenEvents.has(event.id)) {
-      return new Response(JSON.stringify({ received: true, duplicate: true }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    }
-    seenEvents.add(event.id)
-    if (seenEvents.size > 500) {
-      const first = seenEvents.values().next().value
-      if (first) seenEvents.delete(first)
-    }
-
+  try {
     // Lazy DID release (post-grace) — await but soft-fail; never break webhook
     try {
       await releaseExpiredDids(supabase)
@@ -91,23 +95,48 @@ serve(async (req: Request) => {
         break
     }
 
-    return new Response(JSON.stringify({ received: true }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    seenEvents.add(event.id)
+    if (seenEvents.size > 500) {
+      const first = seenEvents.values().next().value
+      if (first) seenEvents.delete(first)
+    }
+
+    return json(200, { received: true })
   } catch (err) {
     console.error('stripe-webhook error:', err)
-    // Still 200 for provision soft-failures after DB update? Prefer 500 so Stripe retries.
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    // Transient/unexpected → 500 so Stripe retries.
+    // Handlers ack missing customer/metadata with early return (200 path), not throw.
+    return json(500, { error: String(err) })
   }
 })
 
 function isCoveMeta(meta: Stripe.Metadata | null | undefined): boolean {
   if (!meta || meta.product == null || meta.product === '') return true
   return meta.product === 'cove'
+}
+
+type ProfileBilling = {
+  id: string
+  subscription_status: string | null
+  stripe_customer_id: string | null
+  stripe_subscription_id: string | null
+  grace_ends_at: string | null
+  trial_ends_at: string | null
+}
+
+async function getProfileBilling(userId: string): Promise<ProfileBilling | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select(
+      'id, subscription_status, stripe_customer_id, stripe_subscription_id, grace_ends_at, trial_ends_at',
+    )
+    .eq('id', userId)
+    .maybeSingle()
+  if (error) {
+    console.error('getProfileBilling failed:', error)
+    throw error
+  }
+  return data as ProfileBilling | null
 }
 
 async function resolveUserId(opts: {
@@ -144,15 +173,6 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     return
   }
 
-  const userId = await resolveUserId({
-    userIdMeta: session.metadata?.user_id,
-    customerId: typeof session.customer === 'string' ? session.customer : session.customer?.id,
-  })
-  if (!userId) {
-    console.error('checkout.session.completed: no user_id')
-    return
-  }
-
   const customerId =
     typeof session.customer === 'string' ? session.customer : session.customer?.id
   const subscriptionId =
@@ -160,9 +180,21 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       ? session.subscription
       : session.subscription?.id
 
-  const patch: Record<string, unknown> = {}
-  if (customerId) patch.stripe_customer_id = customerId
-  if (subscriptionId) patch.stripe_subscription_id = subscriptionId
+  if (!customerId && !session.metadata?.user_id) {
+    // Non-retryable for Stripe: missing linkage — ack (200 via caller), do not mutate
+    console.error('checkout.session.completed: missing customer and user_id metadata — ack no-op')
+    return
+  }
+
+  const userId = await resolveUserId({
+    userIdMeta: session.metadata?.user_id,
+    customerId,
+  })
+  if (!userId) {
+    // Non-retryable: unknown customer — log + ack (avoid infinite 5xx retries)
+    console.error('checkout.session.completed: no user_id — ack no-op')
+    return
+  }
 
   // Prefer subscription status from Stripe if we can fetch it
   let status: string = 'trialing'
@@ -183,6 +215,26 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     }
   }
 
+  const existing = await getProfileBilling(userId)
+  const idsMatch =
+    (!customerId || existing?.stripe_customer_id === customerId) &&
+    (!subscriptionId || existing?.stripe_subscription_id === subscriptionId)
+  const statusMatch = existing?.subscription_status === status
+  const trialMatch =
+    !trialEndsAt || existing?.trial_ends_at === trialEndsAt
+
+  if (existing && idsMatch && statusMatch && trialMatch) {
+    console.log('checkout.session.completed: state already matches — no-op', userId, status)
+    // Still ensure DID path if active/trialing (provision is idempotent)
+    if (status === 'trialing' || status === 'active') {
+      await triggerProvision(userId)
+    }
+    return
+  }
+
+  const patch: Record<string, unknown> = {}
+  if (customerId) patch.stripe_customer_id = customerId
+  if (subscriptionId) patch.stripe_subscription_id = subscriptionId
   patch.subscription_status = status
   if (trialEndsAt) patch.trial_ends_at = trialEndsAt
   if (status === 'trialing' || status === 'active') {
@@ -208,31 +260,56 @@ async function handleSubscriptionUpsert(sub: Stripe.Subscription) {
   }
 
   const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer?.id
+  if (!customerId && !sub.metadata?.user_id) {
+    console.error('subscription upsert: missing customer and user_id — ack no-op', sub.id)
+    return
+  }
+
   const userId = await resolveUserId({
     userIdMeta: sub.metadata?.user_id,
     customerId,
     subscriptionId: sub.id,
   })
   if (!userId) {
-    console.error('subscription upsert: no user_id for', sub.id)
+    console.error('subscription upsert: no user_id for', sub.id, '— ack no-op')
     return
   }
 
   const status = mapStripeStatus(sub.status)
+  const trialEndsAt = sub.trial_end
+    ? new Date(sub.trial_end * 1000).toISOString()
+    : null
+
+  const existing = await getProfileBilling(userId)
+  const idsMatch =
+    existing?.stripe_subscription_id === sub.id &&
+    (!customerId || existing?.stripe_customer_id === customerId)
+  const statusMatch = existing?.subscription_status === status
+  const trialMatch = !trialEndsAt || existing?.trial_ends_at === trialEndsAt
+  const graceCleared =
+    status !== 'trialing' && status !== 'active'
+      ? true
+      : existing?.grace_ends_at == null
+
+  if (existing && idsMatch && statusMatch && trialMatch && graceCleared) {
+    console.log('subscription upsert: state already matches — no-op', sub.id, status)
+    if (status === 'trialing' || status === 'active') {
+      await triggerProvision(userId)
+    }
+    return
+  }
+
   const patch: Record<string, unknown> = {
     stripe_subscription_id: sub.id,
     subscription_status: status,
   }
   if (customerId) patch.stripe_customer_id = customerId
-  if (sub.trial_end) {
-    patch.trial_ends_at = new Date(sub.trial_end * 1000).toISOString()
-  }
+  if (trialEndsAt) patch.trial_ends_at = trialEndsAt
   if (status === 'trialing' || status === 'active') {
     patch.grace_ends_at = null
   }
 
   // cancel_at_period_end → stay active until deleted; no grace yet
-  // Optional note only — do not flip status while still active/trialing
   if (sub.cancel_at_period_end && (status === 'active' || status === 'trialing')) {
     console.log(
       'subscription.updated: cancel_at_period_end set; staying',
@@ -266,7 +343,17 @@ async function handleSubscriptionDeleted(sub: Stripe.Subscription) {
     subscriptionId: sub.id,
   })
   if (!userId) {
-    console.error('subscription.deleted: no user_id')
+    console.error('subscription.deleted: no user_id — ack no-op')
+    return
+  }
+
+  const existing = await getProfileBilling(userId)
+  // Idempotent: do NOT reset the 30d grace clock on Stripe retries
+  if (
+    existing?.subscription_status === 'grace' &&
+    (existing.stripe_subscription_id === sub.id || !existing.stripe_subscription_id)
+  ) {
+    console.log('subscription.deleted: already grace — no-op (preserve grace_ends_at)', sub.id)
     return
   }
 
@@ -297,6 +384,11 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
       ? invoice.subscription
       : invoice.subscription?.id
 
+  if (!customerId && !subscriptionId) {
+    console.error('invoice.payment_failed: missing customer and subscription — ack no-op')
+    return
+  }
+
   // Prefer subscription metadata when available
   if (subscriptionId) {
     try {
@@ -312,10 +404,17 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
 
   const userId = await resolveUserId({ customerId, subscriptionId })
   if (!userId) {
-    console.error('invoice.payment_failed: no user_id')
+    console.error('invoice.payment_failed: no user_id — ack no-op')
     return
   }
 
+  const existing = await getProfileBilling(userId)
+  if (existing?.subscription_status === 'past_due') {
+    console.log('invoice.payment_failed: already past_due — no-op', userId)
+    return
+  }
+
+  // past_due only — do NOT release DID, do NOT touch phone_numbers / reserved_until
   await supabase
     .from('profiles')
     .update({ subscription_status: 'past_due' })

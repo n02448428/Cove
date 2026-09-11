@@ -4,6 +4,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { releaseExpiredDids } from '../_shared/releaseExpiredDids.ts'
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -18,6 +19,13 @@ const APP_BASE_URL = Deno.env.get('APP_BASE_URL')!
 
 serve(async (req: Request) => {
   try {
+    // Lazy DID release (post-grace) — minimal touch; then existing screening path
+    try {
+      await releaseExpiredDids(supabase)
+    } catch (e) {
+      console.error('lazy releaseExpiredDids soft-fail:', e)
+    }
+
     const body = await req.text()
     const params = new URLSearchParams(body)
     const to = params.get('To') ?? ''

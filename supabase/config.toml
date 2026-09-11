@@ -74,3 +74,9 @@ verify_jwt = false
 
 [functions.provision-number]
 verify_jwt = true
+
+[functions.create-portal-session]
+verify_jwt = true
+
+[functions.twilio-voice-inbound]
+verify_jwt = false

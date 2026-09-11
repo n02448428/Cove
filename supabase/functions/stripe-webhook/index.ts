@@ -4,6 +4,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@14.21.0?target=deno'
+import { releaseExpiredDids } from '../_shared/releaseExpiredDids.ts'
 
 const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY') ?? ''
 const STRIPE_WEBHOOK_SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET') ?? ''
@@ -62,6 +63,13 @@ serve(async (req: Request) => {
     if (seenEvents.size > 500) {
       const first = seenEvents.values().next().value
       if (first) seenEvents.delete(first)
+    }
+
+    // Lazy DID release (post-grace) — await but soft-fail; never break webhook
+    try {
+      await releaseExpiredDids(supabase)
+    } catch (e) {
+      console.error('lazy releaseExpiredDids soft-fail:', e)
     }
 
     switch (event.type) {
@@ -184,6 +192,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   await supabase.from('profiles').update(patch).eq('id', userId)
 
   if (status === 'trialing' || status === 'active') {
+    // Clear grace hold on phone_numbers if user reactivated
+    await supabase
+      .from('phone_numbers')
+      .update({ reserved_until: null })
+      .eq('user_id', userId)
     await triggerProvision(userId)
   }
 }
@@ -219,9 +232,23 @@ async function handleSubscriptionUpsert(sub: Stripe.Subscription) {
   }
 
   // cancel_at_period_end → stay active until deleted; no grace yet
+  // Optional note only — do not flip status while still active/trialing
+  if (sub.cancel_at_period_end && (status === 'active' || status === 'trialing')) {
+    console.log(
+      'subscription.updated: cancel_at_period_end set; staying',
+      status,
+      'until deleted',
+      sub.id,
+    )
+  }
+
   await supabase.from('profiles').update(patch).eq('id', userId)
 
   if (status === 'trialing' || status === 'active') {
+    await supabase
+      .from('phone_numbers')
+      .update({ reserved_until: null })
+      .eq('user_id', userId)
     await triggerProvision(userId)
   }
 }
@@ -254,11 +281,12 @@ async function handleSubscriptionDeleted(sub: Stripe.Subscription) {
     })
     .eq('id', userId)
 
-  // Hold DID during grace — set reserved_until; do not release yet
+  // Hold DID during grace — keep Twilio DID; set reserved_until; do not release yet
   await supabase
     .from('phone_numbers')
     .update({ reserved_until: graceEnds.toISOString() })
     .eq('user_id', userId)
+    .not('twilio_number', 'is', null)
 }
 
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {

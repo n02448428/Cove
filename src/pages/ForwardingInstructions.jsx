@@ -98,7 +98,7 @@ export default function ForwardingInstructions() {
         <div className="card section-card" style={{ marginBottom: '1.5rem' }}>
           <p className="price-block__eyebrow" style={{ marginBottom: '0.5rem' }}>Trial</p>
           <h3 className="price-block__primary" style={{ fontSize: '1.35rem', marginBottom: '0.5rem' }}>
-            Seven days of quiet. Then $49/mo.
+            Try Cove free for 7 days. $49/mo after — cancel anytime.
           </h3>
           <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.75rem', lineHeight: 1.55 }}>
             Card on file for the trial · your Cove number provisions after payment method is saved ·

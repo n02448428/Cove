@@ -95,7 +95,7 @@ export default function Landing() {
 
         <section className="price-block" aria-label="Pricing">
           <p className="price-block__eyebrow">Membership</p>
-          <h2 className="price-block__primary">Seven days of quiet. Then $49/mo.</h2>
+          <h2 className="price-block__primary">Try Cove free for 7 days. $49/mo after — cancel anytime.</h2>
           <p className="price-block__support">
             Card on file for the trial · your Cove number provisions after payment method is saved ·
             number stays yours while subscribed · 30-day grace if you cancel.

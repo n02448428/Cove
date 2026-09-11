@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
+import AppHeader from '../components/AppHeader.jsx';
 
 function toE164(raw) {
   const trimmed = (raw || '').trim();
@@ -113,10 +114,11 @@ export default function Settings() {
 
   return (
     <main className="page-narrow">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
-        <h2 style={{ fontWeight: 800, fontSize: '1.5rem' }}>Settings</h2>
-        <button className="btn btn-ghost" onClick={() => navigate('/dashboard')}>Back</button>
-      </div>
+      <AppHeader
+        homeTo="/dashboard"
+        actions={<button className="btn btn-ghost" onClick={() => navigate('/dashboard')}>Back</button>}
+      />
+      <h2 style={{ fontWeight: 800, fontSize: '1.5rem', marginBottom: '1.5rem' }}>Settings</h2>
 
       <form className="card" onSubmit={handleSave}>
         <div className="field">

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
+import AppHeader from '../components/AppHeader.jsx';
 
 function toE164(raw) {
   const trimmed = (raw || '').trim();
@@ -113,10 +114,11 @@ export default function Onboarding() {
   }
 
   return (
-    <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0a' }}>
-      <div style={{ width: '100%', maxWidth: 480, padding: '2rem', background: '#111', borderRadius: 16, boxShadow: '0 4px 32px #0006' }}>
+    <main className="page-narrow">
+      <AppHeader homeTo="/" />
+      <div className="card">
         <h2 style={{ marginBottom: 8, fontSize: 24, fontWeight: 700 }}>Set up your Cove</h2>
-        <p style={{ marginBottom: 24, color: '#aaa', fontSize: 14 }}>Takes about 2 minutes.</p>
+        <p style={{ marginBottom: 24, color: 'var(--color-text-muted)', fontSize: 14 }}>Takes about 2 minutes.</p>
         <form onSubmit={handleSubmit}>
           <div className="field">
             <label>Your Real Phone Number</label>

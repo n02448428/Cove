@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
+import AppHeader from '../components/AppHeader.jsx';
 
 const OUTCOME_LABELS = {
   forwarded: 'Forwarded',
@@ -41,13 +42,15 @@ export default function Dashboard() {
 
   return (
     <main className="page">
-      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Cove</h1>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button className="btn btn-ghost" onClick={() => navigate('/settings')}>Settings</button>
-          <button className="btn btn-ghost" onClick={signOut}>Sign out</button>
-        </div>
-      </header>
+      <AppHeader
+        homeTo="/dashboard"
+        actions={
+          <>
+            <button className="btn btn-ghost" onClick={() => navigate('/settings')}>Settings</button>
+            <button className="btn btn-ghost" onClick={signOut}>Sign out</button>
+          </>
+        }
+      />
 
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         {['all', 'forwarded', 'voicemail', 'blocked'].map(f => (

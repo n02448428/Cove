@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 120" role="img" aria-label="Cove">
+  <g transform="translate(8,10)">
+    <circle cx="50" cy="50" r="11" fill="#B88848"/>
+    <path d="M76 30 A36 36 0 1 0 76 70"
+          fill="none" stroke="#487878" stroke-width="16" stroke-linecap="butt"/>
+  </g>
+  <text x="118" y="78" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="56" font-weight="600" letter-spacing="0.04em" fill="#2F2F33">OVE</text>
+</svg>

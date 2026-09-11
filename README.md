@@ -1,13 +1,13 @@
 # Cove
 
-> AI phone concierge — screens calls, handles voicemail, and lets trusted contacts reach you directly.
+> Personal call filter — trusted contacts ring through, DTMF screening for everyone else, voicemail log. (withcove.co — not coveai.dev)
 
 ## How It Works
 
 1. **You forward your number** to your Cove Twilio number.
 2. **Every incoming call** hits Cove's `/calls/incoming` webhook.
 3. **Trusted contacts** (stored in Supabase) ring straight through to your real phone.
-4. **Everyone else** is answered by your Retell AI agent, which screens the call and takes a voicemail if needed.
+4. **Everyone else** gets DTMF screening; urgent paths can connect, otherwise voicemail is taken.
 5. **Voicemails** are transcribed and saved to Supabase for you to review.
 
 ## Tech Stack
@@ -16,7 +16,6 @@
 |-------|------|
 | Server | Node.js + Express |
 | Phone/SMS | Twilio |
-| AI Voice Agent | Retell AI |
 | Database | Supabase (PostgreSQL) |
 | Hosting | Railway / Render / Fly.io |
 
@@ -31,7 +30,6 @@ Cove/
 │   │   ├── voicemail.js      # Voicemail receive & storage
 │   │   └── contacts.js       # Trusted contacts CRUD API
 │   └── services/
-│       ├── retell.js         # Retell AI call handling
 │       ├── twilio.js         # Twilio voicemail download
 │       ├── supabase.js       # Supabase client + schema docs
 │       └── contacts.js       # isTrustedContact() helper
@@ -77,7 +75,7 @@ npm install
 ### 2. Configure environment
 ```bash
 cp .env.example .env
-# Fill in your Twilio, Retell, and Supabase credentials
+# Fill in your Twilio and Supabase credentials
 ```
 
 ### 3. Run locally
@@ -115,7 +113,7 @@ Deploy to Railway, Render, or Fly.io and update Twilio webhooks to your producti
 - [ ] Voicemail transcription via OpenAI Whisper
 - [ ] SMS/push notification when new voicemail arrives
 - [ ] Dashboard UI (React) to manage contacts & review voicemails
-- [ ] Call summary & sentiment from Retell post-call analysis
+- [ ] Call summary enrichment
 - [ ] Multi-user support
 - [ ] Stripe billing for SaaS tier
 

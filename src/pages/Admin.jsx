@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase.js';
+import AppHeader from '../components/AppHeader.jsx';
 
 export default function Admin() {
   const [logs, setLogs] = useState([]);
@@ -22,6 +23,7 @@ export default function Admin() {
 
   return (
     <main className="page">
+      <AppHeader homeTo="/dashboard" />
       <h2 style={{ fontWeight: 800, fontSize: '1.5rem', marginBottom: '2rem' }}>Admin Console</h2>
 
       {loading ? (

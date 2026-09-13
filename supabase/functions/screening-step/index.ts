@@ -172,7 +172,10 @@ serve(async (req: Request) => {
     const durationStr = formGet(params, 'RecordingDuration')
     const duration = durationStr ? parseInt(durationStr, 10) : null
     const q = numQuestions >= qi ? qs[qi - 1] : null
-    const questionText = q?.question ?? ''
+    // Use the greeting text for qi=1 to match what the caller heard
+    const questionText = qi === 1
+      ? `Hello, this is Cove, ${userName}'s assistant. Please state your name and reason for calling.`
+      : (q?.question ?? '')
 
     const noAnswer = !recordingSid || (duration !== null && duration < NO_ANSWER_DURATION_S)
 

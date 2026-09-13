@@ -52,6 +52,41 @@ const TICKET_FILTERS = ['all', 'new', 'reviewed', 'actioned'];
 
 const MAX_QUESTIONS = 5;
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// RecordingPlayer — fetches Twilio recording through edge function proxy to avoid browser auth prompt
+function RecordingPlayer({ recordingSid }) {
+  const [url, setUrl] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (!recordingSid) return;
+    let revoked = false;
+    setLoading(true);
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) { setError(true); setLoading(false); return; }
+        const resp = await fetch(
+          `${SUPABASE_URL}/functions/v1/recording-proxy?sid=${recordingSid}`,
+          { headers: { Authorization: `Bearer ${session.access_token}`, apikey: SUPABASE_ANON_KEY } },
+        );
+        if (!resp.ok) throw new Error('fetch failed');
+        const blob = await resp.blob();
+        if (!revoked) setUrl(URL.createObjectURL(blob));
+      } catch { if (!revoked) setError(true); }
+      finally { if (!revoked) setLoading(false); }
+    })();
+    return () => { revoked = true; if (url) URL.revokeObjectURL(url); };
+  }, [recordingSid]);
+
+  if (loading) return <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '0.4rem' }}>Loading recording…</p>;
+  if (error || !url) return null;
+  return <audio controls src={url} style={{ marginTop: '0.4rem', width: '100%' }} />;
+}
+
 function Chevron({ open }) {
   return (
     <svg
@@ -316,6 +351,31 @@ export default function Dashboard() {
     }
   }
 
+  // Move caller from a review ticket to green or red list
+  async function moveToList(ticket, classification) {
+    if (!ticket.caller_number) return;
+    const e164 = toE164(ticket.caller_number);
+    if (!isValidE164(e164)) { setError(E164_ERROR); return; }
+    // Check if already on that list
+    const existing = callerLists.find(c => c.caller_number === e164 && c.classification === classification);
+    if (existing) { setError('Already on ' + classification.toUpperCase() + ' list.'); return; }
+    try {
+      const entry = await addCallerList(userId, {
+        classification,
+        caller_number: e164,
+        caller_name: ticket.caller_name || null,
+      });
+      setCallerLists(prev => [...prev, entry]);
+      // Auto-mark ticket as actioned
+      if (ticket.status !== 'actioned') {
+        const updated = await updateReviewTicketStatus(ticket.id, 'actioned');
+        setTickets(prev => prev.map(t => (t.id === ticket.id ? updated : t)));
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   const filteredTickets = ticketFilter === 'all' ? tickets : tickets.filter(t => t.status === ticketFilter);
 
   // — Call log ————————————————————————————————————
@@ -567,7 +627,7 @@ export default function Dashboard() {
       </section>
 
       {/* Review tickets */}
-      <section className="kernel-section card section-card">
+      <section className="kernel-section card section-card" id="review-tickets">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
           <h2 className="kernel-section-title" style={{ margin: 0 }}>Review tickets</h2>
           <span className="badge">{tickets.length}</span>
@@ -619,8 +679,8 @@ export default function Dashboard() {
                             {a.transcript && (
                               <p style={{ color: 'var(--color-text-muted)', whiteSpace: 'pre-wrap' }}>{a.transcript}</p>
                             )}
-                            {a.recording_url && (
-                              <audio controls src={a.recording_url} style={{ marginTop: '0.4rem', width: '100%' }} />
+                            {a.recording_sid && (
+                              <RecordingPlayer recordingSid={a.recording_sid} />
                             )}
                           </div>
                         ))}
@@ -629,6 +689,12 @@ export default function Dashboard() {
                       <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>No answers captured.</p>
                     )}
                     <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+                      {t.caller_number && (
+                        <>
+                          <button className="btn btn-ghost" style={{ padding: '0.4rem 0.9rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }} onClick={() => moveToList(t, 'green')}><span className="section-dot section-dot--green" style={{ width: '0.5rem', height: '0.5rem' }} /> Add to GREEN</button>
+                          <button className="btn btn-ghost" style={{ padding: '0.4rem 0.9rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }} onClick={() => moveToList(t, 'red')}><span className="section-dot section-dot--red" style={{ width: '0.5rem', height: '0.5rem' }} /> Add to RED</button>
+                        </>
+                      )}
                       {t.status !== 'reviewed' && t.status !== 'actioned' && (
                         <button className="btn btn-ghost" style={{ padding: '0.4rem 0.9rem', fontSize: '0.8rem' }} onClick={() => setTicketStatus(t, 'reviewed')}>Mark reviewed</button>
                       )}
@@ -686,16 +752,32 @@ export default function Dashboard() {
                   </span>
                 </div>
                 {expandedCall === call.id && (
-                  <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--color-rule)' }}>
+                  <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--color-rule)' }} onClick={e => e.stopPropagation()}>
+                    {/* Caller details */}
+                    {call.caller_number && (
+                      <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>From: {call.caller_number}</p>
+                    )}
+                    {call.duration != null && call.duration > 0 && (
+                      <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>Duration: {Math.floor(call.duration / 60)}m {call.duration % 60}s</p>
+                    )}
+                    <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>Status: {OUTCOME_LABELS[call.outcome] || call.outcome}</p>
+                    {/* Summary */}
                     {call.summary && <p style={{ fontSize: '0.85rem', marginBottom: '0.75rem' }}>{call.summary}</p>}
+                    {/* Transcript */}
                     {call.transcript && (
                       <details>
                         <summary style={{ cursor: 'pointer', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Full transcript</summary>
                         <p style={{ fontSize: '0.8rem', marginTop: '0.5rem', whiteSpace: 'pre-wrap', color: 'var(--color-text-muted)' }}>{call.transcript}</p>
                       </details>
                     )}
-                    {call.voicemail_url && (
-                      <audio controls src={call.voicemail_url} style={{ marginTop: '0.75rem', width: '100%' }} />
+                    {/* Voicemail recording via proxy */}
+                    {call.voicemail_url && (() => {
+                      const sid = (call.voicemail_url.match(/Recordings\/([A-Za-z0-9]+)/) || [])[1];
+                      return sid ? <RecordingPlayer recordingSid={sid} /> : null;
+                    })()}
+                    {/* Link to review ticket if exists */}
+                    {call.call_sid && tickets.find(t => t.call_sid === call.call_sid) && (
+                      <button className="btn btn-ghost" style={{ marginTop: '0.75rem', padding: '0.4rem 0.9rem', fontSize: '0.8rem' }} onClick={() => { setExpandedTicket(tickets.find(t => t.call_sid === call.call_sid).id); document.getElementById('review-tickets')?.scrollIntoView({ behavior: 'smooth' }); }}>View review ticket →</button>
                     )}
                   </div>
                 )}

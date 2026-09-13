@@ -751,36 +751,56 @@ export default function Dashboard() {
                     {OUTCOME_LABELS[call.outcome] || call.outcome}
                   </span>
                 </div>
-                {expandedCall === call.id && (
+                {expandedCall === call.id && (() => {
+                  const linkedTicket = tickets.find(t => t.call_sid === call.call_sid) || tickets.find(t => t.id === call.ticket_id);
+                  return (
                   <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--color-rule)' }} onClick={e => e.stopPropagation()}>
-                    {/* Caller details */}
-                    {call.caller_number && (
-                      <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>From: {call.caller_number}</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem 1.5rem', marginBottom: '0.75rem' }}>
+                      {call.caller_number && (
+                        <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>From: <strong style={{ color: 'var(--color-text)' }}>{call.caller_number}</strong></span>
+                      )}
+                      {call.duration != null && call.duration > 0 && (
+                        <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Duration: {Math.floor(call.duration / 60)}m {call.duration % 60}s</span>
+                      )}
+                      <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Status: <strong style={{ color: 'var(--color-text)' }}>{OUTCOME_LABELS[call.outcome] || call.outcome}</strong></span>
+                      {linkedTicket && (
+                        <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Ticket: <strong style={{ color: 'var(--color-text)' }}>{TICKET_STATUS_LABELS[linkedTicket.status] || linkedTicket.status}</strong>{linkedTicket.ended_reason ? ` · ${ENDED_REASON_LABELS[linkedTicket.ended_reason] || linkedTicket.ended_reason}` : ''}</span>
+                      )}
+                    </div>
+                    {call.summary ? (
+                      <p style={{ fontSize: '0.85rem', marginBottom: '0.75rem' }}>{call.summary}</p>
+                    ) : linkedTicket ? (
+                      <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>No summary yet — open the review ticket for recording and transcript.</p>
+                    ) : (
+                      <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>No details available for this call.</p>
                     )}
-                    {call.duration != null && call.duration > 0 && (
-                      <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>Duration: {Math.floor(call.duration / 60)}m {call.duration % 60}s</p>
-                    )}
-                    <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>Status: {OUTCOME_LABELS[call.outcome] || call.outcome}</p>
-                    {/* Summary */}
-                    {call.summary && <p style={{ fontSize: '0.85rem', marginBottom: '0.75rem' }}>{call.summary}</p>}
-                    {/* Transcript */}
                     {call.transcript && (
                       <details>
                         <summary style={{ cursor: 'pointer', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Full transcript</summary>
                         <p style={{ fontSize: '0.8rem', marginTop: '0.5rem', whiteSpace: 'pre-wrap', color: 'var(--color-text-muted)' }}>{call.transcript}</p>
                       </details>
                     )}
-                    {/* Voicemail recording via proxy */}
                     {call.voicemail_url && (() => {
                       const sid = (call.voicemail_url.match(/Recordings\/([A-Za-z0-9]+)/) || [])[1];
                       return sid ? <RecordingPlayer recordingSid={sid} /> : null;
                     })()}
-                    {/* Link to review ticket if exists */}
-                    {call.call_sid && tickets.find(t => t.call_sid === call.call_sid) && (
-                      <button className="btn btn-ghost" style={{ marginTop: '0.75rem', padding: '0.4rem 0.9rem', fontSize: '0.8rem' }} onClick={() => { setExpandedTicket(tickets.find(t => t.call_sid === call.call_sid).id); document.getElementById('review-tickets')?.scrollIntoView({ behavior: 'smooth' }); }}>View review ticket →</button>
+                    {linkedTicket && (
+                      <button className="btn btn-ghost" style={{ marginTop: '0.75rem', padding: '0.4rem 0.9rem', fontSize: '0.8rem' }} onClick={() => {
+                        const t = linkedTicket;
+                        setExpandedTicket(t.id);
+                        if (!ticketAnswers[t.id]) {
+                          setTicketAnswersLoading(s => ({ ...s, [t.id]: true }));
+                          getReviewTicketAnswers(t.id)
+                            .then(answers => setTicketAnswers(prev => ({ ...prev, [t.id]: answers })))
+                            .catch(() => {})
+                            .finally(() => setTicketAnswersLoading(s => ({ ...s, [t.id]: false })));
+                        }
+                        document.getElementById('review-tickets')?.scrollIntoView({ behavior: 'smooth' });
+                      }}>View review ticket →</button>
                     )}
                   </div>
-                )}
+                  );
+                })()}
               </div>
             ))}
           </div>

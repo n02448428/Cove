@@ -42,6 +42,7 @@ serve(async (req: Request) => {
   const ticketId = url.searchParams.get('ticketId') ?? ''
   const qi = parseInt(url.searchParams.get('qi') ?? '1', 10) || 1
   const attempt = parseInt(url.searchParams.get('attempt') ?? '1', 10) || 1
+  const userName = url.searchParams.get('name') ?? 'there'
 
   // Resolve ticket + user + real number once.
   const { data: ticket } = await supabase
@@ -127,10 +128,12 @@ serve(async (req: Request) => {
       )
     }
 
-    // Invalid / no code: continue silently into the question loop.
-    const q1 = `${stepBase}?stage=question&qi=1&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}`
+    // Invalid / no code: return to the current question.
+    const qiParam = url.searchParams.get('qi') ?? '1'
+    const attemptParam = url.searchParams.get('attempt') ?? '1'
+    const qUrl = `${stepBase}?stage=question&qi=${qiParam}&attempt=${attemptParam}&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
     return twiml(
-      `<?xml version="1.0" encoding="UTF-8"?><Response><Redirect method="POST">${xmlEscape(q1)}</Redirect></Response>`,
+      `<?xml version="1.0" encoding="UTF-8"?><Response><Redirect method="POST">${xmlEscape(qUrl)}</Redirect></Response>`,
     )
   }
 
@@ -141,13 +144,22 @@ serve(async (req: Request) => {
       return await finalize(supabase, callSid, ticketId, user_id, 'completed', 'screened', SCRIPT.thanksGoodbye)
     }
     const q = qs[qi - 1]
-    const answerAction = `${stepBase}?stage=answer&qi=${qi}&attempt=${attempt}&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}`
+    // First question is always the Cove greeting with the user's name.
+    const questionText = qi === 1
+      ? `Hello, this is Cove, ${userName}'s assistant. Please state your name and reason for calling.`
+      : q.question
+    const answerAction = `${stepBase}?stage=answer&qi=${qi}&attempt=${attempt}&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
     const transcribeCb = `${fnUrl('call-transcribe')}?ticketId=${encodeURIComponent(ticketId)}&qi=${qi}&attempt=${attempt}`
+    // Brief DTMF Gather before the Record so code holders can enter their
+    // code at any point during screening. 1s timeout, falls through to question.
+    const codeAction = `${stepBase}?stage=code&qi=${qi}&attempt=${attempt}&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
 
     return twiml(
       `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say>${xmlEscape(q.question)}</Say>
+  <Gather input="dtmf" timeout="1" finishOnKey="#" action="${xmlEscape(codeAction)}" method="POST">
+  </Gather>
+  <Say>${xmlEscape(questionText)}</Say>
   <Record maxLength="60" timeout="4" playBeep="false" trim="trim-silence" transcribe="true" transcribeCallback="${xmlEscape(transcribeCb)}" action="${xmlEscape(answerAction)}" method="POST" />
 </Response>`,
     )
@@ -183,7 +195,7 @@ serve(async (req: Request) => {
     if (noAnswer) {
       if (attempt < 2) {
         // Repeat the same question once.
-        const repeat = `${stepBase}?stage=question&qi=${qi}&attempt=2&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}`
+        const repeat = `${stepBase}?stage=question&qi=${qi}&attempt=2&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
         return twiml(
           `<?xml version="1.0" encoding="UTF-8"?><Response><Redirect method="POST">${xmlEscape(repeat)}</Redirect></Response>`,
         )
@@ -204,7 +216,7 @@ serve(async (req: Request) => {
       )
     }
 
-    const next = `${stepBase}?stage=question&qi=${qi + 1}&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}`
+    const next = `${stepBase}?stage=question&qi=${qi + 1}&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
     return twiml(
       `<?xml version="1.0" encoding="UTF-8"?>
 <Response>

@@ -139,21 +139,24 @@ serve(async (req: Request) => {
       ticket_error: ticketErr ? String(ticketErr) : null,
     })
 
-    const stepBase = `${fnUrl('screening-step')}`
-    const codeAction = `${stepBase}?stage=code&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}`
-    const questionRedirect = `${stepBase}?stage=question&qi=1&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}`
+    // Fetch the user's email to construct a personalized greeting
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('id', user_id)
+      .maybeSingle()
+    const userName = profile?.email
+      ? (profile.email.split('@')[0] || 'there').replace(/[0-9]+$/, '').replace(/^./, (c: string) => c.toUpperCase()) || 'there'
+      : 'there'
 
-    // Gather listens for a private code (terminated by #). Neutral prompt
-    // reveals nothing about the bypass. On timeout, fall through to Q1.
-    // No numDigits cap: codes may be any length (min 3), terminated by #.
+    const stepBase = `${fnUrl('screening-step')}`
+    // Redirect directly to the first question — no initial code Gather delay.
+    // Code holders can enter their code at any point during screening via
+    // the DTMF Gather before each question's Record.
+    const questionRedirect = `${stepBase}?stage=question&qi=1&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
+
     return twiml(
-      `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Gather finishOnKey="#" timeout="3" action="${xmlEscape(codeAction)}" method="POST">
-    <Say>Hello.</Say>
-  </Gather>
-  <Redirect method="POST">${xmlEscape(questionRedirect)}</Redirect>
-</Response>`,
+      `<?xml version="1.0" encoding="UTF-8"?><Response><Redirect method="POST">${xmlEscape(questionRedirect)}</Redirect></Response>`,
     )
   } catch (err) {
     console.error('twilio-voice-inbound error:', err)

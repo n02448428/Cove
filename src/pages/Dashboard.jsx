@@ -386,9 +386,9 @@ export default function Dashboard() {
 
       {/* GREEN — trusted contacts (collapsible) */}
       <section className="kernel-section card section-card">
-        <button className="section-toggle" onClick={() => toggleSection('green')} aria-expanded={openSections.green}>
+        <button type="button" className="section-toggle" onClick={() => toggleSection('green')} aria-expanded={openSections.green}>
           <span className="section-dot section-dot--green"></span>
-          <h2 className="kernel-section-title">GREEN — Trusted</h2>
+          <span className="kernel-section-title">GREEN — Trusted</span>
           <span className="badge badge-green">{greenList.length}</span>
           <Chevron open={openSections.green} />
         </button>
@@ -427,9 +427,9 @@ export default function Dashboard() {
 
       {/* YELLOW — screening (collapsible) */}
       <section className="kernel-section card section-card">
-        <button className="section-toggle" onClick={() => toggleSection('yellow')} aria-expanded={openSections.yellow}>
+        <button type="button" className="section-toggle" onClick={() => toggleSection('yellow')} aria-expanded={openSections.yellow}>
           <span className="section-dot section-dot--yellow"></span>
-          <h2 className="kernel-section-title">YELLOW — Screening</h2>
+          <span className="kernel-section-title">YELLOW — Screening</span>
           <span className="badge">{questions.length}/{MAX_QUESTIONS}</span>
           <Chevron open={openSections.yellow} />
         </button>
@@ -527,9 +527,9 @@ export default function Dashboard() {
 
       {/* RED — rejected (collapsible) */}
       <section className="kernel-section card section-card">
-        <button className="section-toggle" onClick={() => toggleSection('red')} aria-expanded={openSections.red}>
+        <button type="button" className="section-toggle" onClick={() => toggleSection('red')} aria-expanded={openSections.red}>
           <span className="section-dot section-dot--red"></span>
-          <h2 className="kernel-section-title">RED — Blocked</h2>
+          <span className="kernel-section-title">RED — Blocked</span>
           <span className="badge badge-red">{redList.length}</span>
           <Chevron open={openSections.red} />
         </button>

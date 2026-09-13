@@ -1,25 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
+import { toE164, isValidE164, E164_ERROR } from '../lib/phone.js';
 import AppHeader from '../components/AppHeader.jsx';
 import { createPortalSession } from '../services/api.js';
-
-function toE164(raw) {
-  const trimmed = (raw || '').trim();
-  if (!trimmed) return '';
-  if (trimmed.startsWith('+')) return trimmed.replace(/\s+/g, '');
-  const digits = trimmed.replace(/\D/g, '');
-  if (digits.length === 10) return `+1${digits}`;
-  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
-  return trimmed.startsWith('+') ? trimmed : `+${digits}`;
-}
 
 export default function Settings() {
   const navigate = useNavigate();
   const [realPhone, setRealPhone] = useState('');
-  const [contacts, setContacts] = useState('');
-  const [urgentKeywords, setUrgentKeywords] = useState('');
-  const [blockKeywords, setBlockKeywords] = useState('');
   const [smsNotifs, setSmsNotifs] = useState(false);
   const [emailNotifs, setEmailNotifs] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -35,10 +23,8 @@ export default function Settings() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [phoneRes, rulesRes, contactsRes, profileRes] = await Promise.all([
+      const [phoneRes, profileRes] = await Promise.all([
         supabase.from('phone_numbers').select('real_number, notify_sms, notify_email').eq('user_id', user.id).maybeSingle(),
-        supabase.from('screening_rules').select('urgent_keywords, block_keywords').eq('user_id', user.id).maybeSingle(),
-        supabase.from('trusted_contacts').select('contact_name, phone_number').eq('user_id', user.id),
         supabase.from('profiles').select('stripe_customer_id, subscription_status').eq('id', user.id).maybeSingle(),
       ]);
 
@@ -46,13 +32,6 @@ export default function Settings() {
         setRealPhone(phoneRes.data.real_number || '');
         setSmsNotifs(!!phoneRes.data.notify_sms);
         setEmailNotifs(phoneRes.data.notify_email ?? true);
-      }
-      if (rulesRes.data) {
-        setUrgentKeywords((rulesRes.data.urgent_keywords || []).join(', '));
-        setBlockKeywords((rulesRes.data.block_keywords || []).join(', '));
-      }
-      if (contactsRes.data) {
-        setContacts(contactsRes.data.map(c => `${c.contact_name} ${c.phone_number}`).join('\n'));
       }
       if (profileRes.data) {
         setBilling({
@@ -91,8 +70,8 @@ export default function Settings() {
       if (!user) throw new Error('Not authenticated');
 
       const realNumber = toE164(realPhone);
-      if (realNumber && !/^\+[1-9]\d{1,14}$/.test(realNumber)) {
-        throw new Error('Enter your real phone in E.164 format, e.g. +16195551234');
+      if (realNumber && !isValidE164(realNumber)) {
+        throw new Error(E164_ERROR);
       }
 
       const { error: phoneErr } = await supabase.from('phone_numbers').upsert({
@@ -102,32 +81,6 @@ export default function Settings() {
         notify_email: emailNotifs,
       }, { onConflict: 'user_id' });
       if (phoneErr) throw phoneErr;
-
-      const { error: rulesErr } = await supabase.from('screening_rules').upsert({
-        user_id: user.id,
-        urgent_keywords: urgentKeywords.split(',').map(k => k.trim()).filter(Boolean),
-        block_keywords: blockKeywords.split(',').map(k => k.trim()).filter(Boolean),
-      }, { onConflict: 'user_id' });
-      if (rulesErr) throw rulesErr;
-
-      const parsedContacts = contacts.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
-        const parts = line.split(/\s+/);
-        const phone = toE164(parts[parts.length - 1]);
-        const name = parts.slice(0, -1).join(' ') || phone;
-        return { user_id: user.id, contact_name: name, phone_number: phone };
-      });
-      for (const c of parsedContacts) {
-        if (!/^\+[1-9]\d{1,14}$/.test(c.phone_number)) {
-          throw new Error(`Invalid trusted contact number: ${c.phone_number}`);
-        }
-      }
-
-      const { error: delErr } = await supabase.from('trusted_contacts').delete().eq('user_id', user.id);
-      if (delErr) throw delErr;
-      if (parsedContacts.length > 0) {
-        const { error: contactsErr } = await supabase.from('trusted_contacts').insert(parsedContacts);
-        if (contactsErr) throw contactsErr;
-      }
 
       setSuccess(true);
     } catch (err) {
@@ -146,6 +99,13 @@ export default function Settings() {
         actions={<button className="btn btn-ghost" onClick={() => navigate('/dashboard')}>Back</button>}
       />
       <h2 className="page-title" style={{ marginBottom: '1.5rem' }}>Settings</h2>
+
+      <div className="card section-card" style={{ marginBottom: '1.25rem' }}>
+        <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 1.55 }}>
+          RED &amp; GREEN lists, access codes, and screening questions now live on the{' '}
+          <button className="btn-text" onClick={() => navigate('/dashboard')} style={{ fontSize: '0.85rem' }}>Dashboard</button>.
+        </p>
+      </div>
 
       {showBilling && (
         <div className="card section-card" style={{ marginBottom: '1.25rem' }}>
@@ -173,19 +133,7 @@ export default function Settings() {
         <div className="field">
           <label>Your Real Phone Number</label>
           <input type="tel" value={realPhone} onChange={e => setRealPhone(e.target.value)} placeholder="+16195551234" />
-        </div>
-        <div className="field">
-          <label>Trusted Contacts</label>
-          <textarea value={contacts} onChange={e => setContacts(e.target.value)} rows={4} placeholder="Mom +16195550001" />
-          <p className="hint">One per line: Name +1XXXXXXXXXX</p>
-        </div>
-        <div className="field">
-          <label>Urgent Keywords</label>
-          <input value={urgentKeywords} onChange={e => setUrgentKeywords(e.target.value)} />
-        </div>
-        <div className="field">
-          <label>Block Keywords</label>
-          <input value={blockKeywords} onChange={e => setBlockKeywords(e.target.value)} />
+          <p className="hint">Trusted callers ring this number. 10-digit US numbers are fine (we add +1).</p>
         </div>
         <div className="field" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <input type="checkbox" id="smsNotifs" checked={smsNotifs} onChange={e => setSmsNotifs(e.target.checked)} style={{ width: 'auto' }} />

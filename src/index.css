@@ -325,6 +325,61 @@ label {
 .badge-voicemail  { background: rgba(72,120,120,0.18); color: var(--cove-teal); }
 .badge-blocked    { background: rgba(196,69,69,0.15);  color: var(--color-danger); }
 
+/* Kernel outcome badges */
+.badge-rejected       { background: rgba(196,69,69,0.15);  color: var(--color-danger); }
+.badge-connected_live { background: rgba(47,143,91,0.15);  color: var(--color-success); }
+.badge-screened       { background: rgba(72,120,120,0.18);  color: var(--cove-teal); }
+.badge-code_connected { background: rgba(184,136,72,0.18);  color: var(--color-warning); }
+.badge-no_answer      { background: rgba(107,111,115,0.18); color: var(--color-text-muted); }
+.badge-failed         { background: rgba(196,69,69,0.12);  color: var(--color-danger); }
+.badge-received       { background: rgba(72,120,120,0.14);  color: var(--cove-teal); }
+.badge-screening      { background: rgba(184,136,72,0.16);  color: var(--color-warning); }
+
+/* RED / GREEN list badges */
+.badge-red   { background: rgba(196,69,69,0.15);  color: var(--color-danger); }
+.badge-green { background: rgba(47,143,91,0.15);  color: var(--color-success); }
+
+/* Kernel section headers + sub-lists */
+.kernel-section {
+  margin-bottom: var(--space-8);
+}
+.kernel-section-title {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 1.15rem;
+  letter-spacing: -0.01em;
+  margin-bottom: var(--space-2);
+  color: var(--color-text);
+}
+.kernel-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 0.6rem 0.25rem;
+  border-bottom: 1px solid var(--color-rule);
+}
+.kernel-row:first-child { border-top: 1px solid var(--color-rule); }
+.kernel-row-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.kernel-row-meta strong { font-weight: 600; font-size: 0.92rem; }
+.kernel-row-meta span { font-size: 0.78rem; color: var(--color-text-muted); }
+.kernel-inline-form {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: var(--space-3);
+  align-items: flex-end;
+}
+.kernel-inline-form .field { margin-bottom: 0; flex: 1 1 160px; }
+.kernel-inline-form .btn { flex: 0 0 auto; height: fit-content; padding: 0.55rem 1rem; }
+.kernel-actions { display: flex; gap: var(--space-2); flex: 0 0 auto; }
+.kernel-actions .btn { padding: 0.35rem 0.75rem; font-size: 0.8rem; }
+
 .error-msg { color: var(--color-danger); font-size: 0.85rem; margin-top: var(--space-2); }
 
 .hint {

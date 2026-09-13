@@ -1,67 +1,82 @@
 # Cove
 
-> Personal call filter — trusted contacts ring through, DTMF screening for everyone else, voicemail log. (withcove.co — not coveai.dev)
+> Personal call screener. RED numbers rejected, GREEN numbers connect live,
+> everyone else gets a keypad code or a short question screening that produces a
+> review ticket. No voicemail, no keyword rules, no AI voice agent — pure Twilio.
 
-## How It Works
+**Source of truth:** [`docs/Cove-Call-Kernel.md`](docs/Cove-Call-Kernel.md) — the
+Cove Call Kernel defines call routing, screening, and the data model. Everything
+else (this README, the frontend, the edge functions) implements the kernel. The
+old MVP plan is archived at
+[`docs/archive/Cove-MVP-Build-Plan-v4.md`](docs/archive/Cove-MVP-Build-Plan-v4.md)
+and is obsolete.
 
-1. **You forward your number** to your Cove Twilio number.
-2. **Every incoming call** hits Cove's `/calls/incoming` webhook.
-3. **Trusted contacts** (stored in Supabase) ring straight through to your real phone.
-4. **Everyone else** gets DTMF screening; urgent paths can connect, otherwise voicemail is taken.
-5. **Voicemails** are transcribed and saved to Supabase for you to review.
+## How it works
 
-## Tech Stack
+1. You forward your number to your Cove Twilio number.
+2. Every incoming call hits the `twilio-voice-inbound` edge function.
+3. The kernel classifies the caller:
+   - **RED** → reject immediately.
+   - **GREEN** → connect live to your real number.
+   - **Everyone else (Yellow)** → keypad code bypass, then 1–5 spoken questions
+     with recorded + transcribed answers, then a review ticket.
+   - RED overrides GREEN.
+4. Yellow callers can enter a private keypad code to connect live.
+5. The dashboard shows RED/GREEN lists, access codes, questions, review tickets,
+   and the call log.
+
+## Tech stack
 
 | Layer | Tech |
 |-------|------|
-| Server | Node.js + Express |
-| Phone/SMS | Twilio |
+| Frontend | Vite + React (GitHub Pages) |
+| Backend | Supabase Edge Functions (Deno/TypeScript) |
 | Database | Supabase (PostgreSQL) |
-| Hosting | Railway / Render / Fly.io |
+| Telephony | Twilio (voice + transcription; no Retell) |
+| Billing | Stripe (checkout + customer portal) |
 
-## Project Structure
+## Project structure
 
 ```
 Cove/
-├── src/
-│   ├── index.js              # Express server entry point
-│   ├── routes/
-│   │   ├── calls.js          # Incoming call routing & screening
-│   │   ├── voicemail.js      # Voicemail receive & storage
-│   │   └── contacts.js       # Trusted contacts CRUD API
-│   └── services/
-│       ├── twilio.js         # Twilio voicemail download
-│       ├── supabase.js       # Supabase client + schema docs
-│       └── contacts.js       # isTrustedContact() helper
-├── .env.example              # Required environment variables
-├── .gitignore
-├── package.json
+├── docs/
+│   ├── Cove-Call-Kernel.md          # Kernel spec — source of truth
+│   ├── BILLING.md
+│   └── archive/                      # obsolete plans (history only)
+├── supabase/
+│   ├── migrations/
+│   │   └── 20260913000000_call_kernel.sql   # kernel schema (applied)
+│   └── functions/
+│       ├── _shared/cove.ts           # shared helpers (supabase client, TwiML, audit)
+│       ├── twilio-voice-inbound/     # entry: classify RED/GREEN/Yellow
+│       ├── screening-step/           # Yellow state machine (code → questions)
+│       ├── call-transcribe/          # async transcription callback
+│       ├── call-status/              # Dial status + completion
+│       ├── provision-number/         # Twilio number provisioning
+│       ├── create-checkout-session/  # Stripe checkout
+│       ├── create-portal-session/    # Stripe portal
+│       └── stripe-webhook/           # Stripe webhook
+├── src/                              # React frontend
+│   ├── pages/                        # Landing, Auth, Onboarding, Dashboard, Settings, Admin
+│   ├── services/api.js               # Supabase queries + edge function calls
+│   └── lib/supabase.js
+├── .github/workflows/deploy.yml      # auto-deploys frontend to GitHub Pages on push to main
 └── README.md
 ```
 
-## Supabase Schema
+## Data model (kernel)
 
-Run these in the Supabase SQL editor:
+- `caller_lists` — RED/GREEN phone numbers per user.
+- `access_codes` — keypad codes (min 3 digits) for Yellow bypass; managed in the
+  GREEN section of the dashboard.
+- `screening_questions` — 1–5 questions per user, spoken verbatim.
+- `review_tickets` + `review_ticket_answers` — Yellow screening product object:
+  caller, status, captured answers, recordings, transcripts.
+- `call_logs` — canonical master call record (outcome enum: `received`,
+  `screening`, `rejected`, `connected_live`, `screened`, `code_connected`,
+  `no_answer`, `failed`).
 
-```sql
--- Trusted contacts
-create table contacts (
-  id         uuid primary key default gen_random_uuid(),
-  name       text not null,
-  phone      text not null unique,
-  created_at timestamptz default now()
-);
-
--- Voicemail log
-create table voicemails (
-  id             uuid primary key default gen_random_uuid(),
-  from_number    text,
-  recording_url  text,
-  transcription  text,
-  call_sid       text,
-  created_at     timestamptz default now()
-);
-```
+See the kernel spec and the applied migration for full schema + RLS.
 
 ## Setup
 
@@ -73,49 +88,30 @@ npm install
 ```
 
 ### 2. Configure environment
-```bash
-cp .env.example .env
-# Fill in your Twilio and Supabase credentials
-```
+Copy `.env.example` and set:
+- `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (frontend)
 
-### 3. Run locally
+Edge function secrets (Twilio, Supabase service role, Stripe) are set in the
+Supabase dashboard, not in the frontend env.
+
+### 3. Run the frontend locally
 ```bash
 npm run dev
 ```
 
-### 4. Expose with ngrok (for Twilio webhooks during dev)
-```bash
-ngrok http 3000
-```
-Set your Twilio number's webhook to:
-- **Incoming call:** `https://<ngrok-url>/calls/incoming`
-- **Call status:** `https://<ngrok-url>/calls/status`
-- **Voicemail:** `https://<ngrok-url>/voicemail/receive`
+### 4. Deploy
+- **Frontend:** push to `main` — GitHub Actions deploys to GitHub Pages
+  automatically.
+- **Edge functions:** deployed via the Supabase connector (see
+  `supabase/functions/`). The repo keeps `_shared/cove.ts` as the shared source;
+  deployed functions inline the shared helpers into a single `index.ts`.
 
-### 5. Deploy
-Deploy to Railway, Render, or Fly.io and update Twilio webhooks to your production URL.
+## Twilio webhook configuration
 
-## API Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/calls/incoming` | Twilio call webhook — routes or screens |
-| `POST` | `/calls/status` | Twilio call status callback |
-| `POST` | `/voicemail/receive` | Twilio voicemail recording webhook |
-| `GET` | `/voicemail` | List all voicemails |
-| `GET` | `/contacts` | List all trusted contacts |
-| `POST` | `/contacts` | Add a trusted contact |
-| `DELETE` | `/contacts/:id` | Remove a trusted contact |
-| `GET` | `/health` | Health check |
-
-## Roadmap
-
-- [ ] Voicemail transcription via OpenAI Whisper
-- [ ] SMS/push notification when new voicemail arrives
-- [ ] Dashboard UI (React) to manage contacts & review voicemails
-- [ ] Call summary enrichment
-- [ ] Multi-user support
-- [ ] Stripe billing for SaaS tier
+Point your Twilio number's voice webhook to:
+- **Incoming call:** `https://<project>.supabase.co/functions/v1/twilio-voice-inbound`
+- The kernel's TwiML drives the rest (screening-step, call-status,
+  call-transcribe are referenced by the inbound TwiML automatically).
 
 ## License
 

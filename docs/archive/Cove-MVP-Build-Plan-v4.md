@@ -1,3 +1,16 @@
+# ⚠️ DEPRECATED — Cove Call Kernel supersedes this plan
+
+This MVP build plan (Retell voice agent, voicemail, keyword screening, trusted
+contacts, DTMF 9/1) is **obsolete**. It is retained here for history only.
+
+The Cove Call Kernel is the single source of truth for call routing, screening,
+and the data model. If anything below conflicts with the kernel, the kernel wins.
+
+- **Kernel spec:** [`docs/Cove-Call-Kernel.md`](../Cove-Call-Kernel.md)
+- **Applied migration:** `supabase/migrations/20260913000000_call_kernel.sql`
+
+---
+
 # AI Call Screener — MVP Build Plan v4
 
 ## What it does

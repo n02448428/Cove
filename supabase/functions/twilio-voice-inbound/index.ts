@@ -1,134 +1,164 @@
 // supabase/functions/twilio-voice-inbound/index.ts
-// Cove MVP - Inbound call webhook from Twilio
-// Handles: trusted contact forwarding, DTMF Gather screening, fallback voicemail
-// Retell removed from hot path (unknown callers → Gather → twilio-voice-screen)
+// Cove Call Kernel v0.1 — inbound call entry point.
+// RED number -> Reject. GREEN number -> Connect live. All others -> Yellow
+// (code-Gather then question loop via screening-step).
+// Source of truth: docs/Cove-Call-Kernel.md
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { releaseExpiredDids } from '../_shared/releaseExpiredDids.ts'
-
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL')!,
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-)
-
-// Prod historically omitted APP_BASE_URL — never emit undefined action URLs
-const APP_BASE_URL = (
-  Deno.env.get('APP_BASE_URL') ?? 'https://csbstpehuunaoyehhixp.supabase.co'
-).replace(/\/$/, '')
+import {
+  createSupabase,
+  fnUrl,
+  parseForm,
+  formGet,
+  logCall,
+  audit,
+  twiml,
+  xmlEscape,
+  validateTwilioSignature,
+  SCRIPT,
+} from '../_shared/cove.ts'
 
 serve(async (req: Request) => {
+  const body = await req.text()
+  const params = new URLSearchParams(body)
+
+  // Twilio signature validation (no-op when no auth token configured).
   try {
-    // Lazy DID release (post-grace) — minimal touch; then existing screening path
-    try {
-      await releaseExpiredDids(supabase)
-    } catch (e) {
-      console.error('lazy releaseExpiredDids soft-fail:', e)
+    if (!(await validateTwilioSignature(req, body))) {
+      return new Response('Unauthorized', { status: 403 })
     }
+  } catch (e) {
+    console.error('sig validation error:', e)
+  }
 
-    const body = await req.text()
-    const params = new URLSearchParams(body)
-    const to = params.get('To') ?? ''
-    const from = params.get('From') ?? ''
-    const callSid = params.get('CallSid') ?? ''
+  try {
+    const to = formGet(params, 'To')
+    const from = formGet(params, 'From')
+    const callSid = formGet(params, 'CallSid')
 
-    // 1. Look up user by twilio_number
+    const supabase = createSupabase()
+
+    // 1. Look up the Cove user that owns this concierge number.
     const { data: phoneRow, error: phoneErr } = await supabase
       .from('phone_numbers')
       .select('user_id, real_number')
       .eq('twilio_number', to)
-      .single()
+      .maybeSingle()
 
     if (phoneErr || !phoneRow) {
-      console.error('No user found for twilio_number:', to)
-      return fallbackVoicemail(callSid, null, 'no_user_found')
+      return twiml(
+        `<?xml version="1.0" encoding="UTF-8"?><Response><Say>${xmlEscape(SCRIPT.notConfigured)}</Say><Hangup/></Response>`,
+      )
     }
 
     const { user_id, real_number } = phoneRow
 
-    // 2. Log initial call receipt
-    await supabase.from('call_logs').upsert({
-      user_id,
-      call_sid: callSid,
+    // 2. Log call receipt (idempotent on call_sid).
+    await logCall(supabase, callSid, user_id, {
       caller_number: from,
-      status: 'received',
       outcome: 'received',
-    }, { onConflict: 'call_sid' })
-
-    await supabase.from('call_audit').insert({
-      user_id,
-      call_sid: callSid,
-      event_type: 'inbound_received',
-      payload: { to, from },
-      provider: 'twilio',
+      status: 'received',
+      call_state: 'received',
     })
+    await audit(supabase, user_id, callSid, 'inbound_received', 'twilio', { to, from })
 
-    // 3. Check if caller is a trusted contact (exact From match)
-    const { data: trustedContacts } = await supabase
-      .from('trusted_contacts')
-      .select('phone_number, contact_name')
+    // 3. RED overrides GREEN: check RED first.
+    const { data: redRow } = await supabase
+      .from('caller_lists')
+      .select('id, contact_name')
       .eq('user_id', user_id)
+      .eq('phone_number', from)
+      .eq('classification', 'red')
+      .maybeSingle()
 
-    const trustedMatch = trustedContacts?.find(c => c.phone_number === from)
-
-    if (trustedMatch) {
-      // Trusted contact: forward directly to real number
-      await supabase.from('call_audit').insert({
-        user_id, call_sid: callSid,
-        event_type: 'trusted_contact_forward',
-        payload: { contact_name: trustedMatch.contact_name },
-        provider: 'twilio',
+    if (redRow) {
+      await logCall(supabase, callSid, user_id, {
+        outcome: 'rejected',
+        status: 'rejected',
+        call_state: 'rejected',
       })
-
-      const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Dial callerId="${from}" action="${APP_BASE_URL}/functions/v1/call-completion-handler?userId=${user_id}&amp;callSid=${callSid}&amp;outcome=forwarded">
-    <Number>${real_number}</Number>
-  </Dial>
-</Response>`
-      return new Response(twiml, { headers: { 'Content-Type': 'text/xml' } })
+      await audit(supabase, user_id, callSid, 'red_rejected', 'kernel', {
+        contact_name: redRow.contact_name,
+      })
+      return twiml('<?xml version="1.0" encoding="UTF-8"?><Response><Reject/></Response>')
     }
 
-    // 4. Unknown caller: DTMF Gather → twilio-voice-screen (no Retell)
-    await supabase.from('call_logs').upsert({
-      user_id,
-      call_sid: callSid,
-      status: 'screened',
-      outcome: 'screened',
-    }, { onConflict: 'call_sid' })
+    // 4. GREEN: connect live to the user's real number.
+    const { data: greenRow } = await supabase
+      .from('caller_lists')
+      .select('id, contact_name')
+      .eq('user_id', user_id)
+      .eq('phone_number', from)
+      .eq('classification', 'green')
+      .maybeSingle()
 
-    await supabase.from('call_audit').insert({
-      user_id, call_sid: callSid,
-      event_type: 'dtmf_screening_started',
-      provider: 'twilio',
+    if (greenRow) {
+      await logCall(supabase, callSid, user_id, {
+        outcome: 'connected_live',
+        status: 'connected_live',
+        call_state: 'connected_live',
+      })
+      await audit(supabase, user_id, callSid, 'green_connected', 'kernel', {
+        contact_name: greenRow.contact_name,
+      })
+      const statusCb = `${fnUrl('call-status')}?callSid=${encodeURIComponent(callSid)}&userId=${encodeURIComponent(user_id)}&source=green`
+      return twiml(
+        `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Dial callerId="${xmlEscape(from)}" action="${xmlEscape(statusCb)}" method="POST" timeout="30">
+    <Number>${xmlEscape(real_number)}</Number>
+  </Dial>
+</Response>`,
+      )
+    }
+
+    // 5. YELLOW: create a review ticket, then offer a silent code entry
+    //    before the question loop. Code holders enter <digits>#; everyone
+    //    else times out into the first question.
+    const { data: ticket, error: ticketErr } = await supabase
+      .from('review_tickets')
+      .insert({
+        user_id,
+        call_sid: callSid,
+        caller_number: from,
+        status: 'collecting',
+      })
+      .select('id')
+      .single()
+
+    const ticketId = ticket?.id ?? ''
+
+    await logCall(supabase, callSid, user_id, {
+      ticket_id: ticketId || null,
+      outcome: 'screening',
+      status: 'screening',
+      call_state: 'screening',
+    })
+    await audit(supabase, user_id, callSid, 'yellow_started', 'kernel', {
+      ticket_id: ticketId,
+      ticket_error: ticketErr ? String(ticketErr) : null,
     })
 
-    const screenAction =
-      `${APP_BASE_URL}/functions/v1/twilio-voice-screen?callSid=${encodeURIComponent(callSid)}`
+    const stepBase = `${fnUrl('screening-step')}`
+    const codeAction = `${stepBase}?stage=code&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}`
+    const questionRedirect = `${stepBase}?stage=question&qi=1&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}`
 
-    // Prompt matches screen contract: 9 urgent / 1 sales / else voicemail
-    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+    // Gather listens for a private code (terminated by #). Neutral prompt
+    // reveals nothing about the bypass. On timeout, fall through to Q1.
+    // No numDigits cap: codes may be any length (min 3), terminated by #.
+    return twiml(
+      `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather numDigits="1" timeout="6" action="${screenAction}" method="POST">
-    <Say>Thanks for calling. If this is urgent, press 9. If you are a salesperson, press 1. Otherwise, stay on the line to leave a message.</Say>
+  <Gather finishOnKey="#" timeout="5" action="${xmlEscape(codeAction)}" method="POST">
+    <Say>One moment please.</Say>
   </Gather>
-  <Say>Please leave your message after the beep.</Say>
-  <Record maxLength="120" playBeep="true" timeout="30" transcribe="true" transcribeCallback="${APP_BASE_URL}/functions/v1/call-completion-handler?outcome=voicemail&amp;callSid=${callSid}" />
-</Response>`
-
-    return new Response(twiml, { headers: { 'Content-Type': 'text/xml' } })
-
+  <Redirect method="POST">${xmlEscape(questionRedirect)}</Redirect>
+</Response>`,
+    )
   } catch (err) {
     console.error('twilio-voice-inbound error:', err)
-    return fallbackVoicemail('', null, String(err))
+    return twiml(
+      `<?xml version="1.0" encoding="UTF-8"?><Response><Say>${xmlEscape(SCRIPT.notConfigured)}</Say><Hangup/></Response>`,
+    )
   }
 })
-
-function fallbackVoicemail(callSid: string, userId: string | null, reason: string): Response {
-  const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say>We are unable to take your call right now. Please leave a message after the beep.</Say>
-  <Record maxLength="120" transcribe="true" transcribeCallback="${APP_BASE_URL}/functions/v1/call-completion-handler?outcome=voicemail&amp;callSid=${callSid}" />
-</Response>`
-  return new Response(twiml, { headers: { 'Content-Type': 'text/xml' } })
-}

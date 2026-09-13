@@ -2,6 +2,17 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase.js';
 import AppHeader from '../components/AppHeader.jsx';
 
+const OUTCOME_LABELS = {
+  received: 'Received',
+  screening: 'Screening',
+  rejected: 'Rejected',
+  connected_live: 'Connected',
+  screened: 'Screened',
+  code_connected: 'Code',
+  no_answer: 'No answer',
+  failed: 'Failed',
+};
+
 export default function Admin() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,7 +57,7 @@ export default function Admin() {
                   <td style={{ padding: '0.5rem 1rem' }}>{new Date(log.created_at).toLocaleString()}</td>
                   <td style={{ padding: '0.5rem 1rem' }}>{log.profiles?.real_phone || log.user_id}</td>
                   <td style={{ padding: '0.5rem 1rem' }}>{log.caller_number}</td>
-                  <td style={{ padding: '0.5rem 1rem' }}>{log.outcome}</td>
+                  <td style={{ padding: '0.5rem 1rem' }}>{OUTCOME_LABELS[log.outcome] || log.outcome}</td>
                   <td style={{ padding: '0.5rem 1rem' }}>{log.duration_seconds}s</td>
                   <td style={{ padding: '0.5rem 1rem', color: '#f55' }}>{log.error_message}</td>
                 </tr>

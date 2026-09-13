@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
-import AppHeader from '../components/AppHeader.jsx';
 import CoveMark from '../components/CoveMark.jsx';
 import CoveWordmark from '../components/CoveWordmark.jsx';
+import ThemeToggle from '../components/ThemeToggle.jsx';
 
 const FEATURES = [
   {
@@ -10,7 +10,7 @@ const FEATURES = [
   },
   {
     title: 'Unknown callers get a simple check',
-    desc: 'Real urgency can connect; the rest doesn’t interrupt you.',
+    desc: "Real urgency can connect; the rest doesn't interrupt you.",
   },
   {
     title: 'A clear call log',
@@ -34,10 +34,11 @@ export default function Landing() {
         <div className="landing-wash__veil" />
       </div>
 
-      <AppHeader
-        homeTo="/"
-        flush
-        actions={
+      <header className="landing-header-bar">
+        <a href="/" className="cove-wordmark-link" aria-label="Cove home">
+          <CoveWordmark markSize={32} />
+        </a>
+        <div className="app-header-actions">
           <button
             type="button"
             className="header-link"
@@ -45,26 +46,21 @@ export default function Landing() {
           >
             Sign In
           </button>
-        }
-      />
+          <ThemeToggle />
+        </div>
+      </header>
 
       <div className="landing-shell">
         <section className="landing-hero">
           <CoveMark size={220} className="cove-hero-mark" />
           <div className="landing-copy">
-            <p className="landing-pain">
-              Unknown numbers. Sales pitches. Another interruption while you’re mid-something.
-              <br />
-              You shouldn’t have to decide whether to answer every time the phone rings.
-            </p>
-
             <h1 className="landing-headline">Your cove.</h1>
             <p className="landing-subhead">
               People you trust get through. Everyone else waits.
             </p>
             <p className="landing-support">
               Cove is your personal space for calls. Trusted contacts ring your phone. Unknown
-              callers get a short, simple check. What’s left lands in a log you open when you’re
+              callers get a short, simple check. What's left lands in a log you open when you're
               ready.
             </p>
 

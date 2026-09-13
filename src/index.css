@@ -441,8 +441,8 @@ label {
   grid-template-columns: 1fr;
   gap: var(--space-8);
   align-items: center;
-  min-height: min(68vh, 640px);
-  padding: var(--space-8) 0 var(--space-12);
+  min-height: auto;
+  padding: var(--space-6) 0 var(--space-8);
   position: relative;
 }
 
@@ -455,9 +455,9 @@ label {
 
 .landing-pain {
   color: var(--color-text-muted);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   line-height: 1.55;
-  margin-bottom: 1.75rem;
+  margin-bottom: 1.25rem;
   max-width: 26rem;
 }
 
@@ -728,4 +728,252 @@ label {
   font-size: 0.8rem;
   color: var(--color-text-muted);
   letter-spacing: 0.02em;
+}
+
+/* =========================================
+   Concierge number card
+   ========================================= */
+
+.concierge-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-lg);
+  padding: clamp(1.25rem, 4vw, 2rem);
+  margin-bottom: 2rem;
+  text-align: left;
+}
+
+.concierge-card--pending {
+  text-align: center;
+}
+
+.concierge-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.concierge-card-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cove-teal);
+  margin-bottom: 0.35rem;
+}
+
+.concierge-card-number {
+  font-family: var(--font-serif);
+  font-size: clamp(1.75rem, 6vw, 2.5rem);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text);
+  line-height: 1.1;
+}
+
+.concierge-card-number--pending {
+  font-size: clamp(1.25rem, 4vw, 1.5rem);
+  color: var(--color-text-muted);
+}
+
+.concierge-card-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.concierge-card-instruction {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+  margin: 0.75rem 0 0;
+  max-width: 32rem;
+}
+
+.concierge-card-link {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  padding: 0.35rem 0;
+}
+
+/* =========================================
+   Collapsible sections
+   ========================================= */
+
+.section-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+.section-toggle:hover {
+  opacity: 0.85;
+}
+
+.section-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.section-dot--green {
+  background: var(--color-success);
+  box-shadow: 0 0 0 3px rgba(47, 143, 91, 0.15);
+}
+
+.section-dot--yellow {
+  background: var(--cove-gold);
+  box-shadow: 0 0 0 3px rgba(184, 136, 72, 0.15);
+}
+
+.section-dot--red {
+  background: var(--color-danger);
+  box-shadow: 0 0 0 3px rgba(196, 69, 69, 0.15);
+}
+
+.section-toggle .kernel-section-title {
+  margin: 0;
+  flex: 1;
+}
+
+.section-chevron {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  transition: transform 0.2s ease;
+}
+
+.section-chevron--open {
+  transform: rotate(180deg);
+}
+
+.section-body {
+  padding-top: 1rem;
+  margin-top: 0.75rem;
+  border-top: 1px solid var(--color-rule);
+}
+
+.yellow-subsection {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-rule);
+}
+
+/* =========================================
+   Landing page fixes
+   ========================================= */
+
+.landing-header-bar {
+  position: relative;
+  z-index: 2;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-6);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-bg) 92%, transparent) 0%,
+    color-mix(in srgb, var(--color-bg) 60%, transparent) 100%
+  );
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* =========================================
+   Responsive optimizations
+   ========================================= */
+
+@media (max-width: 640px) {
+  .concierge-card-top {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .concierge-card-copy {
+    align-self: flex-start;
+  }
+
+  .section-toggle {
+    gap: 0.5rem;
+  }
+
+  .section-toggle .kernel-section-title {
+    font-size: 1rem;
+  }
+
+  .page {
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .page-narrow {
+    padding: var(--space-6) var(--space-4) var(--space-12);
+  }
+
+  .kernel-inline-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .kernel-inline-form .field {
+    width: 100%;
+  }
+
+  .kernel-inline-form .btn {
+    width: 100%;
+  }
+
+  .filter-row {
+    gap: 0.35rem;
+  }
+
+  .filter-row .btn {
+    padding: 0.35rem 0.7rem;
+    font-size: 0.75rem;
+  }
+
+  .landing-hero {
+    padding-top: var(--space-6);
+  }
+
+  .cove-hero-mark {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .concierge-card-number {
+    font-size: 1.5rem;
+  }
+
+  .page::after,
+  .page-narrow::after {
+    width: 3.5rem;
+    height: 3.5rem;
+    bottom: 1rem;
+    right: 1rem;
+  }
+
+  .app-header {
+    gap: var(--space-2);
+  }
+
+  .app-header-actions {
+    gap: var(--space-2);
+  }
 }

@@ -52,6 +52,19 @@ const TICKET_FILTERS = ['all', 'new', 'reviewed', 'actioned'];
 
 const MAX_QUESTIONS = 5;
 
+function Chevron({ open }) {
+  return (
+    <svg
+      className={`section-chevron${open ? ' section-chevron--open' : ''}`}
+      width="18" height="18" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [userId, setUserId] = useState(null);
@@ -62,6 +75,13 @@ export default function Dashboard() {
   const [questions, setQuestions] = useState([]);
   const [tickets, setTickets] = useState([]);
   const [calls, setCalls] = useState([]);
+
+  // concierge number
+  const [conciergeNumber, setConciergeNumber] = useState('');
+  const [provisioningStatus, setProvisioningStatus] = useState('');
+
+  // collapsible sections
+  const [openSections, setOpenSections] = useState({ green: true, yellow: true, red: false });
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -93,18 +113,23 @@ export default function Dashboard() {
   const [newQuestion, setNewQuestion] = useState('');
 
   const loadAll = useCallback(async (uid) => {
-    const [lists, codes, qs, tix, logs] = await Promise.all([
+    const [lists, codes, qs, tix, logs, phone] = await Promise.all([
       getCallerLists(uid),
       getAccessCodes(uid),
       getScreeningQuestions(uid),
       getReviewTickets(uid),
       getCallLogs(uid, { limit: 100 }),
+      supabase.from('phone_numbers').select('twilio_number, provisioning_status').eq('user_id', uid).maybeSingle(),
     ]);
     setCallerLists(lists);
     setAccessCodes(codes);
     setQuestions(qs);
     setTickets(tix);
     setCalls(logs);
+    if (phone.data) {
+      setConciergeNumber(phone.data.twilio_number || '');
+      setProvisioningStatus(phone.data.provisioning_status || '');
+    }
   }, []);
 
   useEffect(() => {
@@ -126,6 +151,14 @@ export default function Dashboard() {
   async function signOut() {
     await supabase.auth.signOut();
     navigate('/');
+  }
+
+  function toggleSection(name) {
+    setOpenSections(prev => ({ ...prev, [name]: !prev[name] }));
+  }
+
+  function copyNumber() {
+    if (conciergeNumber) navigator.clipboard.writeText(conciergeNumber);
   }
 
   // — RED / GREEN lists ————————————————————————————
@@ -313,172 +346,222 @@ export default function Dashboard() {
         <CoveMark size={30} />
         Dashboard
       </h1>
-      <p className="page-lede" style={{ marginBottom: '2rem' }}>
-        RED numbers are rejected. GREEN numbers connect live. Everyone else is screened with your questions and a review ticket is created.
-      </p>
+
+      {/* Concierge number — prominent */}
+      {conciergeNumber ? (
+        <div className="concierge-card">
+          <div className="concierge-card-top">
+            <div>
+              <p className="concierge-card-label">Your Cove Number</p>
+              <p className="concierge-card-number">{conciergeNumber}</p>
+            </div>
+            <button className="btn btn-ghost concierge-card-copy" onClick={copyNumber} title="Copy number">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+              Copy
+            </button>
+          </div>
+          <p className="concierge-card-instruction">
+            Forward all calls to this number. Trusted contacts ring through. Unknown callers get screened.
+          </p>
+          <button className="btn btn-ghost concierge-card-link" onClick={() => navigate('/forwarding')}>
+            View setup instructions →
+          </button>
+        </div>
+      ) : (
+        <div className="concierge-card concierge-card--pending">
+          <p className="concierge-card-label">Your Cove Number</p>
+          <p className="concierge-card-number concierge-card-number--pending">
+            {provisioningStatus === 'failed' ? 'Provisioning failed' : 'Provisioning…'}
+          </p>
+          <button className="btn btn-ghost" style={{ marginTop: '0.5rem' }} onClick={() => navigate('/forwarding')}>
+            Check status →
+          </button>
+        </div>
+      )}
 
       {error && <p className="error-msg" style={{ marginBottom: '1rem' }}>{error}</p>}
 
-      {/* RED list */}
+      {/* GREEN — trusted contacts (collapsible) */}
       <section className="kernel-section card section-card">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-          <h2 className="kernel-section-title" style={{ margin: 0 }}>RED list</h2>
-          <span className="badge badge-red">{redList.length}</span>
-        </div>
-        <p className="hint" style={{ marginTop: 0, marginBottom: '1rem' }}>Numbers on this list are rejected immediately.</p>
-        {redList.length === 0 ? (
-          <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>No RED numbers yet.</p>
-        ) : (
-          redList.map(c => (
-            <div key={c.id} className="kernel-row">
-              <div className="kernel-row-meta">
-                <strong>{c.contact_name || c.phone_number}</strong>
-                {c.contact_name && <span>{c.phone_number}</span>}
+        <button className="section-toggle" onClick={() => toggleSection('green')} aria-expanded={openSections.green}>
+          <span className="section-dot section-dot--green"></span>
+          <h2 className="kernel-section-title">GREEN — Trusted</h2>
+          <span className="badge badge-green">{greenList.length}</span>
+          <Chevron open={openSections.green} />
+        </button>
+        {openSections.green && (
+          <div className="section-body">
+            <p className="hint">Numbers on this list connect live immediately.</p>
+            {greenList.length === 0 ? (
+              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>No GREEN numbers yet.</p>
+            ) : (
+              greenList.map(c => (
+                <div key={c.id} className="kernel-row">
+                  <div className="kernel-row-meta">
+                    <strong>{c.contact_name || c.phone_number}</strong>
+                    {c.contact_name && <span>{c.phone_number}</span>}
+                  </div>
+                  <div className="kernel-actions">
+                    <button className="btn btn-ghost" onClick={() => handleDeleteCallerList(c.id)}>Remove</button>
+                  </div>
+                </div>
+              ))
+            )}
+            <div className="kernel-inline-form">
+              <div className="field">
+                <label>Phone</label>
+                <input type="tel" value={greenPhone} onChange={e => setGreenPhone(e.target.value)} placeholder="+16195551234" />
               </div>
-              <div className="kernel-actions">
-                <button className="btn btn-ghost" onClick={() => handleDeleteCallerList(c.id)}>Remove</button>
+              <div className="field">
+                <label>Name (optional)</label>
+                <input value={greenName} onChange={e => setGreenName(e.target.value)} placeholder="Mom" />
               </div>
+              <button className="btn btn-primary" onClick={() => handleAddCallerList('green')}>Add to GREEN</button>
             </div>
-          ))
+          </div>
         )}
-        <div className="kernel-inline-form">
-          <div className="field">
-            <label>Phone</label>
-            <input type="tel" value={redPhone} onChange={e => setRedPhone(e.target.value)} placeholder="+16195551234" />
-          </div>
-          <div className="field">
-            <label>Name (optional)</label>
-            <input value={redName} onChange={e => setRedName(e.target.value)} placeholder="Spam caller" />
-          </div>
-          <button className="btn btn-primary" onClick={() => handleAddCallerList('red')}>Add to RED</button>
-        </div>
       </section>
 
-      {/* GREEN list + access codes */}
+      {/* YELLOW — screening (collapsible) */}
       <section className="kernel-section card section-card">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-          <h2 className="kernel-section-title" style={{ margin: 0 }}>GREEN list</h2>
-          <span className="badge badge-green">{greenList.length}</span>
-        </div>
-        <p className="hint" style={{ marginTop: 0, marginBottom: '1rem' }}>Numbers on this list connect live immediately.</p>
-        {greenList.length === 0 ? (
-          <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>No GREEN numbers yet.</p>
-        ) : (
-          greenList.map(c => (
-            <div key={c.id} className="kernel-row">
-              <div className="kernel-row-meta">
-                <strong>{c.contact_name || c.phone_number}</strong>
-                {c.contact_name && <span>{c.phone_number}</span>}
-              </div>
-              <div className="kernel-actions">
-                <button className="btn btn-ghost" onClick={() => handleDeleteCallerList(c.id)}>Remove</button>
-              </div>
-            </div>
-          ))
-        )}
-        <div className="kernel-inline-form">
-          <div className="field">
-            <label>Phone</label>
-            <input type="tel" value={greenPhone} onChange={e => setGreenPhone(e.target.value)} placeholder="+16195551234" />
-          </div>
-          <div className="field">
-            <label>Name (optional)</label>
-            <input value={greenName} onChange={e => setGreenName(e.target.value)} placeholder="Mom" />
-          </div>
-          <button className="btn btn-primary" onClick={() => handleAddCallerList('green')}>Add to GREEN</button>
-        </div>
-
-        {/* Access codes inside GREEN section */}
-        <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--color-rule)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-            <h3 className="kernel-section-title" style={{ margin: 0, fontSize: '1.05rem' }}>Access codes</h3>
-            <span className="badge badge-green">{accessCodes.filter(c => !c.revoked_at).length}</span>
-          </div>
-          <p className="hint" style={{ marginTop: 0, marginBottom: '1rem' }}>Callers in YELLOW can enter a code to connect live.</p>
-          {accessCodes.length === 0 ? (
-            <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>No access codes yet.</p>
-          ) : (
-            accessCodes.map(c => (
-              <div key={c.id} className="kernel-row">
-                <div className="kernel-row-meta">
-                  <strong>{c.code}{c.label ? ` — ${c.label}` : ''}</strong>
-                  <span>
-                    {c.revoked_at ? 'revoked' : 'active'}
-                    {c.last_used_at ? ` · last used ${new Date(c.last_used_at).toLocaleDateString()}` : ''}
-                    {c.expires_at ? ` · expires ${new Date(c.expires_at).toLocaleDateString()}` : ''}
-                  </span>
+        <button className="section-toggle" onClick={() => toggleSection('yellow')} aria-expanded={openSections.yellow}>
+          <span className="section-dot section-dot--yellow"></span>
+          <h2 className="kernel-section-title">YELLOW — Screening</h2>
+          <span className="badge">{questions.length}/{MAX_QUESTIONS}</span>
+          <Chevron open={openSections.yellow} />
+        </button>
+        {openSections.yellow && (
+          <div className="section-body">
+            <p className="hint">Unknown callers are asked these questions. 1–5 questions, spoken verbatim.</p>
+            {questions.length === 0 && (
+              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>No questions yet. Add up to 5.</p>
+            )}
+            {questions.map(q => (
+              <div key={q.id} className="kernel-row" style={{ alignItems: 'flex-start' }}>
+                <div className="kernel-row-meta" style={{ flex: 1 }}>
+                  <strong style={{ display: 'flex', gap: '0.5rem', alignItems: 'baseline' }}>
+                    <span style={{ color: 'var(--color-text-muted)', fontWeight: 500 }}>{q.ord}.</span>
+                    {questionDrafts[q.id] !== undefined ? (
+                      <input
+                        value={questionDrafts[q.id]}
+                        onChange={e => setQuestionDrafts(d => ({ ...d, [q.id]: e.target.value }))}
+                        style={{ flex: 1 }}
+                      />
+                    ) : (
+                      <span>{q.question}</span>
+                    )}
+                  </strong>
                 </div>
                 <div className="kernel-actions">
-                  {!c.revoked_at && (
-                    <button className="btn btn-ghost" onClick={() => handleRevokeCode(c.id)}>Revoke</button>
+                  {questionDrafts[q.id] !== undefined ? (
+                    <>
+                      <button className="btn btn-ghost" onClick={() => saveQuestion(q)}>Save</button>
+                      <button className="btn btn-ghost" onClick={() => setQuestionDrafts(d => { const n = { ...d }; delete n[q.id]; return n; })}>Cancel</button>
+                    </>
+                  ) : (
+                    <>
+                      <button className="btn btn-ghost" onClick={() => startEditQuestion(q)}>Edit</button>
+                      <button className="btn btn-ghost" onClick={() => deleteQuestion(q)}>Delete</button>
+                    </>
                   )}
-                  <button className="btn btn-ghost" onClick={() => handleDeleteCode(c.id)}>Delete</button>
                 </div>
               </div>
-            ))
-          )}
-          <div className="kernel-inline-form">
-            <div className="field">
-              <label>Code</label>
-              <input inputMode="numeric" value={codeValue} onChange={e => setCodeValue(e.target.value)} placeholder="1234" />
+            ))}
+            {questions.length < MAX_QUESTIONS && (
+              <div className="kernel-inline-form">
+                <div className="field">
+                  <label>New question</label>
+                  <input value={newQuestion} onChange={e => setNewQuestion(e.target.value)} placeholder="Who is calling, please?" />
+                </div>
+                <button className="btn btn-primary" onClick={addQuestion}>Add question</button>
+              </div>
+            )}
+
+            {/* Access codes inside YELLOW section */}
+            <div className="yellow-subsection">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                <h3 className="kernel-section-title" style={{ margin: 0, fontSize: '1.05rem' }}>Access codes</h3>
+                <span className="badge badge-green">{accessCodes.filter(c => !c.revoked_at).length}</span>
+              </div>
+              <p className="hint" style={{ marginTop: 0, marginBottom: '1rem' }}>Callers in YELLOW can enter a code to connect live.</p>
+              {accessCodes.length === 0 ? (
+                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>No access codes yet.</p>
+              ) : (
+                accessCodes.map(c => (
+                  <div key={c.id} className="kernel-row">
+                    <div className="kernel-row-meta">
+                      <strong>{c.code}{c.label ? ` — ${c.label}` : ''}</strong>
+                      <span>
+                        {c.revoked_at ? 'revoked' : 'active'}
+                        {c.last_used_at ? ` · last used ${new Date(c.last_used_at).toLocaleDateString()}` : ''}
+                        {c.expires_at ? ` · expires ${new Date(c.expires_at).toLocaleDateString()}` : ''}
+                      </span>
+                    </div>
+                    <div className="kernel-actions">
+                      {!c.revoked_at && (
+                        <button className="btn btn-ghost" onClick={() => handleRevokeCode(c.id)}>Revoke</button>
+                      )}
+                      <button className="btn btn-ghost" onClick={() => handleDeleteCode(c.id)}>Delete</button>
+                    </div>
+                  </div>
+                ))
+              )}
+              <div className="kernel-inline-form">
+                <div className="field">
+                  <label>Code</label>
+                  <input inputMode="numeric" value={codeValue} onChange={e => setCodeValue(e.target.value)} placeholder="1234" />
+                </div>
+                <div className="field">
+                  <label>Label (optional)</label>
+                  <input value={codeLabel} onChange={e => setCodeLabel(e.target.value)} placeholder="Family" />
+                </div>
+                <button className="btn btn-primary" onClick={handleAddCode}>Add code</button>
+              </div>
             </div>
-            <div className="field">
-              <label>Label (optional)</label>
-              <input value={codeLabel} onChange={e => setCodeLabel(e.target.value)} placeholder="Family" />
-            </div>
-            <button className="btn btn-primary" onClick={handleAddCode}>Add code</button>
           </div>
-        </div>
+        )}
       </section>
 
-      {/* Questions */}
+      {/* RED — rejected (collapsible) */}
       <section className="kernel-section card section-card">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-          <h2 className="kernel-section-title" style={{ margin: 0 }}>Questions</h2>
-          <span className="badge">{questions.length}/{MAX_QUESTIONS}</span>
-        </div>
-        <p className="hint" style={{ marginTop: 0, marginBottom: '1rem' }}>Spoken verbatim to unscreened callers. 1–5 questions.</p>
-        {questions.length === 0 && (
-          <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>No questions yet. Add up to 5.</p>
-        )}
-        {questions.map(q => (
-          <div key={q.id} className="kernel-row" style={{ alignItems: 'flex-start' }}>
-            <div className="kernel-row-meta" style={{ flex: 1 }}>
-              <strong style={{ display: 'flex', gap: '0.5rem', alignItems: 'baseline' }}>
-                <span style={{ color: 'var(--color-text-muted)', fontWeight: 500 }}>{q.ord}.</span>
-                {questionDrafts[q.id] !== undefined ? (
-                  <input
-                    value={questionDrafts[q.id]}
-                    onChange={e => setQuestionDrafts(d => ({ ...d, [q.id]: e.target.value }))}
-                    style={{ flex: 1 }}
-                  />
-                ) : (
-                  <span>{q.question}</span>
-                )}
-              </strong>
+        <button className="section-toggle" onClick={() => toggleSection('red')} aria-expanded={openSections.red}>
+          <span className="section-dot section-dot--red"></span>
+          <h2 className="kernel-section-title">RED — Blocked</h2>
+          <span className="badge badge-red">{redList.length}</span>
+          <Chevron open={openSections.red} />
+        </button>
+        {openSections.red && (
+          <div className="section-body">
+            <p className="hint">Numbers on this list are rejected immediately.</p>
+            {redList.length === 0 ? (
+              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>No RED numbers yet.</p>
+            ) : (
+              redList.map(c => (
+                <div key={c.id} className="kernel-row">
+                  <div className="kernel-row-meta">
+                    <strong>{c.contact_name || c.phone_number}</strong>
+                    {c.contact_name && <span>{c.phone_number}</span>}
+                  </div>
+                  <div className="kernel-actions">
+                    <button className="btn btn-ghost" onClick={() => handleDeleteCallerList(c.id)}>Remove</button>
+                  </div>
+                </div>
+              ))
+            )}
+            <div className="kernel-inline-form">
+              <div className="field">
+                <label>Phone</label>
+                <input type="tel" value={redPhone} onChange={e => setRedPhone(e.target.value)} placeholder="+16195551234" />
+              </div>
+              <div className="field">
+                <label>Name (optional)</label>
+                <input value={redName} onChange={e => setRedName(e.target.value)} placeholder="Spam caller" />
+              </div>
+              <button className="btn btn-primary" onClick={() => handleAddCallerList('red')}>Add to RED</button>
             </div>
-            <div className="kernel-actions">
-              {questionDrafts[q.id] !== undefined ? (
-                <>
-                  <button className="btn btn-ghost" onClick={() => saveQuestion(q)}>Save</button>
-                  <button className="btn btn-ghost" onClick={() => setQuestionDrafts(d => { const n = { ...d }; delete n[q.id]; return n; })}>Cancel</button>
-                </>
-              ) : (
-                <>
-                  <button className="btn btn-ghost" onClick={() => startEditQuestion(q)}>Edit</button>
-                  <button className="btn btn-ghost" onClick={() => deleteQuestion(q)}>Delete</button>
-                </>
-              )}
-            </div>
-          </div>
-        ))}
-        {questions.length < MAX_QUESTIONS && (
-          <div className="kernel-inline-form">
-            <div className="field">
-              <label>New question</label>
-              <input value={newQuestion} onChange={e => setNewQuestion(e.target.value)} placeholder="Who is calling, please?" />
-            </div>
-            <button className="btn btn-primary" onClick={addQuestion}>Add question</button>
           </div>
         )}
       </section>

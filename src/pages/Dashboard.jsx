@@ -119,7 +119,7 @@ export default function Dashboard() {
       getScreeningQuestions(uid),
       getReviewTickets(uid),
       getCallLogs(uid, { limit: 100 }),
-      supabase.from('phone_numbers').select('twilio_number, provisioning_status').eq('user_id', uid).maybeSingle(),
+      supabase.from('phone_numbers').select('twilio_number, provisioning_status').eq('user_id', uid).order('created_at', { ascending: false }).limit(1).maybeSingle(),
     ]);
     setCallerLists(lists);
     setAccessCodes(codes);

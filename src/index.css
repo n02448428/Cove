@@ -765,12 +765,13 @@ label {
 }
 
 .concierge-card-number {
-  font-family: var(--font-serif);
-  font-size: clamp(1.75rem, 6vw, 2.5rem);
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-family: var(--font-mono);
+  font-size: clamp(2rem, 7vw, 3rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
   color: var(--color-text);
   line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 
 .concierge-card-number--pending {
@@ -958,7 +959,7 @@ label {
 
 @media (max-width: 480px) {
   .concierge-card-number {
-    font-size: 1.5rem;
+    font-size: 1.75rem;
   }
 
   .page::after,

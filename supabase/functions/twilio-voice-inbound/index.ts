@@ -149,8 +149,8 @@ serve(async (req: Request) => {
     return twiml(
       `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather finishOnKey="#" timeout="5" action="${xmlEscape(codeAction)}" method="POST">
-    <Say>One moment please.</Say>
+  <Gather finishOnKey="#" timeout="3" action="${xmlEscape(codeAction)}" method="POST">
+    <Say>Hello.</Say>
   </Gather>
   <Redirect method="POST">${xmlEscape(questionRedirect)}</Redirect>
 </Response>`,

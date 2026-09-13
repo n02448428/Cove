@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
 import { toE164, isValidE164, isValidCode, E164_ERROR, CODE_ERROR } from '../lib/phone.js';
 import AppHeader from '../components/AppHeader.jsx';
+import CoveMark from '../components/CoveMark.jsx';
 import { createCheckoutSession } from '../services/api.js';
 
 const MAX_QUESTIONS = 5;
@@ -172,7 +173,10 @@ export default function Onboarding() {
     <main className="page-narrow">
       <AppHeader homeTo="/" />
       <div className="card">
-        <h2 className="page-title" style={{ fontSize: '1.75rem', marginBottom: 8 }}>Set up your cove</h2>
+        <h2 className="page-title" style={{ fontSize: '1.75rem', marginBottom: 8, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <CoveMark size={30} />
+          Set up your cove
+        </h2>
         <p className="page-lede" style={{ marginBottom: 24 }}>Takes about 2 minutes. Your Cove number provisions after payment method is saved.</p>
         <form onSubmit={handleSubmit}>
           <div className="field">

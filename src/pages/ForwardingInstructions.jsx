@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
 import AppHeader from '../components/AppHeader.jsx';
+import CoveMark from '../components/CoveMark.jsx';
 import { createCheckoutSession } from '../services/api.js';
 
 export default function ForwardingInstructions() {
@@ -83,7 +84,10 @@ export default function ForwardingInstructions() {
   return (
     <main className="page-narrow">
       <AppHeader homeTo="/dashboard" />
-      <h2 className="page-title">Forward your number</h2>
+      <h2 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <CoveMark size={30} />
+        Forward your number
+      </h2>
       <p className="page-lede">
         Forward all calls to your Cove number. Carrier steps vary — undo anytime in your phone settings.
       </p>

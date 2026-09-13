@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import AppHeader from '../components/AppHeader.jsx';
+import CoveMark from '../components/CoveMark.jsx';
+import CoveWordmark from '../components/CoveWordmark.jsx';
 
 const FEATURES = [
   {
@@ -48,6 +50,7 @@ export default function Landing() {
 
       <div className="landing-shell">
         <section className="landing-hero">
+          <CoveMark size={220} className="cove-hero-mark" />
           <div className="landing-copy">
             <p className="landing-pain">
               Unknown numbers. Sales pitches. Another interruption while you’re mid-something.
@@ -117,6 +120,11 @@ export default function Landing() {
           </div>
         </section>
       </div>
+
+      <footer className="cove-footer">
+        <CoveWordmark markSize={28} />
+        <p className="cove-footer-tag">Your personal space for calls.</p>
+      </footer>
     </div>
   );
 }

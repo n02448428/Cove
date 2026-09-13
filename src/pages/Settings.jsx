@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
 import { toE164, isValidE164, E164_ERROR } from '../lib/phone.js';
 import AppHeader from '../components/AppHeader.jsx';
+import CoveMark from '../components/CoveMark.jsx';
 import { createPortalSession } from '../services/api.js';
 
 export default function Settings() {
@@ -98,7 +99,10 @@ export default function Settings() {
         homeTo="/dashboard"
         actions={<button className="btn btn-ghost" onClick={() => navigate('/dashboard')}>Back</button>}
       />
-      <h2 className="page-title" style={{ marginBottom: '1.5rem' }}>Settings</h2>
+      <h2 className="page-title" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <CoveMark size={30} />
+        Settings
+      </h2>
 
       <div className="card section-card" style={{ marginBottom: '1.25rem' }}>
         <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 1.55 }}>

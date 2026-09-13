@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
 import AppHeader from '../components/AppHeader.jsx';
+import CoveMark from '../components/CoveMark.jsx';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -107,6 +108,9 @@ export default function Auth() {
     <main className="page-narrow">
       <AppHeader homeTo="/" />
       <div className="auth-lede">
+        <div style={{ marginBottom: '0.75rem' }}>
+          <CoveMark size={36} />
+        </div>
         <h1 className="page-title" style={{ marginBottom: '0.35rem' }}>
           {mode === 'login' ? 'Welcome back.' : mode === 'signup' ? 'Create your account.' : 'Reset your password.'}
         </h1>

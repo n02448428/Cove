@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
 import { toE164, isValidE164, isValidCode, E164_ERROR, CODE_ERROR } from '../lib/phone.js';
 import AppHeader from '../components/AppHeader.jsx';
+import CoveMark from '../components/CoveMark.jsx';
 import {
   getCallerLists,
   addCallerList,
@@ -308,7 +309,10 @@ export default function Dashboard() {
         }
       />
 
-      <h1 className="page-title" style={{ fontSize: '1.85rem', marginBottom: '1.25rem' }}>Dashboard</h1>
+      <h1 className="page-title" style={{ fontSize: '1.85rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <CoveMark size={30} />
+        Dashboard
+      </h1>
       <p className="page-lede" style={{ marginBottom: '2rem' }}>
         RED numbers are rejected. GREEN numbers connect live. Everyone else is screened with your questions and a review ticket is created.
       </p>

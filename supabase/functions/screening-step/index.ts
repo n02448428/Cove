@@ -2,7 +2,8 @@
 // Cove Call Kernel v0.1 — Yellow screening state machine.
 // Stages:
 //   code    -> validate private keypad code; valid => connect live; else silent => questions
-//   question-> speak saved question[qi], record the answer (transcribe async)
+//   question-> qi=0: Cove greeting; qi=1..N: saved question[qi] spoken exactly
+//             as saved; record the answer (transcribe async)
 //   answer  -> capture recording; no-answer repeats once, then goodbye; else thank + next/final
 // Source of truth: docs/Cove-Call-Kernel.md
 
@@ -40,7 +41,10 @@ serve(async (req: Request) => {
   const stage = url.searchParams.get('stage') ?? ''
   const callSid = url.searchParams.get('callSid') ?? ''
   const ticketId = url.searchParams.get('ticketId') ?? ''
-  const qi = parseInt(url.searchParams.get('qi') ?? '1', 10) || 1
+  // qi=0 is the Cove greeting; qi=1..N are the user's saved questions.
+  // NOTE: parseInt may yield 0, so do NOT use `|| 1` here (it would remap 0 -> 1).
+  const qiRaw = parseInt(url.searchParams.get('qi') ?? '0', 10)
+  const qi = Number.isNaN(qiRaw) ? 0 : qiRaw
   const attempt = parseInt(url.searchParams.get('attempt') ?? '1', 10) || 1
   const userName = url.searchParams.get('name') ?? 'there'
 
@@ -139,15 +143,16 @@ serve(async (req: Request) => {
 
   // ------------------------------------------------------------ stage=question
   if (stage === 'question') {
-    // No questions configured, or past the last question: finalize.
-    if (numQuestions === 0 || qi > numQuestions) {
+    // No questions configured, past the last question, or invalid index: finalize.
+    if (numQuestions === 0 || qi < 0 || qi > numQuestions) {
       return await finalize(supabase, callSid, ticketId, user_id, 'completed', 'screened', SCRIPT.thanksGoodbye)
     }
-    const q = qs[qi - 1]
-    // First question is always the Cove greeting with the user's name.
-    const questionText = qi === 1
+    // qi=0 is the Cove greeting; qi>=1 maps to the saved question qs[qi-1].
+    // Every saved question is asked — the greeting never replaces one.
+    const q = qi >= 1 ? qs[qi - 1] : null
+    const questionText = qi === 0
       ? `Hello, this is Cove, ${userName}'s assistant. Please state your name and reason for calling.`
-      : q.question
+      : (q?.question ?? '')
     const answerAction = `${stepBase}?stage=answer&qi=${qi}&attempt=${attempt}&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
     const transcribeCb = `${fnUrl('call-transcribe')}?ticketId=${encodeURIComponent(ticketId)}&qi=${qi}&attempt=${attempt}`
     // Brief DTMF Gather before the Record so code holders can enter their
@@ -171,9 +176,9 @@ serve(async (req: Request) => {
     const recordingSid = formGet(params, 'RecordingSid')
     const durationStr = formGet(params, 'RecordingDuration')
     const duration = durationStr ? parseInt(durationStr, 10) : null
-    const q = numQuestions >= qi ? qs[qi - 1] : null
-    // Use the greeting text for qi=1 to match what the caller heard
-    const questionText = qi === 1
+    // qi=0 asked the greeting; qi>=1 asked saved question qs[qi-1].
+    const q = qi >= 1 && qi <= numQuestions ? qs[qi - 1] : null
+    const questionText = qi === 0
       ? `Hello, this is Cove, ${userName}'s assistant. Please state your name and reason for calling.`
       : (q?.question ?? '')
 

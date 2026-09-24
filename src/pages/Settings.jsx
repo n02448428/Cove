@@ -9,6 +9,7 @@ import { createPortalSession } from '../services/api.js';
 export default function Settings() {
   const navigate = useNavigate();
   const [realPhone, setRealPhone] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [smsNotifs, setSmsNotifs] = useState(false);
   const [emailNotifs, setEmailNotifs] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -26,7 +27,7 @@ export default function Settings() {
 
       const [phoneRes, profileRes] = await Promise.all([
         supabase.from('phone_numbers').select('real_number, notify_sms, notify_email').eq('user_id', user.id).maybeSingle(),
-        supabase.from('profiles').select('stripe_customer_id, subscription_status').eq('id', user.id).maybeSingle(),
+        supabase.from('profiles').select('stripe_customer_id, subscription_status, display_name').eq('id', user.id).maybeSingle(),
       ]);
 
       if (phoneRes.data) {
@@ -39,6 +40,7 @@ export default function Settings() {
           stripeCustomerId: profileRes.data.stripe_customer_id || null,
           subscriptionStatus: profileRes.data.subscription_status || null,
         });
+        setDisplayName(profileRes.data.display_name || '');
       }
       setLoading(false);
     }
@@ -82,6 +84,13 @@ export default function Settings() {
         notify_email: emailNotifs,
       }, { onConflict: 'user_id' });
       if (phoneErr) throw phoneErr;
+
+      const { error: profileErr } = await supabase.from('profiles').upsert({
+        id: user.id,
+        email: user.email,
+        display_name: displayName.trim() || null,
+      }, { onConflict: 'id' });
+      if (profileErr) throw profileErr;
 
       setSuccess(true);
     } catch (err) {
@@ -134,6 +143,11 @@ export default function Settings() {
       )}
 
       <form className="card section-card" onSubmit={handleSave}>
+        <div className="field">
+          <label>Display Name</label>
+          <input type="text" value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="e.g. Visionary Minds" maxLength={60} />
+          <p className="hint">Callers hear “Cove, {displayName.trim() || 'your name'}'s assistant”. Leave blank to use your email name.</p>
+        </div>
         <div className="field">
           <label>Your Real Phone Number</label>
           <input type="tel" value={realPhone} onChange={e => setRealPhone(e.target.value)} placeholder="+16195551234" />

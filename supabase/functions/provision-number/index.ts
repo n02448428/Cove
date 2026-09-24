@@ -35,9 +35,12 @@ serve(async (req: Request) => {
       console.error('lazy releaseExpiredDids soft-fail:', e)
     }
 
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return json({ error: 'Missing Authorization' }, 401)
+    // Only our own backend (stripe-webhook trigger) may buy numbers on this
+    // Twilio account. The bearer must exactly match the service role key —
+    // presence of any Authorization header is NOT sufficient.
+    const authHeader = req.headers.get('Authorization') ?? ''
+    if (!SERVICE_ROLE || !timingSafeEqual(authHeader, `Bearer ${SERVICE_ROLE}`)) {
+      return json({ error: 'Unauthorized' }, 401)
     }
 
     const body = await req.json().catch(() => ({})) as { user_id?: string }
@@ -175,4 +178,12 @@ function json(body: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
+}
+
+// Constant-time string comparison (length check first).
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  let diff = 0
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return diff === 0
 }

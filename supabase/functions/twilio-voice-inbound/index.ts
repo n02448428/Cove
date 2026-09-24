@@ -139,21 +139,23 @@ serve(async (req: Request) => {
       ticket_error: ticketErr ? String(ticketErr) : null,
     })
 
-    // Fetch the user's email to construct a personalized greeting
+    // Display name for the spoken greeting: the user's explicit setting
+    // first, email prefix as a fallback, 'there' as a last resort.
     const { data: profile } = await supabase
       .from('profiles')
-      .select('email')
+      .select('email, display_name')
       .eq('id', user_id)
       .maybeSingle()
-    const userName = profile?.email
-      ? (profile.email.split('@')[0] || 'there').replace(/[0-9]+$/, '').replace(/^./, (c: string) => c.toUpperCase()) || 'there'
-      : 'there'
+    const emailName = profile?.email
+      ? (profile.email.split('@')[0] || '').replace(/[0-9]+$/, '').replace(/^./, (c: string) => c.toUpperCase())
+      : ''
+    const userName = profile?.display_name?.trim() || emailName || 'there'
 
     const stepBase = `${fnUrl('screening-step')}`
-    // Redirect directly to the first question — no initial code Gather delay.
+    // Redirect to the greeting (qi=0); saved questions are qi=1..N.
     // Code holders can enter their code at any point during screening via
     // the DTMF Gather before each question's Record.
-    const questionRedirect = `${stepBase}?stage=question&qi=1&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
+    const questionRedirect = `${stepBase}?stage=question&qi=0&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
 
     return twiml(
       `<?xml version="1.0" encoding="UTF-8"?><Response><Redirect method="POST">${xmlEscape(questionRedirect)}</Redirect></Response>`,

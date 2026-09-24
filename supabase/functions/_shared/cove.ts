@@ -53,13 +53,53 @@ export function formGet(p: URLSearchParams, ...keys: string[]): string {
 }
 
 // --- Twilio webhook signature validation ---------------------------------
-// Posture: Twilio always sends a valid x-twilio-signature header, which we
-// verify when present and reject if tampered. If the header is absent (e.g.
-// local/robustness cases) we allow the request through. Hardening TODO: enforce
-// rejection of unsigned requests once the flow is proven in production.
+// Fail closed: every Twilio webhook must carry a valid x-twilio-signature.
+// Signature = base64(HMAC-SHA1(authToken, fullRequestUrl + sorted POST params)).
+// IMPORTANT: TWILIO_AUTH_TOKEN in the function's secrets must exactly match
+// the Auth Token shown in the Twilio console, or ALL inbound calls will be
+// rejected with 403. Verify it before deploying this change.
 export async function validateTwilioSignature(req: Request, body: string): Promise<boolean> {
-  // TEMPORARY: signature validation disabled — TWILIO_AUTH_TOKEN env var mismatch.
-  return true
+  const signature = req.headers.get('x-twilio-signature') ?? ''
+  if (!TWILIO_AUTH_TOKEN) {
+    console.error('validateTwilioSignature: TWILIO_AUTH_TOKEN not configured — rejecting request')
+    return false
+  }
+  if (!signature) {
+    console.warn('validateTwilioSignature: missing x-twilio-signature header — rejecting request')
+    return false
+  }
+  try {
+    const params = new URLSearchParams(body)
+    const keys = Array.from(new Set(params.keys())).sort()
+    let data = req.url
+    for (const k of keys) {
+      for (const v of params.getAll(k)) data += k + v
+    }
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(TWILIO_AUTH_TOKEN),
+      { name: 'HMAC', hash: 'SHA-1' },
+      false,
+      ['sign'],
+    )
+    const mac = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data))
+    const bytes = new Uint8Array(mac)
+    let binary = ''
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+    const expected = btoa(binary)
+    return timingSafeEqual(expected, signature)
+  } catch (e) {
+    console.error('validateTwilioSignature error:', e)
+    return false
+  }
+}
+
+// Constant-time string comparison (length check first).
+export function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  let diff = 0
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return diff === 0
 }
 
 // --- DB helpers ----------------------------------------------------------

@@ -66,6 +66,13 @@ export default function ForwardingInstructions() {
     if (conciergeNumber) navigator.clipboard.writeText(conciergeNumber);
   }
 
+  // MMI code to enable unconditional call forwarding: *21*<number>#
+  // The # must be URL-encoded as %23 for tel: links.
+  const digitsOnly = (conciergeNumber || '').replace(/\D/g, '');
+  const enableCode = digitsOnly ? `*21*${digitsOnly}#` : '';
+  const enableTelLink = digitsOnly ? `tel:*21*${digitsOnly}%23` : '';
+  const disableTelLink = 'tel:%2321%23'; // ##21#
+
   const needsCheckout =
     !conciergeNumber &&
     (provisioningStatus === 'pending' ||
@@ -89,7 +96,7 @@ export default function ForwardingInstructions() {
         Forward your number
       </h2>
       <p className="page-lede">
-        Forward all calls to your Cove number. Carrier steps vary — undo anytime in your phone settings.
+        Send all your calls to Cove. Takes 10 seconds — no settings menus.
       </p>
 
       {checkoutFlag === 'success' && !conciergeNumber && (
@@ -132,22 +139,76 @@ export default function ForwardingInstructions() {
       </div>
 
       <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <h3 style={{ fontWeight: 700, marginBottom: '1rem', fontSize: '0.9rem' }}>iPhone</h3>
-        <ol style={{ paddingLeft: '1.25rem', fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 2 }}>
-          <li>Settings → Phone → Call Forwarding</li>
-          <li>Turn on Call Forwarding</li>
-          <li>Enter your Cove number above</li>
-        </ol>
+        <h3 style={{ fontWeight: 700, marginBottom: '0.75rem', fontSize: '1rem' }}>Step 1 — Turn on forwarding</h3>
+        <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 1.6, marginBottom: '1rem' }}>
+          Tap the button below. Your phone dialer opens with the code filled in — just hit <strong>call</strong>.
+          Works on iPhone and Android, any carrier.
+        </p>
+        {conciergeNumber ? (
+          <>
+            <a
+              href={enableTelLink}
+              className="btn btn-primary"
+              style={{ width: '100%', textDecoration: 'none', textAlign: 'center', display: 'block', marginBottom: '0.75rem' }}
+            >
+              📞 Tap to turn on forwarding
+            </a>
+            <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', textAlign: 'center', lineHeight: 1.5 }}>
+              Dials <code style={{ fontSize: '0.85rem' }}>{enableCode}</code><br />
+              Your phone will confirm “Call forwarding enabled.”
+            </p>
+          </>
+        ) : (
+          <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Waiting for your Cove number…</p>
+        )}
       </div>
 
-      <div className="card" style={{ marginBottom: '2rem' }}>
-        <h3 style={{ fontWeight: 700, marginBottom: '1rem', fontSize: '0.9rem' }}>Android</h3>
-        <ol style={{ paddingLeft: '1.25rem', fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 2 }}>
-          <li>Phone app → Settings → Calls → Call Forwarding</li>
-          <li>Select &quot;Always forward&quot;</li>
-          <li>Enter your Cove number above</li>
-        </ol>
+      <div className="card" style={{ marginBottom: '1.5rem' }}>
+        <h3 style={{ fontWeight: 700, marginBottom: '0.75rem', fontSize: '1rem' }}>Step 2 — Test it</h3>
+        <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
+          Call your own phone number from another phone. Cove should answer — not your voicemail.
+          If your old voicemail picks up, forwarding isn&apos;t on yet — repeat Step 1.
+        </p>
       </div>
+
+      <div className="card" style={{ marginBottom: '1.5rem' }}>
+        <h3 style={{ fontWeight: 700, marginBottom: '0.75rem', fontSize: '1rem' }}>Turn it off anytime</h3>
+        <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 1.6, marginBottom: '1rem' }}>
+          Tap below to stop forwarding. Calls go back to ringing your phone directly.
+        </p>
+        <a
+          href={disableTelLink}
+          className="btn btn-ghost"
+          style={{ width: '100%', textDecoration: 'none', textAlign: 'center', display: 'block' }}
+        >
+          Turn off forwarding
+        </a>
+        <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', textAlign: 'center', marginTop: '0.5rem' }}>
+          Dials <code style={{ fontSize: '0.85rem' }}>##21#</code>
+        </p>
+      </div>
+
+      <details style={{ marginBottom: '2rem' }}>
+        <summary style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', cursor: 'pointer' }}>
+          Prefer phone settings instead?
+        </summary>
+        <div className="card" style={{ marginTop: '0.75rem', marginBottom: '0.75rem' }}>
+          <h3 style={{ fontWeight: 700, marginBottom: '0.5rem', fontSize: '0.9rem' }}>iPhone</h3>
+          <ol style={{ paddingLeft: '1.25rem', fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 2 }}>
+            <li>Settings → Phone → Call Forwarding</li>
+            <li>Turn it on, tap Forward To</li>
+            <li>Enter your Cove number above</li>
+          </ol>
+        </div>
+        <div className="card">
+          <h3 style={{ fontWeight: 700, marginBottom: '0.5rem', fontSize: '0.9rem' }}>Android</h3>
+          <ol style={{ paddingLeft: '1.25rem', fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 2 }}>
+            <li>Phone app → ⋮ menu → Settings → Call forwarding <span style={{ fontSize: '0.75rem' }}>(exact location varies by brand)</span></li>
+            <li>Select “Always forward”</li>
+            <li>Enter your Cove number above</li>
+          </ol>
+        </div>
+      </details>
 
       <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => navigate('/dashboard')} disabled={!conciergeNumber && needsCheckout}>
         I&apos;ve set it up → Go to Dashboard

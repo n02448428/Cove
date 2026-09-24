@@ -125,6 +125,7 @@ export default function Dashboard() {
   // call log
   const [expandedCall, setExpandedCall] = useState(null);
   const [callFilter, setCallFilter] = useState('all');
+  const [callsView, setCallsView] = useState('history'); // 'history' | 'review'
 
   // tickets
   const [ticketFilter, setTicketFilter] = useState('all');
@@ -745,93 +746,111 @@ export default function Dashboard() {
         )}
       </section>
 
-      {/* Review tickets */}
-      <section className="kernel-section card section-card" id="review-tickets">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-          <h2 className="kernel-section-title" style={{ margin: 0 }}>Review tickets</h2>
-          <span className="badge">{tickets.length}</span>
-        </div>
-        <div className="filter-row" style={{ marginBottom: '1rem' }}>
-          {TICKET_FILTERS.map(f => (
+      {/* Calls — history with optional needs-review filter */}
+      <section className="kernel-section" id="calls">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h2 className="kernel-section-title" style={{ margin: 0 }}>Calls</h2>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <button
-              key={f}
-              className={`btn ${ticketFilter === f ? 'btn-primary' : 'btn-ghost'}`}
+              className={`btn ${callsView === 'history' ? 'btn-primary' : 'btn-ghost'}`}
               style={{ padding: '0.4rem 1rem', fontSize: '0.8rem' }}
-              onClick={() => setTicketFilter(f)}
+              onClick={() => setCallsView('history')}
             >
-              {f === 'all' ? 'All' : TICKET_STATUS_LABELS[f] || f}
+              History
             </button>
-          ))}
-        </div>
-        {filteredTickets.length === 0 ? (
-          <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>No review tickets yet.</p>
-        ) : (
-          <div className="call-list">
-            {filteredTickets.map(t => (
-              <div key={t.id} className="call-row" onClick={() => toggleTicket(t)}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div>
-                    <p style={{ fontWeight: 600 }}>{t.caller_name || t.caller_number || 'Unknown caller'}</p>
-                    {t.caller_name && t.caller_number && (
-                      <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>{t.caller_number}</p>
-                    )}
-                    <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
-                      {new Date(t.created_at).toLocaleString()}
-                      {t.ended_reason ? ` · ${ENDED_REASON_LABELS[t.ended_reason] || t.ended_reason}` : ''}
-                    </p>
-                  </div>
-                  <span className={`badge badge-${t.status}`}>{TICKET_STATUS_LABELS[t.status] || t.status}</span>
-                </div>
-                {expandedTicket === t.id && (
-                  <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--color-rule)' }} onClick={e => e.stopPropagation()}>
-                    {t.summary && <p style={{ fontSize: '0.85rem', marginBottom: '0.75rem' }}>{t.summary}</p>}
-                    {ticketAnswersLoading[t.id] ? (
-                      <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Loading answers…</p>
-                    ) : ticketAnswers[t.id]?.length ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                        {ticketAnswers[t.id].map((a, i) => (
-                          <div key={i} style={{ fontSize: '0.82rem' }}>
-                            <p style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Q{a.question_ord}{a.attempt > 1 ? ` (attempt ${a.attempt})` : ''}: {a.question_text}</p>
-                            {a.transcription_status && a.transcription_status !== 'completed' && (
-                              <p style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>Transcription: {a.transcription_status}</p>
-                            )}
-                            {a.transcript && (
-                              <p style={{ color: 'var(--color-text-muted)', whiteSpace: 'pre-wrap' }}>{a.transcript}</p>
-                            )}
-                            {a.recording_sid && (
-                              <RecordingPlayer recordingSid={a.recording_sid} />
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>No answers captured.</p>
-                    )}
-                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', flexWrap: 'wrap' }}>
-                      {t.caller_number && (
-                        <>
-                          <button className="btn btn-ghost" style={{ padding: '0.4rem 0.9rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }} onClick={() => moveToList(t, 'green')}><span className="section-dot section-dot--green" style={{ width: '0.5rem', height: '0.5rem' }} /> Add to GREEN</button>
-                          <button className="btn btn-ghost" style={{ padding: '0.4rem 0.9rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }} onClick={() => moveToList(t, 'red')}><span className="section-dot section-dot--red" style={{ width: '0.5rem', height: '0.5rem' }} /> Add to RED</button>
-                        </>
-                      )}
-                      {t.status !== 'reviewed' && t.status !== 'actioned' && (
-                        <button className="btn btn-ghost" style={{ padding: '0.4rem 0.9rem', fontSize: '0.8rem' }} onClick={() => setTicketStatus(t, 'reviewed')}>Mark reviewed</button>
-                      )}
-                      {t.status !== 'actioned' && (
-                        <button className="btn btn-primary" style={{ padding: '0.4rem 0.9rem', fontSize: '0.8rem' }} onClick={() => setTicketStatus(t, 'actioned')}>Mark actioned</button>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
+            <button
+              className={`btn ${callsView === 'review' ? 'btn-primary' : 'btn-ghost'}`}
+              style={{ padding: '0.4rem 1rem', fontSize: '0.8rem' }}
+              onClick={() => setCallsView('review')}
+            >
+              Needs review
+              {tickets.filter(t => t.status === 'new').length > 0 && (
+                <span className="badge" style={{ marginLeft: '0.5rem' }}>{tickets.filter(t => t.status === 'new').length}</span>
+              )}
+            </button>
           </div>
-        )}
-      </section>
-
-      {/* Call log */}
-      <section className="kernel-section">
-        <h2 className="kernel-section-title">Call log</h2>
+        </div>
+        {callsView === 'review' ? (
+          <>
+            <div className="filter-row" style={{ marginBottom: '1rem' }}>
+              {TICKET_FILTERS.map(f => (
+                <button
+                  key={f}
+                  className={`btn ${ticketFilter === f ? 'btn-primary' : 'btn-ghost'}`}
+                  style={{ padding: '0.4rem 1rem', fontSize: '0.8rem' }}
+                  onClick={() => setTicketFilter(f)}
+                >
+                  {f === 'all' ? 'All' : TICKET_STATUS_LABELS[f] || f}
+                </button>
+              ))}
+            </div>
+            {filteredTickets.length === 0 ? (
+              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>All caught up — nothing needs review.</p>
+            ) : (
+              <div className="call-list">
+                {filteredTickets.map(t => (
+                  <div key={t.id} className="call-row" onClick={() => toggleTicket(t)}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div>
+                        <p style={{ fontWeight: 600 }}>{t.caller_name || formatPhone(t.caller_number) || 'Unknown caller'}</p>
+                        {t.caller_name && t.caller_number && (
+                          <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>{formatPhone(t.caller_number)}</p>
+                        )}
+                        <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
+                          {new Date(t.created_at).toLocaleString()}
+                          {t.ended_reason ? ` · ${ENDED_REASON_LABELS[t.ended_reason] || t.ended_reason}` : ''}
+                        </p>
+                      </div>
+                      <span className={`badge badge-${t.status}`}>{TICKET_STATUS_LABELS[t.status] || t.status}</span>
+                    </div>
+                    {expandedTicket === t.id && (
+                      <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--color-rule)' }} onClick={e => e.stopPropagation()}>
+                        {t.summary && <p style={{ fontSize: '0.85rem', marginBottom: '0.75rem' }}>{t.summary}</p>}
+                        {ticketAnswersLoading[t.id] ? (
+                          <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Loading answers…</p>
+                        ) : ticketAnswers[t.id]?.length ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                            {ticketAnswers[t.id].map((a, i) => (
+                              <div key={i} style={{ fontSize: '0.82rem' }}>
+                                <p style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Q{a.question_ord}{a.attempt > 1 ? ` (attempt ${a.attempt})` : ''}: {a.question_text}</p>
+                                {a.transcription_status && a.transcription_status !== 'completed' && (
+                                  <p style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>Transcription: {a.transcription_status}</p>
+                                )}
+                                {a.transcript && (
+                                  <p style={{ color: 'var(--color-text-muted)', whiteSpace: 'pre-wrap' }}>{a.transcript}</p>
+                                )}
+                                {a.recording_sid && (
+                                  <RecordingPlayer recordingSid={a.recording_sid} />
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>No answers captured.</p>
+                        )}
+                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+                          {t.caller_number && (
+                            <>
+                              <button className="btn btn-ghost" style={{ padding: '0.4rem 0.9rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }} onClick={() => moveToList(t, 'green')}><span className="section-dot section-dot--green" style={{ width: '0.5rem', height: '0.5rem' }} /> GREEN</button>
+                              <button className="btn btn-ghost" style={{ padding: '0.4rem 0.9rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }} onClick={() => moveToList(t, 'red')}><span className="section-dot section-dot--red" style={{ width: '0.5rem', height: '0.5rem' }} /> RED</button>
+                            </>
+                          )}
+                          {t.status !== 'reviewed' && t.status !== 'actioned' && (
+                            <button className="btn btn-ghost" style={{ padding: '0.4rem 0.9rem', fontSize: '0.8rem' }} onClick={() => setTicketStatus(t, 'reviewed')}>Reviewed</button>
+                          )}
+                          {t.status !== 'actioned' && (
+                            <button className="btn btn-primary" style={{ padding: '0.4rem 0.9rem', fontSize: '0.8rem' }} onClick={() => setTicketStatus(t, 'actioned')}>Done</button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+        <>
         <div className="filter-row">
           {CALL_OUTCOMES.map(f => (
             <button
@@ -906,6 +925,8 @@ export default function Dashboard() {
                     {linkedTicket && (
                       <button className="btn btn-ghost" style={{ marginTop: '0.75rem', padding: '0.4rem 0.9rem', fontSize: '0.8rem' }} onClick={() => {
                         const t = linkedTicket;
+                        setCallsView('review');
+                        setTicketFilter('all');
                         setExpandedTicket(t.id);
                         if (!ticketAnswers[t.id]) {
                           setTicketAnswersLoading(s => ({ ...s, [t.id]: true }));
@@ -914,8 +935,7 @@ export default function Dashboard() {
                             .catch(() => {})
                             .finally(() => setTicketAnswersLoading(s => ({ ...s, [t.id]: false })));
                         }
-                        document.getElementById('review-tickets')?.scrollIntoView({ behavior: 'smooth' });
-                      }}>View review ticket →</button>
+                      }}>View in Needs review →</button>
                     )}
                   </div>
                   );
@@ -923,6 +943,8 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
+        )}
+        </>
         )}
       </section>
     </main>

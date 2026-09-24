@@ -181,7 +181,12 @@ export async function audit(
 // Kernel scripts, spoken verbatim.
 export const SCRIPT = {
   noAnswer: 'No answer. Goodbye.',
-  thanks: 'Thank you.',
+  // Spoken after each recorded answer: code holders get a natural window
+  // AFTER speaking, since keypad presses can't interrupt a recording.
+  thanksWithCode: 'Thank you. If you have an extension code, enter it now, followed by the pound key.',
+  // Same window after the final question — no leading "Thank you" since the
+  // goodbye script ("Thank you. I will pass this along...") follows.
+  codePrompt: 'If you have an extension code, enter it now, followed by the pound key.',
   thanksGoodbye: 'Thank you. I will pass this along. Have a great day. Goodbye.',
   notConfigured: 'This number is not configured yet.',
 } as const

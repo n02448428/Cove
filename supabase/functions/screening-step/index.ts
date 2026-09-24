@@ -85,7 +85,7 @@ serve(async (req: Request) => {
   // Load the user's custom greeting (dashboard-editable). {name} is
   // substituted with the display name at speak time. Falls back to the
   // default template if unset.
-  let greetingTemplate = `Hello, this is Cove, {name}'s assistant. Please state your name and reason for calling.`
+  let greetingTemplate = `Hello, this is Cove, {name}'s assistant. This call may be recorded.`
   try {
     const { data: prof } = await supabase
       .from('profiles')
@@ -195,6 +195,27 @@ serve(async (req: Request) => {
     return await finalize(supabase, callSid, ticketId, user_id, 'completed', 'screened', SCRIPT.thanksGoodbye)
   }
 
+  // ------------------------------------------------------------ stage=codegate
+  // Explicit, unrecorded moment for code holders right after the greeting.
+  // Not a question — nothing is recorded or transcribed here, so there is no
+  // wasted cycle for callers without a code. Valid code connects live via the
+  // shared stage=code handler; anything else flows to Q1 (or the unreachable
+  // goodbye when there are no questions).
+  if (stage === 'codegate') {
+    await audit(supabase, user_id, callSid, 'codegate', 'kernel', {})
+    const q1Url = `${stepBase}?stage=question&qi=1&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
+    const codeAction = `${stepBase}?stage=code&qi=1&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
+    return twiml(
+      `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Gather input="dtmf" timeout="4" finishOnKey="#" action="${xmlEscape(codeAction)}" method="POST">
+    <Say>If you have your party's extension code, enter it now, followed by the pound key.</Say>
+  </Gather>
+  <Redirect method="POST">${xmlEscape(q1Url)}</Redirect>
+</Response>`,
+    )
+  }
+
   // ------------------------------------------------------------ stage=question
   if (stage === 'question') {
     // qi=0 is the greeting: intro only, no recording. It plays, then the
@@ -202,31 +223,21 @@ serve(async (req: Request) => {
     if (qi === 0) {
       const greetingText = withName(greetingTemplate)
       const codeAction = `${stepBase}?stage=code&qi=0&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
-      // Unreachable mode: greeting only, no questions, no recording.
-      if (numQuestions === 0) {
-        await audit(supabase, user_id, callSid, 'unreachable_greeting', 'kernel', {})
-        return twiml(
-          `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Gather input="dtmf" timeout="2" finishOnKey="#" action="${xmlEscape(codeAction)}" method="POST">
-    <Say>${xmlEscape(greetingText)}</Say>
-  </Gather>
-  <Say>${xmlEscape(SCRIPT.thanksGoodbye)}</Say>
-  <Hangup/>
-</Response>`,
-        )
-      }
-      // Greeting -> Q1. The Gather wraps the greeting so code holders can
-      // interrupt the intro with their code; otherwise falls through to Q1
-      // immediately after the 2s post-speech window.
-      const q1Url = `${stepBase}?stage=question&qi=1&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
+      // After the greeting, every caller passes the code gate — an explicit,
+      // unrecorded moment for code holders — before Q1 (or the unreachable
+      // goodbye when there are no questions). Code holders can still connect
+      // in unreachable mode.
+      const gateUrl = `${stepBase}?stage=codegate&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
+      // Greeting -> code gate. The Gather wraps the greeting so code holders
+      // can interrupt the intro with their code; otherwise falls through to
+      // the gate immediately after the 2s post-speech window.
       return twiml(
         `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Gather input="dtmf" timeout="2" finishOnKey="#" action="${xmlEscape(codeAction)}" method="POST">
     <Say>${xmlEscape(greetingText)}</Say>
   </Gather>
-  <Redirect method="POST">${xmlEscape(q1Url)}</Redirect>
+  <Redirect method="POST">${xmlEscape(gateUrl)}</Redirect>
 </Response>`,
       )
     }
@@ -301,21 +312,22 @@ serve(async (req: Request) => {
       )
     }
 
-    // Answer captured. Thank the caller, then advance or close.
+    // Answer captured. Code holders get a natural window AFTER speaking:
+    // keypad presses can't interrupt the recording itself (Twilio), so the
+    // honest instruction is "enter it at any time" — during the speech, or
+    // right here after answering. Valid code connects live; anything else
+    // advances (past the last question, stage=question finalizes).
     const isLast = qi >= numQuestions
-    if (isLast) {
-      return await finalize(
-        supabase, callSid, ticketId, user_id, 'completed', 'screened',
-        SCRIPT.thanksGoodbye,
-      )
-    }
-
-    const next = `${stepBase}?stage=question&qi=${qi + 1}&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
+    const nextQi = isLast ? numQuestions + 1 : qi + 1
+    const nextQ = `${stepBase}?stage=question&qi=${nextQi}&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
+    const codeAction = `${stepBase}?stage=code&qi=${nextQi}&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
     return twiml(
       `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say>${xmlEscape(SCRIPT.thanks)}</Say>
-  <Redirect method="POST">${xmlEscape(next)}</Redirect>
+  <Gather input="dtmf" timeout="3" finishOnKey="#" action="${xmlEscape(codeAction)}" method="POST">
+    <Say>${xmlEscape(isLast ? SCRIPT.codePrompt : SCRIPT.thanksWithCode)}</Say>
+  </Gather>
+  <Redirect method="POST">${xmlEscape(nextQ)}</Redirect>
 </Response>`,
     )
   }

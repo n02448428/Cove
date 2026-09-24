@@ -145,6 +145,11 @@ export default function Landing() {
       <footer className="cove-footer">
         <CoveWordmark markSize={28} />
         <p className="cove-footer-tag">Protected by rock. Held by water.</p>
+        <p style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: '1rem', lineHeight: 1.7, maxWidth: '32rem', marginLeft: 'auto', marginRight: 'auto' }}>
+          Calls answered by Cove may be recorded and transcribed. Call-forwarding availability,
+          codes, and charges vary by carrier — Cove numbers are currently US-based. Cove screens
+          calls but can&apos;t block every unwanted call; it&apos;s not a replacement for emergency services.
+        </p>
       </footer>
     </div>
   );

@@ -69,10 +69,19 @@ export default function ForwardingInstructions() {
 
   // MMI code to enable unconditional call forwarding: *21*<number>#
   // The # must be URL-encoded as %23 for tel: links.
+  // NOTE: *21* is the GSM standard (AT&T, T-Mobile, most carriers worldwide).
+  // Verizon uses *72<number> to enable and *73 to disable.
   const digitsOnly = (conciergeNumber || '').replace(/\D/g, '');
   const enableCode = digitsOnly ? `*21*${digitsOnly}#` : '';
   const enableTelLink = digitsOnly ? `tel:*21*${digitsOnly}%23` : '';
   const disableTelLink = 'tel:%2321%23'; // ##21#
+  const verizonEnableCode = digitsOnly ? `*72${digitsOnly}` : '';
+  const verizonEnableTelLink = digitsOnly ? `tel:*72${digitsOnly}` : '';
+  const verizonDisableTelLink = 'tel:*73';
+
+  function copyText(text) {
+    if (text) navigator.clipboard.writeText(text);
+  }
 
   const needsCheckout =
     !conciergeNumber &&
@@ -145,7 +154,7 @@ export default function ForwardingInstructions() {
         <h3 style={{ fontWeight: 700, marginBottom: '0.75rem', fontSize: '1rem' }}>Step 1 — Turn on forwarding</h3>
         <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 1.6, marginBottom: '1rem' }}>
           Tap the button below. Your phone dialer opens with the code filled in — just hit <strong>call</strong>.
-          Works on iPhone and Android, any carrier.
+          Works on AT&amp;T, T-Mobile, and most carriers worldwide.
         </p>
         {conciergeNumber ? (
           <>
@@ -156,9 +165,51 @@ export default function ForwardingInstructions() {
             >
               📞 Tap to turn on forwarding
             </a>
-            <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', textAlign: 'center', lineHeight: 1.5 }}>
+            <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', textAlign: 'center', lineHeight: 1.5, marginBottom: '1rem' }}>
               Dials <code style={{ fontSize: '0.85rem' }}>{enableCode}</code><br />
               Your phone will confirm “Call forwarding enabled.”
+            </p>
+            <details>
+              <summary style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', cursor: 'pointer', textAlign: 'center' }}>
+                On Verizon? Tap here
+              </summary>
+              <div style={{ marginTop: '0.75rem' }}>
+                <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', lineHeight: 1.6, marginBottom: '0.75rem', textAlign: 'center' }}>
+                  Verizon uses different codes. Tap below, then hit <strong>call</strong>.
+                </p>
+                <a
+                  href={verizonEnableTelLink}
+                  className="btn btn-ghost"
+                  style={{ width: '100%', textDecoration: 'none', textAlign: 'center', display: 'block' }}
+                >
+                  📞 Turn on forwarding (Verizon)
+                </a>
+                <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', textAlign: 'center', marginTop: '0.5rem' }}>
+                  Dials <code style={{ fontSize: '0.85rem' }}>{verizonEnableCode}</code>
+                </p>
+              </div>
+            </details>
+          </>
+        ) : (
+          <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Waiting for your Cove number…</p>
+        )}
+      </div>
+
+      <div className="card" style={{ marginBottom: '1.5rem' }}>
+        <h3 style={{ fontWeight: 700, marginBottom: '0.75rem', fontSize: '1rem' }}>On a computer or tablet?</h3>
+        <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 1.6, marginBottom: '1rem' }}>
+          Open your phone&apos;s dialer and dial the code below manually, then hit <strong>call</strong>.
+        </p>
+        {conciergeNumber ? (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+              <code style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '0.06em' }}>{enableCode}</code>
+              <button className="btn btn-ghost" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} onClick={() => copyText(enableCode)}>
+                Copy
+              </button>
+            </div>
+            <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', textAlign: 'center', lineHeight: 1.6 }}>
+              Verizon customers dial <code style={{ fontSize: '0.85rem' }}>{verizonEnableCode}</code> instead.
             </p>
           </>
         ) : (
@@ -182,36 +233,57 @@ export default function ForwardingInstructions() {
         <a
           href={disableTelLink}
           className="btn btn-ghost"
-          style={{ width: '100%', textDecoration: 'none', textAlign: 'center', display: 'block' }}
+          style={{ width: '100%', textDecoration: 'none', textAlign: 'center', display: 'block', marginBottom: '0.75rem' }}
         >
           Turn off forwarding
         </a>
-        <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', textAlign: 'center', marginTop: '0.5rem' }}>
+        <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', textAlign: 'center', marginBottom: '0.75rem' }}>
           Dials <code style={{ fontSize: '0.85rem' }}>##21#</code>
         </p>
+        <details>
+          <summary style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', cursor: 'pointer', textAlign: 'center' }}>
+            On Verizon? Tap here
+          </summary>
+          <div style={{ marginTop: '0.75rem' }}>
+            <a
+              href={verizonDisableTelLink}
+              className="btn btn-ghost"
+              style={{ width: '100%', textDecoration: 'none', textAlign: 'center', display: 'block' }}
+            >
+              Turn off forwarding (Verizon)
+            </a>
+            <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', textAlign: 'center', marginTop: '0.5rem' }}>
+              Dials <code style={{ fontSize: '0.85rem' }}>*73</code>
+            </p>
+          </div>
+        </details>
       </div>
 
-      <details style={{ marginBottom: '2rem' }}>
+      <details style={{ marginBottom: '1.5rem' }}>
         <summary style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', cursor: 'pointer' }}>
-          Prefer phone settings instead?
+          Codes not working? Read this
         </summary>
-        <div className="card" style={{ marginTop: '0.75rem', marginBottom: '0.75rem' }}>
-          <h3 style={{ fontWeight: 700, marginBottom: '0.5rem', fontSize: '0.9rem' }}>iPhone</h3>
-          <ol style={{ paddingLeft: '1.25rem', fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 2 }}>
-            <li>Settings → Phone → Call Forwarding</li>
-            <li>Turn it on, tap Forward To</li>
-            <li>Enter your Cove number above</li>
-          </ol>
-        </div>
-        <div className="card">
-          <h3 style={{ fontWeight: 700, marginBottom: '0.5rem', fontSize: '0.9rem' }}>Android</h3>
-          <ol style={{ paddingLeft: '1.25rem', fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 2 }}>
-            <li>Phone app → ⋮ menu → Settings → Call forwarding <span style={{ fontSize: '0.75rem' }}>(exact location varies by brand)</span></li>
-            <li>Select “Always forward”</li>
-            <li>Enter your Cove number above</li>
-          </ol>
+        <div className="card" style={{ marginTop: '0.75rem' }}>
+          <ul style={{ paddingLeft: '1.25rem', fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 1.9 }}>
+            <li><strong>AT&amp;T / T-Mobile / most carriers:</strong> use the <code>*21*</code> codes above.</li>
+            <li><strong>Verizon:</strong> use <code>*72</code> to forward and <code>*73</code> to cancel. The <code>*21*</code> codes don&apos;t work on Verizon.</li>
+            <li><strong>iPhone Settings → Phone → Call Forwarding:</strong> only appears on some carriers. If you don&apos;t see it, use the dial codes above instead.</li>
+            <li><strong>Android:</strong> the forwarding menu varies by brand and is often controlled by your carrier — dial codes are more reliable.</li>
+            <li><strong>Outside the US:</strong> <code>*21*</code> is the GSM standard and usually works, but some carriers differ. If a code fails, contact your carrier and ask for their unconditional call-forwarding code.</li>
+            <li>Some prepaid or business plans block forwarding codes — your carrier can confirm.</li>
+          </ul>
         </div>
       </details>
+
+      <div className="card" style={{ marginBottom: '2rem', background: 'var(--color-surface-subtle, transparent)' }}>
+        <h3 style={{ fontWeight: 700, marginBottom: '0.5rem', fontSize: '0.9rem' }}>Good to know</h3>
+        <ul style={{ paddingLeft: '1.25rem', fontSize: '0.78rem', color: 'var(--color-text-muted)', lineHeight: 1.8 }}>
+          <li>Standard carrier charges may apply for forwarded calls. Cove numbers are currently US-based — forwarding from non-US numbers may incur international charges.</li>
+          <li>Calls answered by Cove may be recorded and transcribed. You&apos;re responsible for complying with call-recording laws where you and your callers are located.</li>
+          <li>Cove screens calls but can&apos;t block every unwanted call, and can&apos;t guarantee every important call connects. If you&apos;re expecting something urgent, turn forwarding off.</li>
+          <li>Cove is not a replacement for emergency services. Always dial emergency numbers directly from your phone.</li>
+        </ul>
+      </div>
 
       <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => navigate('/dashboard')} disabled={!conciergeNumber && needsCheckout}>
         I&apos;ve set it up → Go to Dashboard

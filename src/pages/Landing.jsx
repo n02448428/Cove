@@ -5,16 +5,31 @@ import ThemeToggle from '../components/ThemeToggle.jsx';
 
 const FEATURES = [
   {
-    title: 'Trusted contacts ring through',
-    desc: 'Family and key numbers reach you directly.',
+    title: 'Your mom gets through. The extended-warranty guy doesn\u2019t.',
+    desc: 'People you trust ring your phone directly. Everyone else meets Cove first.',
   },
   {
-    title: 'Unknown callers get a simple check',
-    desc: "Real urgency can connect; the rest doesn't interrupt you.",
+    title: 'Every stranger explains themselves before your phone rings.',
+    desc: 'Unknown callers answer your questions. Urgent ones can connect \u2014 the rest wait quietly.',
   },
   {
-    title: 'A clear call log',
-    desc: 'Review messages on your time.',
+    title: 'No more voicemail roulette.',
+    desc: 'Every call transcribed and organized. Open it when you\u2019re ready, not when they demand it.',
+  },
+];
+
+const STEPS = [
+  {
+    title: 'Get your Cove number',
+    desc: 'A real phone number, provisioned in seconds. It\u2019s yours while you\u2019re subscribed.',
+  },
+  {
+    title: 'Forward your calls',
+    desc: 'One tap sends every call to Cove. Takes ten seconds, undo anytime.',
+  },
+  {
+    title: 'Live in peace',
+    desc: 'Your phone rings for people who matter. Everything else lands in your log, transcribed.',
   },
 ];
 
@@ -54,14 +69,14 @@ export default function Landing() {
         <section className="landing-hero">
           <CoveMark size={220} className="cove-hero-mark" />
           <div className="landing-copy">
-            <h1 className="landing-headline">Your cove.</h1>
+            <h1 className="landing-headline">Your phone rings only for people who matter.</h1>
             <p className="landing-subhead">
-              People you trust get through. Everyone else waits.
+              Cove answers the rest \u2014 asks who they are, writes it down, and lets you decide.
             </p>
             <p className="landing-support">
-              Cove is your personal space for calls. Trusted contacts ring your phone. Unknown
-              callers get a short, simple check. What's left lands in a log you open when you're
-              ready.
+              Spam, sales pitches, and unknown numbers never interrupt you again. Trusted contacts
+              ring straight through. Everyone else explains themselves to Cove first, and every call
+              lands in your log, transcribed, waiting on your time.
             </p>
 
             <div className="landing-ctas">
@@ -87,6 +102,16 @@ export default function Landing() {
           {FEATURES.map(({ title, desc }) => (
             <div key={title} className="feature-row">
               <h3>{title}</h3>
+              <p>{desc}</p>
+            </div>
+          ))}
+        </section>
+
+        <section className="landing-features" aria-label="How it works" style={{ marginTop: '3rem' }}>
+          <h2 className="price-block__eyebrow" style={{ marginBottom: '1.5rem' }}>How it works</h2>
+          {STEPS.map(({ title, desc }, i) => (
+            <div key={title} className="feature-row">
+              <h3><span style={{ color: 'var(--color-text-muted)', fontWeight: 500, marginRight: '0.5rem' }}>{i + 1}.</span>{title}</h3>
               <p>{desc}</p>
             </div>
           ))}
@@ -119,7 +144,7 @@ export default function Landing() {
 
       <footer className="cove-footer">
         <CoveWordmark markSize={28} />
-        <p className="cove-footer-tag">Your personal space for calls.</p>
+        <p className="cove-footer-tag">Your calls, organized. Your peace, protected.</p>
       </footer>
     </div>
   );

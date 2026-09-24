@@ -5,31 +5,31 @@ import ThemeToggle from '../components/ThemeToggle.jsx';
 
 const FEATURES = [
   {
-    title: 'Your mom gets through. The extended-warranty guy doesn\u2019t.',
-    desc: 'People you trust ring your phone directly. Everyone else meets Cove first.',
+    title: 'Hard shell. Nothing gets through uninvited.',
+    desc: 'Scammers and spammers break against the rock. Your phone stays silent.',
   },
   {
-    title: 'Every stranger explains themselves before your phone rings.',
-    desc: 'Unknown callers answer your questions. Urgent ones can connect \u2014 the rest wait quietly.',
+    title: 'Calm water. The important ones reach you gently.',
+    desc: 'Family and trusted voices ring straight through to still water.',
   },
   {
-    title: 'No more voicemail roulette.',
-    desc: 'Every call transcribed and organized. Open it when you\u2019re ready, not when they demand it.',
+    title: 'Every call held, nothing lost.',
+    desc: 'Strangers explain themselves to Cove first \u2014 transcribed, organized, and waiting for the moment you choose.',
   },
 ];
 
 const STEPS = [
   {
     title: 'Get your Cove number',
-    desc: 'A real phone number, provisioned in seconds. It\u2019s yours while you\u2019re subscribed.',
+    desc: 'Your own still water, provisioned in seconds. It\u2019s yours while you\u2019re subscribed.',
   },
   {
     title: 'Forward your calls',
-    desc: 'One tap sends every call to Cove. Takes ten seconds, undo anytime.',
+    desc: 'One tap sends every call into the cove. Ten seconds, undo anytime.',
   },
   {
-    title: 'Live in peace',
-    desc: 'Your phone rings for people who matter. Everything else lands in your log, transcribed.',
+    title: 'Float in peace',
+    desc: 'Storms break outside. Inside, every voice that matters reaches you \u2014 and the rest waits quietly.',
   },
 ];
 
@@ -71,12 +71,12 @@ export default function Landing() {
           <div className="landing-copy">
             <h1 className="landing-headline">Your phone rings only for people who matter.</h1>
             <p className="landing-subhead">
-              Cove answers the rest \u2014 asks who they are, writes it down, and lets you decide.
+              Cove is the breakwater between you and the storm \u2014 hard rock outside, calm water within.
             </p>
             <p className="landing-support">
-              Spam, sales pitches, and unknown numbers never interrupt you again. Trusted contacts
-              ring straight through. Everyone else explains themselves to Cove first, and every call
-              lands in your log, transcribed, waiting on your time.
+              Scam calls, spammers, and strangers crash against the shell and never reach you.
+              The voices you love arrive on still water. Every call is held, transcribed, and
+              waiting \u2014 nothing demands your attention, everything waits for it.
             </p>
 
             <div className="landing-ctas">
@@ -144,7 +144,7 @@ export default function Landing() {
 
       <footer className="cove-footer">
         <CoveWordmark markSize={28} />
-        <p className="cove-footer-tag">Your calls, organized. Your peace, protected.</p>
+        <p className="cove-footer-tag">Protected by rock. Held by water.</p>
       </footer>
     </div>
   );

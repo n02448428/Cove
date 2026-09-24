@@ -441,6 +441,9 @@ export default function Dashboard() {
 
   return (
     <main className="page">
+      <div className="page-wash" aria-hidden="true">
+        <img className="page-wash__img" src="/cove-hero.webp" alt="" />
+      </div>
       <AppHeader
         homeTo="/dashboard"
         actions={

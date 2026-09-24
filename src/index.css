@@ -16,7 +16,10 @@
   --cove-gold: #B88848;
   --cove-charcoal: #2F2F33;
   --cove-soft-white: #F7F8F6;
-  --cove-dark-bg: #161618;
+  --cove-dark-bg: #0B1016;
+  --cove-abyss: #060A0F;
+  --cove-deepsea: #12202B;
+  --cove-seamist: #B2CED6;
   --cove-light-ove: #F2F2F0;
 
   --color-bg: var(--cove-soft-white);
@@ -59,20 +62,20 @@
 
 [data-theme="dark"] {
   --color-bg: var(--cove-dark-bg);
-  --color-surface: rgba(30, 30, 34, 0.85);
-  --color-surface-solid: #1e1e22;
-  --color-border: rgba(242, 242, 240, 0.1);
+  --color-surface: rgba(17, 25, 34, 0.85);
+  --color-surface-solid: #111922;
+  --color-border: rgba(178, 206, 214, 0.12);
   --color-rule: rgba(184, 136, 72, 0.4);
   --color-text: var(--cove-light-ove);
-  --color-text-muted: #A0A4A8;
-  --color-accent: var(--cove-teal);
+  --color-text-muted: #9AA8B2;
+  --color-accent: #6FA3A3;
   --color-accent-hover: #5a8f8f;
   --color-danger: #e06060;
   --color-success: #3db873;
   --color-warning: var(--cove-gold);
   --cove-ove: var(--cove-light-ove);
-  --wash-fade: rgba(22, 22, 24, 1);
-  --wash-fade-soft: rgba(22, 22, 24, 0);
+  --wash-fade: rgba(11, 16, 22, 1);
+  --wash-fade-soft: rgba(11, 16, 22, 0);
   --shadow-sm: none;
   --shadow-md: none;
 }
@@ -275,6 +278,42 @@ a:hover { color: var(--color-accent-hover); }
   max-width: 1100px;
   margin: 0 auto;
   padding: var(--space-8) var(--space-6);
+  position: relative;
+}
+
+/* —— Cove wash: breakwater imagery behind authenticated page headers —— */
+.page-wash {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100vw;
+  height: 340px;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.page-wash__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+  opacity: 0.28;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
+}
+
+[data-theme="dark"] .page-wash__img {
+  opacity: 0.4;
+  filter: saturate(0.9) brightness(0.8);
+}
+
+.page > *:not(.page-wash) {
+  position: relative;
+  z-index: 1;
 }
 
 .page-narrow {

@@ -10,6 +10,8 @@ import ForwardingInstructions from './pages/ForwardingInstructions.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Settings from './pages/Settings.jsx';
 import Admin from './pages/Admin.jsx';
+import Terms from './pages/Terms.jsx';
+import Privacy from './pages/Privacy.jsx';
 
 /**
  * RequireAuth
@@ -49,6 +51,8 @@ export default function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
 
         {/* Protected */}
         <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />

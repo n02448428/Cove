@@ -150,6 +150,11 @@ export default function Landing() {
           codes, and charges vary by carrier — Cove numbers are currently US-based. Cove screens
           calls but can&apos;t block every unwanted call; it&apos;s not a replacement for emergency services.
         </p>
+        <p style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: '0.75rem' }}>
+          <a href="/terms" style={{ color: 'inherit' }}>Terms</a>
+          {' · '}
+          <a href="/privacy" style={{ color: 'inherit' }}>Privacy</a>
+        </p>
       </footer>
     </div>
   );

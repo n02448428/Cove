@@ -41,7 +41,7 @@ export default function Landing() {
       <div className="landing-wash" aria-hidden="true">
         <img
           className="landing-wash__img"
-          src="/cove-wash.jpg"
+          src="/cove-hero.webp"
           alt=""
           width={1600}
           height={1067}

@@ -14,7 +14,7 @@ const FEATURES = [
   },
   {
     title: 'Every call held, nothing lost.',
-    desc: 'Strangers explain themselves to Cove first \u2014 transcribed, organized, and waiting for the moment you choose.',
+    desc: 'Strangers explain themselves to Cove first — transcribed, organized, and waiting for the moment you choose.',
   },
 ];
 
@@ -29,7 +29,7 @@ const STEPS = [
   },
   {
     title: 'Float in peace',
-    desc: 'Storms break outside. Inside, every voice that matters reaches you \u2014 and the rest waits quietly.',
+    desc: 'Storms break outside. Inside, every voice that matters reaches you — and the rest waits quietly.',
   },
 ];
 
@@ -71,12 +71,12 @@ export default function Landing() {
           <div className="landing-copy">
             <h1 className="landing-headline">Your phone rings only for people who matter.</h1>
             <p className="landing-subhead">
-              Cove is the breakwater between you and the storm \u2014 hard rock outside, calm water within.
+              Cove is the breakwater between you and the storm — hard rock outside, calm water within.
             </p>
             <p className="landing-support">
               Scam calls, spammers, and strangers crash against the shell and never reach you.
               The voices you love arrive on still water. Every call is held, transcribed, and
-              waiting \u2014 nothing demands your attention, everything waits for it.
+              waiting — nothing demands your attention, everything waits for it.
             </p>
 
             <div className="landing-ctas">

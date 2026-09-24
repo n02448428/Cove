@@ -85,7 +85,7 @@ serve(async (req: Request) => {
   // Load the user's custom greeting (dashboard-editable). {name} is
   // substituted with the display name at speak time. Falls back to the
   // default template if unset.
-  let greetingTemplate = `Hello, this is Cove, {name}'s assistant. This call may be recorded. If you have an extension code, enter it, followed by the pound key.`
+  let greetingTemplate = `Hello, this is Cove, {name}'s assistant. This call may be recorded. If you have an extension code, enter it while I'm still talking, followed by the pound key.`
   try {
     const { data: prof } = await supabase
       .from('profiles')

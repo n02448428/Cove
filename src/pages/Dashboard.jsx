@@ -609,10 +609,13 @@ export default function Dashboard() {
                 </div>
               )}
               {(greetingDraft !== null ? greetingDraft : greeting) && (
-                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: 0, fontStyle: 'italic' }}>
+                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: '0 0 0.35rem', fontStyle: 'italic' }}>
                   “{(greetingDraft !== null ? greetingDraft : greeting).replace(/\{name\}/g, displayNameDraft !== null ? displayNameDraft : (displayName || '{name}'))}”
                 </p>
               )}
+              <p className="hint" style={{ margin: 0 }}>
+                Keep the recording notice in your greeting — it’s required in two-party consent states, including California.
+              </p>
             </div>
             {/* Questions */}
             <div style={{ marginBottom: '1.25rem', paddingBottom: '1.25rem', borderBottom: '1px solid var(--color-border)' }}>

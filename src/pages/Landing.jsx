@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase.js';
 import CoveMark from '../components/CoveMark.jsx';
 import CoveWordmark from '../components/CoveWordmark.jsx';
 import ThemeToggle from '../components/ThemeToggle.jsx';
@@ -98,6 +100,32 @@ const FAQS = [
 
 export default function Landing() {
   const navigate = useNavigate();
+  // Remembered sign-in: if a session exists, CTAs open the cove instead of
+  // asking the user to sign up again.
+  const [sessionUser, setSessionUser] = useState(undefined);
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSessionUser(session?.user ?? null);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSessionUser(session?.user ?? null);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  async function goPrimary() {
+    if (!sessionUser) {
+      navigate('/auth?mode=signup');
+      return;
+    }
+    const { data: phoneRow } = await supabase
+      .from('phone_numbers')
+      .select('provisioning_status')
+      .eq('user_id', sessionUser.id)
+      .maybeSingle();
+    navigate(phoneRow?.provisioning_status === 'active' ? '/dashboard' : '/onboarding');
+  }
+  const primaryLabel = sessionUser ? 'Open your cove' : null;
 
   return (
     <div className="landing">
@@ -146,17 +174,19 @@ export default function Landing() {
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={() => navigate('/auth?mode=signup')}
+                onClick={goPrimary}
               >
-                Get your cove
+                {primaryLabel || 'Get your cove'}
               </button>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => navigate('/auth?mode=login')}
-              >
-                Sign In
-              </button>
+              {!sessionUser && (
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => navigate('/auth?mode=login')}
+                >
+                  Sign In
+                </button>
+              )}
             </div>
           </div>
         </section>
@@ -237,9 +267,9 @@ export default function Landing() {
             <button
               type="button"
               className="btn btn-primary"
-              onClick={() => navigate('/auth?mode=signup')}
+              onClick={goPrimary}
             >
-              Get your cove
+              {primaryLabel || 'Get your cove'}
             </button>
           </div>
         </section>
@@ -254,9 +284,9 @@ export default function Landing() {
             <button
               type="button"
               className="btn btn-primary"
-              onClick={() => navigate('/auth?mode=signup')}
+              onClick={goPrimary}
             >
-              Start my 7 free days
+              {primaryLabel || 'Start my 7 free days'}
             </button>
           </div>
         </section>

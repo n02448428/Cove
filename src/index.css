@@ -83,6 +83,9 @@
 html {
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
+  /* Stop iOS Safari inflating text on orientation change / narrow screens */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -91,6 +94,10 @@ body {
   font-family: var(--font-sans);
   line-height: 1.6;
   min-height: 100dvh;
+  /* Keep content clear of the notch / home indicator on iOS */
+  padding-left: env(safe-area-inset-left, 0);
+  padding-right: env(safe-area-inset-right, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
   transition: background-color 0.25s ease, color 0.25s ease;
 }
 
@@ -344,6 +351,13 @@ input, textarea, select {
   padding: var(--space-3) var(--space-4);
   outline: none;
   transition: border-color 0.15s;
+}
+/* iOS Safari auto-zooms into inputs under 16px on focus and often never
+   zooms back out — keep form text at 16px on touch devices. */
+@media (pointer: coarse) {
+  input, textarea, select {
+    font-size: 16px;
+  }
 }
 input:focus, textarea:focus, select:focus {
   border-color: var(--cove-teal);

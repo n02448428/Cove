@@ -20,22 +20,22 @@ Routing priority: RED overrides GREEN.
 During Yellow:
 - A valid private keypad code followed by # → Connect live. The code may be
   entered at any time Cove is speaking, in the dedicated code gate right after
-  the greeting ("If you have your party's extension code, enter it now,
-  followed by the pound key." — unrecorded, not a question), or in the short
-  window after each answer ("Thank you. If you have an extension code, enter
-  it now, followed by the pound key."). Keypad presses cannot interrupt the
+  the greeting ("If you have your party's extension code, enter it, followed
+  by the pound key." — unrecorded, not a question), or in the short window
+  after each answer ("Thank you. If you have an extension code, enter it,
+  followed by the pound key."). Keypad presses cannot interrupt the
   recording itself.
 - An invalid, expired, revoked, or incomplete code → Continue silently.
 - Ask the user's 1–5 saved questions, in order.
 - Speak each question exactly as saved.
 - Capture and transcribe each answer.
 - When the caller stops speaking, say:
-  "Thank you. If you have an extension code, enter it now, followed by the pound key."
+  "Thank you. If you have an extension code, enter it, followed by the pound key."
 - Continue to the next question.
 - If no answer: repeat the same question once.
 - If no answer again: say "No answer. Goodbye." and end the call.
 - After the final answered question, say:
-  "If you have an extension code, enter it now, followed by the pound key."
+  "If you have an extension code, enter it, followed by the pound key."
   then "Thank you. I will pass this along. Goodbye."
 - Create a review ticket containing call details and all captured answers.
 

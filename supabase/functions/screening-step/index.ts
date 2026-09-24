@@ -209,7 +209,7 @@ serve(async (req: Request) => {
       `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Gather input="dtmf" timeout="4" finishOnKey="#" action="${xmlEscape(codeAction)}" method="POST">
-    <Say>If you have your party's extension code, enter it now, followed by the pound key.</Say>
+    <Say>${xmlEscape(SCRIPT.codeGate)}</Say>
   </Gather>
   <Redirect method="POST">${xmlEscape(q1Url)}</Redirect>
 </Response>`,

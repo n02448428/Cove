@@ -18,12 +18,13 @@ All other callers → Yellow.
 Routing priority: RED overrides GREEN.
 
 During Yellow:
-- A valid private keypad code followed by # → Connect live. The code may be
-  entered at any time Cove is speaking, in the dedicated code gate right after
-  the greeting ("If you have your party's extension code, enter it, followed
-  by the pound key." — unrecorded, not a question), or in the short window
-  after each answer ("Thank you. If you have an extension code, enter it,
-  followed by the pound key."). Keypad presses cannot interrupt the
+- A valid private keypad code followed by # → Connect live. Code entry
+  happens WHILE Cove is speaking, never in silence: the code instruction is
+  part of the greeting speech (interruptible mid-sentence), and a short
+  "Thank you. If you have an extension code, enter it, followed by the pound
+  key." follows each recorded answer. Keypad Gather timeouts are short
+  (1–2s) and inter-digit — any keypress resets the clock, so they only ever
+  cut silence, never someone mid-entry. Keypad presses cannot interrupt the
   recording itself.
 - An invalid, expired, revoked, or incomplete code → Continue silently.
 - Ask the user's 1–5 saved questions, in order.

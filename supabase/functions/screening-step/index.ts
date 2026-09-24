@@ -85,7 +85,7 @@ serve(async (req: Request) => {
   // Load the user's custom greeting (dashboard-editable). {name} is
   // substituted with the display name at speak time. Falls back to the
   // default template if unset.
-  let greetingTemplate = `Hello, this is Cove, {name}'s assistant. This call may be recorded.`
+  let greetingTemplate = `Hello, this is Cove, {name}'s assistant. This call may be recorded. If you have an extension code, enter it, followed by the pound key.`
   try {
     const { data: prof } = await supabase
       .from('profiles')
@@ -195,26 +195,6 @@ serve(async (req: Request) => {
     return await finalize(supabase, callSid, ticketId, user_id, 'completed', 'screened', SCRIPT.thanksGoodbye)
   }
 
-  // ------------------------------------------------------------ stage=codegate
-  // Explicit, unrecorded moment for code holders right after the greeting.
-  // Not a question — nothing is recorded or transcribed here, so there is no
-  // wasted cycle for callers without a code. Valid code connects live via the
-  // shared stage=code handler; anything else flows to Q1 (or the unreachable
-  // goodbye when there are no questions).
-  if (stage === 'codegate') {
-    await audit(supabase, user_id, callSid, 'codegate', 'kernel', {})
-    const q1Url = `${stepBase}?stage=question&qi=1&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
-    const codeAction = `${stepBase}?stage=code&qi=1&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
-    return twiml(
-      `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Gather input="dtmf" timeout="4" finishOnKey="#" action="${xmlEscape(codeAction)}" method="POST">
-    <Say>${xmlEscape(SCRIPT.codeGate)}</Say>
-  </Gather>
-  <Redirect method="POST">${xmlEscape(q1Url)}</Redirect>
-</Response>`,
-    )
-  }
 
   // ------------------------------------------------------------ stage=question
   if (stage === 'question') {
@@ -223,21 +203,20 @@ serve(async (req: Request) => {
     if (qi === 0) {
       const greetingText = withName(greetingTemplate)
       const codeAction = `${stepBase}?stage=code&qi=0&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
-      // After the greeting, every caller passes the code gate — an explicit,
-      // unrecorded moment for code holders — before Q1 (or the unreachable
-      // goodbye when there are no questions). Code holders can still connect
-      // in unreachable mode.
-      const gateUrl = `${stepBase}?stage=codegate&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
-      // Greeting -> code gate. The Gather wraps the greeting so code holders
-      // can interrupt the intro with their code; otherwise falls through to
-      // the gate immediately after the 2s post-speech window.
+    // qi=0 is the greeting: intro only, no recording. The code instruction
+      // lives inside the greeting speech itself, so code holders enter their
+      // code WHILE Cove is talking — never in silence. The Gather's short
+      // timeout only ever cuts silence: each keypress resets the clock, and
+      // "#" submits immediately. Falls through to Q1 (or goodbye when there
+      // are no questions) after a 1s beat.
+      const q1Url = `${stepBase}?stage=question&qi=1&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
       return twiml(
         `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather input="dtmf" timeout="2" finishOnKey="#" action="${xmlEscape(codeAction)}" method="POST">
+  <Gather input="dtmf" timeout="1" finishOnKey="#" action="${xmlEscape(codeAction)}" method="POST">
     <Say>${xmlEscape(greetingText)}</Say>
   </Gather>
-  <Redirect method="POST">${xmlEscape(gateUrl)}</Redirect>
+  <Redirect method="POST">${xmlEscape(q1Url)}</Redirect>
 </Response>`,
       )
     }
@@ -251,9 +230,11 @@ serve(async (req: Request) => {
     const answerAction = `${stepBase}?stage=answer&qi=${qi}&attempt=${attempt}&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
     const transcribeCb = `${fnUrl('call-transcribe')}?ticketId=${encodeURIComponent(ticketId)}&qi=${qi}&attempt=${attempt}`
     // The question is wrapped in a DTMF Gather so code holders can enter
-    // their code at any point while the greeting/question is playing —
-    // pressing keys interrupts the speech and jumps to code validation.
-    // After the speech + 2s, falls through to recording the answer.
+    // their code at any point while the question is playing — pressing keys
+    // interrupts the speech and jumps to code validation. After the speech,
+    // a 1s beat (the caller's turn to start answering) falls through to
+    // recording. The timeout is inter-digit: any keypress resets the clock,
+    // so it only ever cuts silence, never someone mid-entry.
     // (DTMF cannot interrupt the <Record> itself — a Twilio limitation —
     // but the 2s silence timeout keeps that window short.)
     const codeAction = `${stepBase}?stage=code&qi=${qi}&attempt=${attempt}&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
@@ -261,7 +242,7 @@ serve(async (req: Request) => {
     return twiml(
       `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather input="dtmf" timeout="2" finishOnKey="#" action="${xmlEscape(codeAction)}" method="POST">
+  <Gather input="dtmf" timeout="1" finishOnKey="#" action="${xmlEscape(codeAction)}" method="POST">
     <Say>${xmlEscape(questionText)}</Say>
   </Gather>
   <Record maxLength="60" timeout="2" playBeep="false" trim="trim-silence" transcribe="true" transcribeCallback="${xmlEscape(transcribeCb)}" action="${xmlEscape(answerAction)}" method="POST" />
@@ -312,11 +293,12 @@ serve(async (req: Request) => {
       )
     }
 
-    // Answer captured. Code holders get a natural window AFTER speaking:
+    // Answer captured. Code holders get a natural moment AFTER speaking:
     // keypad presses can't interrupt the recording itself (Twilio), so the
-    // honest instruction is "enter it at any time" — during the speech, or
-    // right here after answering. Valid code connects live; anything else
-    // advances (past the last question, stage=question finalizes).
+    // instruction is spoken here and entry happens while Cove is talking.
+    // The 2s timeout after the speech is inter-digit — any keypress resets
+    // it, so it only ever cuts silence. Valid code connects live; anything
+    // else advances (past the last question, stage=question finalizes).
     const isLast = qi >= numQuestions
     const nextQi = isLast ? numQuestions + 1 : qi + 1
     const nextQ = `${stepBase}?stage=question&qi=${nextQi}&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
@@ -324,7 +306,7 @@ serve(async (req: Request) => {
     return twiml(
       `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather input="dtmf" timeout="3" finishOnKey="#" action="${xmlEscape(codeAction)}" method="POST">
+  <Gather input="dtmf" timeout="2" finishOnKey="#" action="${xmlEscape(codeAction)}" method="POST">
     <Say>${xmlEscape(isLast ? SCRIPT.codePrompt : SCRIPT.thanksWithCode)}</Say>
   </Gather>
   <Redirect method="POST">${xmlEscape(nextQ)}</Redirect>

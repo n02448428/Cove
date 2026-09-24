@@ -181,10 +181,6 @@ export async function audit(
 // Kernel scripts, spoken verbatim.
 export const SCRIPT = {
   noAnswer: 'No answer. Goodbye.',
-  // Dedicated code gate after the greeting: an explicit, unrecorded moment.
-  // No "now" — the next thing after the gate is Q1, so the word would fight
-  // the flow. The 4s Gather window does the prompting work.
-  codeGate: "If you have your party's extension code, enter it, followed by the pound key.",
   // Spoken after each recorded answer: code holders get a natural window
   // AFTER speaking, since keypad presses can't interrupt a recording.
   thanksWithCode: 'Thank you. If you have an extension code, enter it, followed by the pound key.',

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
 import { toE164, isValidE164, E164_ERROR } from '../lib/phone.js';
 import AppHeader from '../components/AppHeader.jsx';
+import AppFooter from '../components/AppFooter.jsx';
 import CoveMark from '../components/CoveMark.jsx';
 import { createPortalSession } from '../services/api.js';
 
@@ -167,6 +168,7 @@ export default function Settings() {
           {saving ? 'Saving...' : 'Save changes'}
         </button>
       </form>
+      <AppFooter />
     </main>
   );
 }

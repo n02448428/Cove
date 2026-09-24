@@ -160,6 +160,17 @@ a:hover { color: var(--color-accent-hover); }
   margin-bottom: var(--space-8);
   padding-bottom: var(--space-4);
   border-bottom: 1px solid var(--color-rule);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: color-mix(in srgb, var(--color-bg) 88%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding-top: var(--space-4);
+  margin-left: calc(var(--space-6) * -1);
+  margin-right: calc(var(--space-6) * -1);
+  padding-left: var(--space-6);
+  padding-right: var(--space-6);
 }
 .app-header--flush {
   margin-bottom: 0;
@@ -597,6 +608,35 @@ label {
 .feature-row:last-child {
   border-bottom: 1px solid var(--color-rule);
 }
+
+/* FAQ accordion */
+details.feature-row summary {
+  font-weight: 700;
+  font-size: 1rem;
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+details.feature-row summary::-webkit-details-marker {
+  display: none;
+}
+details.feature-row summary::after {
+  content: '+';
+  color: var(--color-text-muted);
+  font-weight: 400;
+  font-size: 1.25rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+details.feature-row[open] summary::after {
+  content: '–';
+}
+details.feature-row summary:hover {
+  color: var(--color-accent);
+}
 .feature-row h3 {
   font-size: 1rem;
   font-weight: 600;
@@ -769,6 +809,30 @@ label {
   letter-spacing: 0.02em;
 }
 
+.cove-footer-legal {
+  width: 100%;
+  max-width: 34rem;
+  margin: 1rem auto 0;
+  padding: 0 var(--space-6);
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  line-height: 1.7;
+  text-align: center;
+}
+
+.cove-footer-links {
+  margin-top: 0.75rem;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.cove-footer-links a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* =========================================
    Concierge number card
    ========================================= */
@@ -917,8 +981,9 @@ label {
    ========================================= */
 
 .landing-header-bar {
-  position: relative;
-  z-index: 2;
+  position: sticky;
+  top: 0;
+  z-index: 20;
   max-width: 1200px;
   margin: 0 auto;
   padding: var(--space-4) var(--space-6);

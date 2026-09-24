@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
 import { formatPhone } from '../lib/format.js';
 import AppHeader from '../components/AppHeader.jsx';
+import AppFooter from '../components/AppFooter.jsx';
 import CoveMark from '../components/CoveMark.jsx';
 import { createCheckoutSession } from '../services/api.js';
 
@@ -288,6 +289,7 @@ export default function ForwardingInstructions() {
       <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => navigate('/dashboard')} disabled={!conciergeNumber && needsCheckout}>
         I&apos;ve set it up → Go to Dashboard
       </button>
+      <AppFooter />
     </main>
   );
 }

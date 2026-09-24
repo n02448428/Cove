@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase.js';
 import { toE164, isValidE164, isValidCode, E164_ERROR, CODE_ERROR } from '../lib/phone.js';
 import { formatPhone } from '../lib/format.js';
 import AppHeader from '../components/AppHeader.jsx';
+import AppFooter from '../components/AppFooter.jsx';
 import CoveMark from '../components/CoveMark.jsx';
 import {
   getCallerLists,
@@ -950,6 +951,7 @@ export default function Dashboard() {
         </>
         )}
       </section>
+      <AppFooter />
     </main>
   );
 }

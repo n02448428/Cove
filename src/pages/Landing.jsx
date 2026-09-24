@@ -21,7 +21,7 @@ const FEATURES = [
 const STEPS = [
   {
     title: 'Get your Cove number',
-    desc: 'Your own still water, provisioned in seconds. It\u2019s yours while you\u2019re subscribed.',
+    desc: 'Your own still water, provisioned in seconds. It’s yours while you’re subscribed.',
   },
   {
     title: 'Forward your calls',
@@ -30,6 +30,67 @@ const STEPS = [
   {
     title: 'Float in peace',
     desc: 'Storms break outside. Inside, every voice that matters reaches you — and the rest waits quietly.',
+  },
+];
+
+const PROMISES = [
+  {
+    title: '7 days free, no risk',
+    desc: 'Full access for a week. If your phone doesn’t feel calmer, cancel in one tap.',
+  },
+  {
+    title: 'Cancel anytime',
+    desc: 'No contracts, no retention calls, no dark patterns. Leave whenever you want.',
+  },
+  {
+    title: 'Your number stays yours',
+    desc: 'While subscribed, your Cove number is yours. Cancel and you get 30 days grace.',
+  },
+  {
+    title: 'Undo in ten seconds',
+    desc: 'Forwarding turns off with one tap. Your phone goes back to normal instantly.',
+  },
+];
+
+const USE_CASES = [
+  {
+    title: 'For professionals',
+    desc: 'Deep work without the pings. Clients with codes reach you; cold callers meet Cove. Review everything at 5pm, not 2pm.',
+  },
+  {
+    title: 'For parents and grandparents',
+    desc: 'Scam calls prey on the people you love most. Cove stands between them and the storm — family always rings through.',
+  },
+  {
+    title: 'For small business owners',
+    desc: 'Never miss a real customer, never take a spam call mid-job. Every caller explains themselves; you see it all transcribed.',
+  },
+];
+
+const FAQS = [
+  {
+    q: 'Do I keep my current phone number?',
+    a: 'Yes. Nothing changes about your number. You forward your calls to Cove — callers still dial the number they’ve always dialed.',
+  },
+  {
+    q: 'Will I miss important calls?',
+    a: 'Your trusted contacts ring straight through, and anyone with your extension code connects immediately. Everything else is screened, transcribed, and waiting — nothing vanishes.',
+  },
+  {
+    q: 'What about emergencies?',
+    a: 'Cove is not for emergencies. Always dial emergency numbers directly from your phone. If you’re expecting an urgent call, turn forwarding off with one tap.',
+  },
+  {
+    q: 'How does the forwarding setup work?',
+    a: 'After signup you get a Cove number. Tap one button and your phone dials the forwarding code — ten seconds, no settings menus. It works on AT&T, T-Mobile, and most carriers; Verizon has its own one-tap codes.',
+  },
+  {
+    q: 'Is my call data private?',
+    a: 'Your recordings and transcripts are yours. We never sell your data or use call content for advertising. Delete anything, anytime, from your dashboard.',
+  },
+  {
+    q: 'What happens when I cancel?',
+    a: 'Forwarding stops, calls ring your phone directly again, and you keep your Cove number for 30 days in case you return. Your data is deleted after the grace period.',
   },
 ];
 
@@ -117,6 +178,36 @@ export default function Landing() {
           ))}
         </section>
 
+        <section className="landing-features" aria-label="The Cove promise" style={{ marginTop: '3rem' }}>
+          <h2 className="price-block__eyebrow" style={{ marginBottom: '1.5rem' }}>The Cove promise</h2>
+          {PROMISES.map(({ title, desc }) => (
+            <div key={title} className="feature-row">
+              <h3>{title}</h3>
+              <p>{desc}</p>
+            </div>
+          ))}
+        </section>
+
+        <section className="landing-features" aria-label="Who Cove is for" style={{ marginTop: '3rem' }}>
+          <h2 className="price-block__eyebrow" style={{ marginBottom: '1.5rem' }}>Who it&apos;s for</h2>
+          {USE_CASES.map(({ title, desc }) => (
+            <div key={title} className="feature-row">
+              <h3>{title}</h3>
+              <p>{desc}</p>
+            </div>
+          ))}
+        </section>
+
+        <section className="landing-features" aria-label="Questions" style={{ marginTop: '3rem' }}>
+          <h2 className="price-block__eyebrow" style={{ marginBottom: '1.5rem' }}>Questions</h2>
+          {FAQS.map(({ q, a }) => (
+            <details key={q} className="feature-row">
+              <summary>{q}</summary>
+              <p style={{ marginTop: '0.5rem' }}>{a}</p>
+            </details>
+          ))}
+        </section>
+
         <section className="price-block" aria-label="Pricing">
           <p className="price-block__eyebrow">Membership</p>
           <h2 className="price-block__primary">Try Cove free for 7 days. $49/mo after — cancel anytime.</h2>
@@ -140,20 +231,37 @@ export default function Landing() {
             </button>
           </div>
         </section>
+
+        <section className="landing-features" aria-label="Begin" style={{ marginTop: '3rem', textAlign: 'center' }}>
+          <h2 className="landing-headline" style={{ fontSize: '2rem' }}>The storm can wait.</h2>
+          <p className="landing-support" style={{ maxWidth: '30rem', margin: '1rem auto 1.5rem' }}>
+            Seven free days. Ten-second setup. Your phone, finally quiet —
+            except for the voices that matter.
+          </p>
+          <div className="landing-ctas" style={{ justifyContent: 'center' }}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => navigate('/auth?mode=signup')}
+            >
+              Start my 7 free days
+            </button>
+          </div>
+        </section>
       </div>
 
       <footer className="cove-footer">
         <CoveWordmark markSize={28} />
         <p className="cove-footer-tag">Protected by rock. Held by water.</p>
-        <p style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: '1rem', lineHeight: 1.7, maxWidth: '32rem', marginLeft: 'auto', marginRight: 'auto' }}>
+        <p className="cove-footer-legal">
           Calls answered by Cove may be recorded and transcribed. Call-forwarding availability,
           codes, and charges vary by carrier — Cove numbers are currently US-based. Cove screens
           calls but can&apos;t block every unwanted call; it&apos;s not a replacement for emergency services.
         </p>
-        <p style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: '0.75rem' }}>
-          <a href="/terms" style={{ color: 'inherit' }}>Terms</a>
+        <p className="cove-footer-links">
+          <a href="/terms">Terms</a>
           {' · '}
-          <a href="/privacy" style={{ color: 'inherit' }}>Privacy</a>
+          <a href="/privacy">Privacy</a>
         </p>
       </footer>
     </div>

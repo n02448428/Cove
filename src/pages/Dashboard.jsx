@@ -29,6 +29,7 @@ const OUTCOME_LABELS = {
   connected_live: 'Connected',
   screened: 'Screened',
   code_connected: 'Code',
+  emergency_connected: 'Emergency',
   no_answer: 'No answer',
   failed: 'Failed',
 };
@@ -426,7 +427,9 @@ export default function Dashboard() {
     }
   }
 
-  const filteredTickets = ticketFilter === 'all' ? tickets : tickets.filter(t => t.status === ticketFilter);
+  const filteredTickets = (ticketFilter === 'all' ? tickets : tickets.filter(t => t.status === ticketFilter))
+    .slice()
+    .sort((a, b) => Number(b.urgent || false) - Number(a.urgent || false));
 
   // — Call log ————————————————————————————————————
   const filteredCalls = callFilter === 'all' ? calls : calls.filter(c => c.outcome === callFilter);
@@ -618,7 +621,7 @@ export default function Dashboard() {
                 <span className="hint" style={{ margin: 0 }}>Asked in order · answers recorded</span>
               </div>
             {questions.length === 0 && (
-              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>No questions yet. Add up to 5.</p>
+              <p style={{ fontSize: '0.85rem', color: 'var(--color-danger)', marginBottom: '1rem' }}>No questions set — unknown callers can&apos;t reach you at all right now. Add at least one.</p>
             )}
             {questions.map(q => (
               <div key={q.id} className="kernel-row" style={{ alignItems: 'flex-start' }}>
@@ -669,7 +672,7 @@ export default function Dashboard() {
                   <h3 className="kernel-section-title" style={{ margin: 0, fontSize: '1.05rem' }}>Access codes</h3>
                   <span className="badge badge-green">{accessCodes.filter(c => !c.revoked_at).length}</span>
                 </div>
-                <span className="hint" style={{ margin: 0 }}>YELLOW callers enter a code to connect</span>
+                <span className="hint" style={{ margin: 0 }}>Share with family — their instant way through, even in an emergency</span>
               </div>
               {accessCodes.length === 0 ? (
                 <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>No access codes yet.</p>
@@ -805,7 +808,10 @@ export default function Dashboard() {
                           {t.ended_reason ? ` · ${ENDED_REASON_LABELS[t.ended_reason] || t.ended_reason}` : ''}
                         </p>
                       </div>
-                      <span className={`badge badge-${t.status}`}>{TICKET_STATUS_LABELS[t.status] || t.status}</span>
+                      <span style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                        {t.urgent && <span className="badge badge-urgent">Urgent</span>}
+                        <span className={`badge badge-${t.status}`}>{TICKET_STATUS_LABELS[t.status] || t.status}</span>
+                      </span>
                     </div>
                     {expandedTicket === t.id && (
                       <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--color-rule)' }} onClick={e => e.stopPropagation()}>

@@ -161,6 +161,40 @@ serve(async (req: Request) => {
     )
   }
 
+  // --------------------------------------------------- stage=emergency_connect
+  // Triggered by call-transcribe when a transcript contains an emergency
+  // keyword mid-call: the live call is redirected here via the Twilio REST
+  // API, skipping the rest of screening and connecting immediately.
+  // The ticket is flagged URGENT so the dashboard surfaces it prominently.
+  if (stage === 'emergency_connect') {
+    await supabase
+      .from('review_tickets')
+      .update({ status: 'actioned', ended_reason: 'completed', urgent: true })
+      .eq('id', ticketId)
+      .in('status', ['collecting', 'transcribing'])
+    await logCall(supabase, callSid, user_id, {
+      outcome: 'emergency_connected',
+      status: 'emergency_connected',
+      call_state: 'emergency_connected',
+    })
+    await audit(supabase, user_id, callSid, 'emergency_connected', 'kernel', {})
+
+    if (real_number) {
+      const statusCb = `${fnUrl('call-status')}?callSid=${encodeURIComponent(callSid)}&userId=${encodeURIComponent(user_id)}&source=emergency`
+      return twiml(
+        `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say>This sounds urgent. Connecting you now.</Say>
+  <Dial callerId="${xmlEscape(caller_number ?? '')}" action="${xmlEscape(statusCb)}" method="POST" timeout="30">
+    <Number>${xmlEscape(real_number)}</Number>
+  </Dial>
+</Response>`,
+      )
+    }
+    // No real number configured: end gracefully, ticket stays URGENT.
+    return await finalize(supabase, callSid, ticketId, user_id, 'completed', 'screened', SCRIPT.thanksGoodbye)
+  }
+
   // ------------------------------------------------------------ stage=question
   if (stage === 'question') {
     // qi=0 is the greeting: intro only, no recording. It plays, then the

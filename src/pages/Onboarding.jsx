@@ -212,7 +212,7 @@ export default function Onboarding() {
               placeholder={"Mom +16195550001\nDad +16195550002"}
               rows={3}
             />
-            <p className="hint">One per line: Name then number. These callers connect live immediately.</p>
+            <p className="hint">Family, doctors, schools — anyone who must always reach you, especially in an emergency. One per line: Name then number.</p>
           </div>
 
           <div className="field">

@@ -387,6 +387,8 @@ label {
 
 /* RED / GREEN list badges */
 .badge-red   { background: rgba(196,69,69,0.15);  color: var(--color-danger); }
+.badge-urgent { background: var(--color-danger); color: #fff; }
+.badge-emergency_connected { background: rgba(196,69,69,0.15); color: var(--color-danger); }
 .badge-green { background: rgba(47,143,91,0.15);  color: var(--color-success); }
 
 /* Kernel section headers + sub-lists */

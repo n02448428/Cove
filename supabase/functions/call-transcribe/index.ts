@@ -10,6 +10,9 @@ import {
   formGet,
   audit,
   validateTwilioSignature,
+  containsEmergencyKeyword,
+  redirectLiveCall,
+  fnUrl,
 } from '../_shared/cove.ts'
 
 serve(async (req: Request) => {
@@ -57,7 +60,7 @@ serve(async (req: Request) => {
   if (ticketId) {
     const { data: ticket } = await supabase
       .from('review_tickets')
-      .select('user_id, call_sid')
+      .select('user_id, call_sid, status, urgent')
       .eq('id', ticketId)
       .maybeSingle()
     if (ticket) {
@@ -65,6 +68,34 @@ serve(async (req: Request) => {
         question_ord: qi,
         status: transcriptionStatus,
       })
+
+      // Emergency path: a caller in distress may not survive the full
+      // screening queue. Flag the ticket URGENT and, if the call is still
+      // live, pull it out of screening and connect immediately.
+      // Idempotent: only fires once per ticket.
+      if (
+        transcript &&
+        containsEmergencyKeyword(transcript) &&
+        !ticket.urgent &&
+        !['new', 'reviewed', 'actioned', 'failed'].includes(ticket.status)
+      ) {
+        await supabase
+          .from('review_tickets')
+          .update({ urgent: true })
+          .eq('id', ticketId)
+        await audit(supabase, ticket.user_id, ticket.call_sid, 'emergency_keyword_detected', 'kernel', {
+          question_ord: qi,
+          transcript: transcript.slice(0, 500),
+        })
+        const emergencyUrl =
+          `${fnUrl('screening-step')}?stage=emergency_connect` +
+          `&callSid=${encodeURIComponent(ticket.call_sid ?? '')}` +
+          `&ticketId=${encodeURIComponent(ticketId)}`
+        const redirected = await redirectLiveCall(ticket.call_sid, emergencyUrl)
+        await audit(supabase, ticket.user_id, ticket.call_sid, 'emergency_redirect', 'kernel', {
+          redirected,
+        })
+      }
     }
   }
 

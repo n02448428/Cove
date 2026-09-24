@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
+import { formatPhone } from '../lib/format.js';
 import AppHeader from '../components/AppHeader.jsx';
 import CoveMark from '../components/CoveMark.jsx';
 import { createCheckoutSession } from '../services/api.js';
@@ -88,6 +89,8 @@ export default function ForwardingInstructions() {
         ? 'Provisioning your Cove number…'
         : 'Number provisioning pending…');
 
+  const displayNumberFormatted = conciergeNumber ? formatPhone(conciergeNumber) : displayNumber;
+
   return (
     <main className="page-narrow">
       <AppHeader homeTo="/dashboard" />
@@ -130,7 +133,7 @@ export default function ForwardingInstructions() {
 
       <div className="card" style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
         <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>Your Cove Number</p>
-        <p style={{ fontSize: '2rem', fontWeight: 800, letterSpacing: '0.05em' }}>{displayNumber}</p>
+        <p style={{ fontSize: '2rem', fontWeight: 800, letterSpacing: '0.12em' }}>{displayNumberFormatted}</p>
         {conciergeNumber && (
           <button className="btn btn-ghost" style={{ marginTop: '1rem' }} onClick={copyNumber}>
             Copy number

@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
 import { toE164, isValidE164, isValidCode, E164_ERROR, CODE_ERROR } from '../lib/phone.js';
+import { formatPhone } from '../lib/format.js';
 import AppHeader from '../components/AppHeader.jsx';
 import CoveMark from '../components/CoveMark.jsx';
 import {
@@ -451,7 +452,7 @@ export default function Dashboard() {
 
       <h1 className="page-title" style={{ fontSize: '1.85rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
         <CoveMark size={30} />
-        Dashboard
+        {displayName ? `${displayName}'s Dashboard` : 'Dashboard'}
       </h1>
 
       {/* Concierge number — prominent */}
@@ -460,7 +461,7 @@ export default function Dashboard() {
           <div className="concierge-card-top">
             <div>
               <p className="concierge-card-label">Your Cove Number</p>
-              <p className="concierge-card-number">{conciergeNumber}</p>
+              <p className="concierge-card-number" style={{ letterSpacing: '0.12em' }}>{formatPhone(conciergeNumber)}</p>
             </div>
             <button className="btn btn-ghost concierge-card-copy" onClick={copyNumber} title="Copy number">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -501,15 +502,15 @@ export default function Dashboard() {
         </button>
         {openSections.green && (
           <div className="section-body">
-            <p className="hint">Numbers on this list connect live immediately.</p>
+            <p className="hint" style={{ textAlign: 'right', marginTop: 0 }}>Connect live immediately</p>
             {greenList.length === 0 ? (
               <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>No GREEN numbers yet.</p>
             ) : (
               greenList.map(c => (
                 <div key={c.id} className="kernel-row">
                   <div className="kernel-row-meta">
-                    <strong>{c.contact_name || c.phone_number}</strong>
-                    {c.contact_name && <span>{c.phone_number}</span>}
+                    <strong>{c.contact_name || formatPhone(c.phone_number)}</strong>
+                    {c.contact_name && <span>{formatPhone(c.phone_number)}</span>}
                   </div>
                   <div className="kernel-actions">
                     <button className="btn btn-ghost" onClick={() => handleDeleteCallerList(c.id)}>Remove</button>
@@ -542,24 +543,29 @@ export default function Dashboard() {
         </button>
         {openSections.yellow && (
           <div className="section-body">
-            {/* Display name — what {name} becomes */}
-            <div style={{ marginBottom: '1rem' }}>
-              <h3 className="kernel-section-title" style={{ margin: '0 0 0.5rem', fontSize: '1.05rem' }}>Your name</h3>
-              <p className="hint" style={{ marginTop: 0 }}>This is what {'{name}'} becomes when callers hear it.</p>
+            {/* Voice identity — name + greeting */}
+            <div style={{ marginBottom: '1.25rem', paddingBottom: '1.25rem', borderBottom: '1px solid var(--color-border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.75rem' }}>
+                <h3 className="kernel-section-title" style={{ margin: 0, fontSize: '1.05rem' }}>Voice</h3>
+                <span className="hint" style={{ margin: 0 }}>{'{name}'} inserts your name</span>
+              </div>
+              {/* Name row */}
               {displayNameDraft !== null ? (
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.75rem' }}>
                   <input
                     value={displayNameDraft}
                     onChange={e => setDisplayNameDraft(e.target.value)}
                     style={{ flex: 1 }}
                     placeholder="Dmitry the architect"
+                    aria-label="Your name"
                   />
                   <button className="btn btn-primary" onClick={saveDisplayName}>Save</button>
                   <button className="btn btn-ghost" onClick={() => setDisplayNameDraft(null)}>Cancel</button>
                 </div>
               ) : (
-                <div className="kernel-row" style={{ alignItems: 'center' }}>
+                <div className="kernel-row" style={{ alignItems: 'center', marginBottom: '0.75rem' }}>
                   <div className="kernel-row-meta" style={{ flex: 1 }}>
+                    <span style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginRight: '0.5rem' }}>Name</span>
                     <strong>{displayName || 'Not set'}</strong>
                   </div>
                   <div className="kernel-actions">
@@ -567,11 +573,7 @@ export default function Dashboard() {
                   </div>
                 </div>
               )}
-            </div>
-            {/* Custom greeting — the first thing callers hear */}
-            <div style={{ marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid var(--color-border)' }}>
-              <h3 className="kernel-section-title" style={{ margin: '0 0 0.5rem', fontSize: '1.05rem' }}>Greeting</h3>
-              <p className="hint" style={{ marginTop: 0 }}>The first thing unknown callers hear. Use {'{name}'} to insert your name above.</p>
+              {/* Greeting row */}
               {greetingDraft !== null ? (
                 <>
                   <textarea
@@ -580,15 +582,17 @@ export default function Dashboard() {
                     rows={3}
                     style={{ width: '100%', marginBottom: '0.5rem' }}
                     placeholder="Hello, this is Cove, {name}'s assistant."
+                    aria-label="Greeting"
                   />
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button className="btn btn-primary" onClick={saveGreeting}>Save greeting</button>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <button className="btn btn-primary" onClick={saveGreeting}>Save</button>
                     <button className="btn btn-ghost" onClick={() => setGreetingDraft(null)}>Cancel</button>
                   </div>
                 </>
               ) : (
-                <div className="kernel-row" style={{ alignItems: 'flex-start' }}>
+                <div className="kernel-row" style={{ alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                   <div className="kernel-row-meta" style={{ flex: 1 }}>
+                    <span style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginRight: '0.5rem' }}>Greeting</span>
                     <span>{greeting || 'No greeting set.'}</span>
                   </div>
                   <div className="kernel-actions">
@@ -596,14 +600,18 @@ export default function Dashboard() {
                   </div>
                 </div>
               )}
-              {/* Live preview with {name} substituted */}
               {(greetingDraft !== null ? greetingDraft : greeting) && (
-                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: '0.75rem', fontStyle: 'italic' }}>
-                  Callers will hear: “{(greetingDraft !== null ? greetingDraft : greeting).replace(/\{name\}/g, displayNameDraft !== null ? displayNameDraft : (displayName || '{name}'))}”
+                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: 0, fontStyle: 'italic' }}>
+                  “{(greetingDraft !== null ? greetingDraft : greeting).replace(/\{name\}/g, displayNameDraft !== null ? displayNameDraft : (displayName || '{name}'))}”
                 </p>
               )}
             </div>
-            <p className="hint">Unknown callers are asked these questions after the greeting. 1–5 questions, spoken verbatim. Use {'{name}'} for your name above.</p>
+            {/* Questions */}
+            <div style={{ marginBottom: '1.25rem', paddingBottom: '1.25rem', borderBottom: '1px solid var(--color-border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.75rem' }}>
+                <h3 className="kernel-section-title" style={{ margin: 0, fontSize: '1.05rem' }}>Questions</h3>
+                <span className="hint" style={{ margin: 0 }}>Asked in order · answers recorded</span>
+              </div>
             {questions.length === 0 && (
               <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>No questions yet. Add up to 5.</p>
             )}
@@ -644,17 +652,20 @@ export default function Dashboard() {
                   <label>New question</label>
                   <input value={newQuestion} onChange={e => setNewQuestion(e.target.value)} placeholder="Who is calling, please?" />
                 </div>
-                <button className="btn btn-primary" onClick={addQuestion}>Add question</button>
+                <button className="btn btn-primary" onClick={addQuestion}>Add</button>
               </div>
             )}
+            </div>
 
             {/* Access codes inside YELLOW section */}
-            <div className="yellow-subsection">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                <h3 className="kernel-section-title" style={{ margin: 0, fontSize: '1.05rem' }}>Access codes</h3>
-                <span className="badge badge-green">{accessCodes.filter(c => !c.revoked_at).length}</span>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <h3 className="kernel-section-title" style={{ margin: 0, fontSize: '1.05rem' }}>Access codes</h3>
+                  <span className="badge badge-green">{accessCodes.filter(c => !c.revoked_at).length}</span>
+                </div>
+                <span className="hint" style={{ margin: 0 }}>YELLOW callers enter a code to connect</span>
               </div>
-              <p className="hint" style={{ marginTop: 0, marginBottom: '1rem' }}>Callers in YELLOW can enter a code to connect live.</p>
               {accessCodes.length === 0 ? (
                 <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>No access codes yet.</p>
               ) : (
@@ -703,15 +714,15 @@ export default function Dashboard() {
         </button>
         {openSections.red && (
           <div className="section-body">
-            <p className="hint">Numbers on this list are rejected immediately.</p>
+            <p className="hint" style={{ textAlign: 'right', marginTop: 0 }}>Rejected immediately</p>
             {redList.length === 0 ? (
               <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>No RED numbers yet.</p>
             ) : (
               redList.map(c => (
                 <div key={c.id} className="kernel-row">
                   <div className="kernel-row-meta">
-                    <strong>{c.contact_name || c.phone_number}</strong>
-                    {c.contact_name && <span>{c.phone_number}</span>}
+                    <strong>{c.contact_name || formatPhone(c.phone_number)}</strong>
+                    {c.contact_name && <span>{formatPhone(c.phone_number)}</span>}
                   </div>
                   <div className="kernel-actions">
                     <button className="btn btn-ghost" onClick={() => handleDeleteCallerList(c.id)}>Remove</button>

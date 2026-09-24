@@ -151,6 +151,10 @@ export default function Dashboard() {
   const [greeting, setGreeting] = useState('');
   const [greetingDraft, setGreetingDraft] = useState(null);
 
+  // display name editing (what {name} resolves to)
+  const [displayName, setDisplayName] = useState('');
+  const [displayNameDraft, setDisplayNameDraft] = useState(null);
+
   const loadAll = useCallback(async (uid) => {
     const [lists, codes, qs, tix, logs, phone, profile] = await Promise.all([
       getCallerLists(uid),
@@ -159,7 +163,7 @@ export default function Dashboard() {
       getReviewTickets(uid),
       getCallLogs(uid, { limit: 100 }),
       supabase.from('phone_numbers').select('twilio_number, provisioning_status').eq('user_id', uid).order('created_at', { ascending: false }).limit(1).maybeSingle(),
-      supabase.from('profiles').select('greeting').eq('id', uid).maybeSingle(),
+      supabase.from('profiles').select('greeting, display_name').eq('id', uid).maybeSingle(),
     ]);
     setCallerLists(lists);
     setAccessCodes(codes);
@@ -167,6 +171,7 @@ export default function Dashboard() {
     setTickets(tix);
     setCalls(logs);
     setGreeting(profile.data?.greeting || '');
+    setDisplayName(profile.data?.display_name || '');
     if (phone.data) {
       setConciergeNumber(phone.data.twilio_number || '');
       setProvisioningStatus(phone.data.provisioning_status || '');
@@ -269,6 +274,24 @@ export default function Dashboard() {
     try {
       await deleteAccessCode(id);
       setAccessCodes(prev => prev.filter(c => c.id !== id));
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  // — Display name ({name} substitution) ————————————————————
+  async function saveDisplayName() {
+    setError('');
+    const text = (displayNameDraft ?? '').trim();
+    if (!text) {
+      setError('Display name cannot be empty.');
+      return;
+    }
+    try {
+      const { error } = await supabase.from('profiles').update({ display_name: text }).eq('id', userId);
+      if (error) throw error;
+      setDisplayName(text);
+      setDisplayNameDraft(null);
     } catch (err) {
       setError(err.message);
     }
@@ -519,10 +542,36 @@ export default function Dashboard() {
         </button>
         {openSections.yellow && (
           <div className="section-body">
+            {/* Display name — what {name} becomes */}
+            <div style={{ marginBottom: '1rem' }}>
+              <h3 className="kernel-section-title" style={{ margin: '0 0 0.5rem', fontSize: '1.05rem' }}>Your name</h3>
+              <p className="hint" style={{ marginTop: 0 }}>This is what {'{name}'} becomes when callers hear it.</p>
+              {displayNameDraft !== null ? (
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <input
+                    value={displayNameDraft}
+                    onChange={e => setDisplayNameDraft(e.target.value)}
+                    style={{ flex: 1 }}
+                    placeholder="Dmitry the architect"
+                  />
+                  <button className="btn btn-primary" onClick={saveDisplayName}>Save</button>
+                  <button className="btn btn-ghost" onClick={() => setDisplayNameDraft(null)}>Cancel</button>
+                </div>
+              ) : (
+                <div className="kernel-row" style={{ alignItems: 'center' }}>
+                  <div className="kernel-row-meta" style={{ flex: 1 }}>
+                    <strong>{displayName || 'Not set'}</strong>
+                  </div>
+                  <div className="kernel-actions">
+                    <button className="btn btn-ghost" onClick={() => setDisplayNameDraft(displayName)}>Edit</button>
+                  </div>
+                </div>
+              )}
+            </div>
             {/* Custom greeting — the first thing callers hear */}
             <div style={{ marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid var(--color-border)' }}>
               <h3 className="kernel-section-title" style={{ margin: '0 0 0.5rem', fontSize: '1.05rem' }}>Greeting</h3>
-              <p className="hint" style={{ marginTop: 0 }}>The first thing unknown callers hear. Use {'{name}'} to insert your display name.</p>
+              <p className="hint" style={{ marginTop: 0 }}>The first thing unknown callers hear. Use {'{name}'} to insert your name above.</p>
               {greetingDraft !== null ? (
                 <>
                   <textarea
@@ -547,8 +596,14 @@ export default function Dashboard() {
                   </div>
                 </div>
               )}
+              {/* Live preview with {name} substituted */}
+              {(greetingDraft !== null ? greetingDraft : greeting) && (
+                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: '0.75rem', fontStyle: 'italic' }}>
+                  Callers will hear: “{(greetingDraft !== null ? greetingDraft : greeting).replace(/\{name\}/g, displayNameDraft !== null ? displayNameDraft : (displayName || '{name}'))}”
+                </p>
+              )}
             </div>
-            <p className="hint">Unknown callers are asked these questions after the greeting. 1–5 questions, spoken verbatim. Use {'{name}'} for your display name.</p>
+            <p className="hint">Unknown callers are asked these questions after the greeting. 1–5 questions, spoken verbatim. Use {'{name}'} for your name above.</p>
             {questions.length === 0 && (
               <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>No questions yet. Add up to 5.</p>
             )}

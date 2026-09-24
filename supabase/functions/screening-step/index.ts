@@ -183,12 +183,14 @@ serve(async (req: Request) => {
         )
       }
       // Greeting -> Q1. The Gather wraps the greeting so code holders can
-      // interrupt the intro with their code; otherwise falls through to Q1.
+      // interrupt the intro with their code; 5s post-speech window gives
+      // them time to find and enter the code without racing the speech.
+      // Otherwise falls through to Q1.
       const q1Url = `${stepBase}?stage=question&qi=1&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
       return twiml(
         `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather input="dtmf" timeout="2" finishOnKey="#" action="${xmlEscape(codeAction)}" method="POST">
+  <Gather input="dtmf" timeout="5" finishOnKey="#" action="${xmlEscape(codeAction)}" method="POST">
     <Say>${xmlEscape(greetingText)}</Say>
   </Gather>
   <Redirect method="POST">${xmlEscape(q1Url)}</Redirect>

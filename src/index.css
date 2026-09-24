@@ -609,6 +609,18 @@ label {
   border-bottom: 1px solid var(--color-rule);
 }
 
+/* Cove world imagery */
+.cove-world-img {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+.cove-world-img img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 /* FAQ accordion */
 details.feature-row summary {
   font-weight: 700;
@@ -796,35 +808,38 @@ details.feature-row summary:hover {
 .cove-footer {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
-  padding: 3rem 0 1rem;
+  padding: 3rem var(--space-6) 1.5rem;
   border-top: 1px solid var(--color-rule);
-  margin-top: 3rem;
+  margin: 3rem auto 0;
+  max-width: 1200px;
+  text-align: left;
 }
 
 .cove-footer-tag {
   font-size: 0.8rem;
-  color: var(--color-text-muted);
+  color: var(--color-text);
   letter-spacing: 0.02em;
 }
 
 .cove-footer-legal {
   width: 100%;
   max-width: 34rem;
-  margin: 1rem auto 0;
-  padding: 0 var(--space-6);
+  margin: 1rem 0 0;
   font-size: 0.72rem;
-  color: var(--color-text-muted);
+  color: var(--color-text);
   line-height: 1.7;
-  text-align: center;
+  text-align: left;
+  opacity: 0.85;
 }
 
 .cove-footer-links {
   margin-top: 0.75rem;
   font-size: 0.72rem;
-  color: var(--color-text-muted);
-  text-align: center;
+  color: var(--color-text);
+  text-align: left;
+  opacity: 0.85;
 }
 
 .cove-footer-links a {

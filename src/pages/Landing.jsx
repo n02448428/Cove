@@ -2,6 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import CoveMark from '../components/CoveMark.jsx';
 import CoveWordmark from '../components/CoveWordmark.jsx';
 import ThemeToggle from '../components/ThemeToggle.jsx';
+import BreakwaterDiagram from '../components/BreakwaterDiagram.jsx';
+import WaveDivider from '../components/WaveDivider.jsx';
 
 const FEATURES = [
   {
@@ -170,6 +172,9 @@ export default function Landing() {
 
         <section className="landing-features" aria-label="How it works" style={{ marginTop: '3rem' }}>
           <h2 className="price-block__eyebrow" style={{ marginBottom: '1.5rem' }}>How it works</h2>
+          <div style={{ marginBottom: '2rem' }}>
+            <BreakwaterDiagram />
+          </div>
           {STEPS.map(({ title, desc }, i) => (
             <div key={title} className="feature-row">
               <h3><span style={{ color: 'var(--color-text-muted)', fontWeight: 500, marginRight: '0.5rem' }}>{i + 1}.</span>{title}</h3>
@@ -178,6 +183,7 @@ export default function Landing() {
           ))}
         </section>
 
+        <WaveDivider />
         <section className="landing-features" aria-label="The Cove promise" style={{ marginTop: '3rem' }}>
           <h2 className="price-block__eyebrow" style={{ marginBottom: '1.5rem' }}>The Cove promise</h2>
           {PROMISES.map(({ title, desc }) => (
@@ -188,8 +194,12 @@ export default function Landing() {
           ))}
         </section>
 
+        <WaveDivider />
         <section className="landing-features" aria-label="Who Cove is for" style={{ marginTop: '3rem' }}>
           <h2 className="price-block__eyebrow" style={{ marginBottom: '1.5rem' }}>Who it&apos;s for</h2>
+          <div className="cove-world-img" style={{ marginBottom: '2rem' }}>
+            <img src="/cove-calm-waters.webp" alt="Inside the cove: dark marble cliffs sheltering glass-calm water while a storm breaks beyond the rocks" loading="lazy" />
+          </div>
           {USE_CASES.map(({ title, desc }) => (
             <div key={title} className="feature-row">
               <h3>{title}</h3>
@@ -198,6 +208,7 @@ export default function Landing() {
           ))}
         </section>
 
+        <WaveDivider />
         <section className="landing-features" aria-label="Questions" style={{ marginTop: '3rem' }}>
           <h2 className="price-block__eyebrow" style={{ marginBottom: '1.5rem' }}>Questions</h2>
           {FAQS.map(({ q, a }) => (
@@ -208,6 +219,7 @@ export default function Landing() {
           ))}
         </section>
 
+        <WaveDivider />
         <section className="price-block" aria-label="Pricing">
           <p className="price-block__eyebrow">Membership</p>
           <h2 className="price-block__primary">Try Cove free for 7 days. $49/mo after — cancel anytime.</h2>

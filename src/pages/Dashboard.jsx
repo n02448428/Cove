@@ -147,20 +147,26 @@ export default function Dashboard() {
   const [questionDrafts, setQuestionDrafts] = useState({});
   const [newQuestion, setNewQuestion] = useState('');
 
+  // greeting editing
+  const [greeting, setGreeting] = useState('');
+  const [greetingDraft, setGreetingDraft] = useState(null);
+
   const loadAll = useCallback(async (uid) => {
-    const [lists, codes, qs, tix, logs, phone] = await Promise.all([
+    const [lists, codes, qs, tix, logs, phone, profile] = await Promise.all([
       getCallerLists(uid),
       getAccessCodes(uid),
       getScreeningQuestions(uid),
       getReviewTickets(uid),
       getCallLogs(uid, { limit: 100 }),
       supabase.from('phone_numbers').select('twilio_number, provisioning_status').eq('user_id', uid).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('profiles').select('greeting').eq('id', uid).maybeSingle(),
     ]);
     setCallerLists(lists);
     setAccessCodes(codes);
     setQuestions(qs);
     setTickets(tix);
     setCalls(logs);
+    setGreeting(profile.data?.greeting || '');
     if (phone.data) {
       setConciergeNumber(phone.data.twilio_number || '');
       setProvisioningStatus(phone.data.provisioning_status || '');
@@ -263,6 +269,24 @@ export default function Dashboard() {
     try {
       await deleteAccessCode(id);
       setAccessCodes(prev => prev.filter(c => c.id !== id));
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  // — Greeting ————————————————————————————————————
+  async function saveGreeting() {
+    setError('');
+    const text = (greetingDraft ?? '').trim();
+    if (!text) {
+      setError('Greeting cannot be empty.');
+      return;
+    }
+    try {
+      const { error } = await supabase.from('profiles').update({ greeting: text }).eq('id', userId);
+      if (error) throw error;
+      setGreeting(text);
+      setGreetingDraft(null);
     } catch (err) {
       setError(err.message);
     }
@@ -495,7 +519,36 @@ export default function Dashboard() {
         </button>
         {openSections.yellow && (
           <div className="section-body">
-            <p className="hint">Unknown callers are asked these questions. 1–5 questions, spoken verbatim.</p>
+            {/* Custom greeting — the first thing callers hear */}
+            <div style={{ marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid var(--color-border)' }}>
+              <h3 className="kernel-section-title" style={{ margin: '0 0 0.5rem', fontSize: '1.05rem' }}>Greeting</h3>
+              <p className="hint" style={{ marginTop: 0 }}>The first thing unknown callers hear. Use {'{name}'} to insert your display name.</p>
+              {greetingDraft !== null ? (
+                <>
+                  <textarea
+                    value={greetingDraft}
+                    onChange={e => setGreetingDraft(e.target.value)}
+                    rows={3}
+                    style={{ width: '100%', marginBottom: '0.5rem' }}
+                    placeholder="Hello, this is Cove, {name}'s assistant."
+                  />
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button className="btn btn-primary" onClick={saveGreeting}>Save greeting</button>
+                    <button className="btn btn-ghost" onClick={() => setGreetingDraft(null)}>Cancel</button>
+                  </div>
+                </>
+              ) : (
+                <div className="kernel-row" style={{ alignItems: 'flex-start' }}>
+                  <div className="kernel-row-meta" style={{ flex: 1 }}>
+                    <span>{greeting || 'No greeting set.'}</span>
+                  </div>
+                  <div className="kernel-actions">
+                    <button className="btn btn-ghost" onClick={() => setGreetingDraft(greeting)}>Edit</button>
+                  </div>
+                </div>
+              )}
+            </div>
+            <p className="hint">Unknown callers are asked these questions after the greeting. 1–5 questions, spoken verbatim. Use {'{name}'} for your display name.</p>
             {questions.length === 0 && (
               <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>No questions yet. Add up to 5.</p>
             )}

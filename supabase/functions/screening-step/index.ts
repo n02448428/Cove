@@ -2,8 +2,10 @@
 // Cove Call Kernel v0.1 — Yellow screening state machine.
 // Stages:
 //   code    -> validate private keypad code; valid => connect live; else silent => questions
-//   question-> qi=0: Cove greeting; qi=1..N: saved question[qi] spoken exactly
-//             as saved; record the answer (transcribe async)
+//   question-> qi=0: greeting intro only (no recording), then -> qi=1;
+//             qi=1..N: saved question spoken (with {name} substitution);
+//             record the answer (transcribe async). No questions =>
+//             unreachable mode: greeting, goodbye, hangup.
 //   answer  -> capture recording; no-answer repeats once, then goodbye; else thank + next/final
 // Source of truth: docs/Cove-Call-Kernel.md
 
@@ -30,7 +32,7 @@ serve(async (req: Request) => {
   const url = new URL(req.url)
 
   try {
-    if (!(await validateTwilioSignature(req, body))) {
+    if (!(await validateTwilioSignature(req, body, 'screening-step'))) {
       return new Response('Unauthorized', { status: 403 })
     }
   } catch (e) {
@@ -79,6 +81,24 @@ serve(async (req: Request) => {
   const qs = (questions ?? []).sort((a, b) => a.ord - b.ord)
   const numQuestions = qs.length
   const stepBase = `${fnUrl('screening-step')}`
+
+  // Load the user's custom greeting (dashboard-editable). {name} is
+  // substituted with the display name at speak time. Falls back to the
+  // default template if unset.
+  let greetingTemplate = `Hello, this is Cove, {name}'s assistant. Please state your name and reason for calling.`
+  try {
+    const { data: prof } = await supabase
+      .from('profiles')
+      .select('greeting')
+      .eq('id', user_id)
+      .maybeSingle()
+    if (prof?.greeting?.trim()) greetingTemplate = prof.greeting.trim()
+  } catch {
+    /* use default greeting */
+  }
+  // Substitute the {name} placeholder with the user's display name
+  // (otherwise TTS reads the literal "{name}").
+  const withName = (text) => (text ?? '').replace(/\{name\}/g, userName)
 
   // ---------------------------------------------------------------- stage=code
   if (stage === 'code') {
@@ -143,29 +163,62 @@ serve(async (req: Request) => {
 
   // ------------------------------------------------------------ stage=question
   if (stage === 'question') {
-    // No questions configured, past the last question, or invalid index: finalize.
-    if (numQuestions === 0 || qi < 0 || qi > numQuestions) {
+    // qi=0 is the greeting: intro only, no recording. It plays, then the
+    // call moves straight to Q1 (or goodbye if there are no questions).
+    if (qi === 0) {
+      const greetingText = withName(greetingTemplate)
+      const codeAction = `${stepBase}?stage=code&qi=0&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
+      // Unreachable mode: greeting only, no questions, no recording.
+      if (numQuestions === 0) {
+        await audit(supabase, user_id, callSid, 'unreachable_greeting', 'kernel', {})
+        return twiml(
+          `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Gather input="dtmf" timeout="2" finishOnKey="#" action="${xmlEscape(codeAction)}" method="POST">
+    <Say>${xmlEscape(greetingText)}</Say>
+  </Gather>
+  <Say>${xmlEscape(SCRIPT.thanksGoodbye)}</Say>
+  <Hangup/>
+</Response>`,
+        )
+      }
+      // Greeting -> Q1. The Gather wraps the greeting so code holders can
+      // interrupt the intro with their code; otherwise falls through to Q1.
+      const q1Url = `${stepBase}?stage=question&qi=1&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
+      return twiml(
+        `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Gather input="dtmf" timeout="2" finishOnKey="#" action="${xmlEscape(codeAction)}" method="POST">
+    <Say>${xmlEscape(greetingText)}</Say>
+  </Gather>
+  <Redirect method="POST">${xmlEscape(q1Url)}</Redirect>
+</Response>`,
+      )
+    }
+    // qi>=1 are the saved questions (recorded). Past the last: finalize.
+    if (qi < 1 || qi > numQuestions) {
       return await finalize(supabase, callSid, ticketId, user_id, 'completed', 'screened', SCRIPT.thanksGoodbye)
     }
-    // qi=0 is the Cove greeting; qi>=1 maps to the saved question qs[qi-1].
     // Every saved question is asked — the greeting never replaces one.
-    const q = qi >= 1 ? qs[qi - 1] : null
-    const questionText = qi === 0
-      ? `Hello, this is Cove, ${userName}'s assistant. Please state your name and reason for calling.`
-      : (q?.question ?? '')
+    const q = qs[qi - 1]
+    const questionText = withName(q?.question ?? '')
     const answerAction = `${stepBase}?stage=answer&qi=${qi}&attempt=${attempt}&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
     const transcribeCb = `${fnUrl('call-transcribe')}?ticketId=${encodeURIComponent(ticketId)}&qi=${qi}&attempt=${attempt}`
-    // Brief DTMF Gather before the Record so code holders can enter their
-    // code at any point during screening. 1s timeout, falls through to question.
+    // The question is wrapped in a DTMF Gather so code holders can enter
+    // their code at any point while the greeting/question is playing —
+    // pressing keys interrupts the speech and jumps to code validation.
+    // After the speech + 2s, falls through to recording the answer.
+    // (DTMF cannot interrupt the <Record> itself — a Twilio limitation —
+    // but the 2s silence timeout keeps that window short.)
     const codeAction = `${stepBase}?stage=code&qi=${qi}&attempt=${attempt}&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
 
     return twiml(
       `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather input="dtmf" timeout="1" finishOnKey="#" action="${xmlEscape(codeAction)}" method="POST">
+  <Gather input="dtmf" timeout="2" finishOnKey="#" action="${xmlEscape(codeAction)}" method="POST">
+    <Say>${xmlEscape(questionText)}</Say>
   </Gather>
-  <Say>${xmlEscape(questionText)}</Say>
-  <Record maxLength="60" timeout="4" playBeep="false" trim="trim-silence" transcribe="true" transcribeCallback="${xmlEscape(transcribeCb)}" action="${xmlEscape(answerAction)}" method="POST" />
+  <Record maxLength="60" timeout="2" playBeep="false" trim="trim-silence" transcribe="true" transcribeCallback="${xmlEscape(transcribeCb)}" action="${xmlEscape(answerAction)}" method="POST" />
 </Response>`,
     )
   }
@@ -176,11 +229,9 @@ serve(async (req: Request) => {
     const recordingSid = formGet(params, 'RecordingSid')
     const durationStr = formGet(params, 'RecordingDuration')
     const duration = durationStr ? parseInt(durationStr, 10) : null
-    // qi=0 asked the greeting; qi>=1 asked saved question qs[qi-1].
+    // qi>=1 asked a saved question (qi=0 greeting has no recording).
     const q = qi >= 1 && qi <= numQuestions ? qs[qi - 1] : null
-    const questionText = qi === 0
-      ? `Hello, this is Cove, ${userName}'s assistant. Please state your name and reason for calling.`
-      : (q?.question ?? '')
+    const questionText = qi === 0 ? withName(greetingTemplate) : withName(q?.question ?? '')
 
     const noAnswer = !recordingSid || (duration !== null && duration < NO_ANSWER_DURATION_S)
 

@@ -18,7 +18,7 @@ serve(async (req: Request) => {
   const url = new URL(req.url)
 
   try {
-    if (!(await validateTwilioSignature(req, body))) {
+    if (!(await validateTwilioSignature(req, body, 'call-transcribe'))) {
       return new Response('Unauthorized', { status: 403 })
     }
   } catch (e) {

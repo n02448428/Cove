@@ -24,7 +24,7 @@ serve(async (req: Request) => {
 
   // Twilio signature validation (no-op when no auth token configured).
   try {
-    if (!(await validateTwilioSignature(req, body))) {
+    if (!(await validateTwilioSignature(req, body, 'twilio-voice-inbound'))) {
       return new Response('Unauthorized', { status: 403 })
     }
   } catch (e) {

@@ -9,15 +9,15 @@ import WaveDivider from '../components/WaveDivider.jsx';
 
 const FEATURES = [
   {
-    title: 'Hard shell. Nothing gets through uninvited.',
-    desc: 'Scammers and spammers break against the rock. Your phone stays silent.',
+    title: 'Hard shell. The storm breaks outside.',
+    desc: 'Scam calls and spammers break against the rock. Your phone stays quiet — except for the voices you’ve trusted.',
   },
   {
-    title: 'Calm water. The important ones reach you gently.',
+    title: 'Calm water. Your people reach you gently.',
     desc: 'Family and trusted voices ring straight through to still water.',
   },
   {
-    title: 'Every call held, nothing lost.',
+    title: 'Every answered call, held and transcribed.',
     desc: 'Strangers explain themselves to Cove first — transcribed, organized, and waiting for the moment you choose.',
   },
 ];
@@ -29,18 +29,18 @@ const STEPS = [
   },
   {
     title: 'Forward your calls',
-    desc: 'One tap sends every call into the cove. Ten seconds, undo anytime.',
+    desc: 'One tap sends your calls into the cove. Undo anytime.',
   },
   {
     title: 'Float in peace',
-    desc: 'Storms break outside. Inside, every voice that matters reaches you — and the rest waits quietly.',
+    desc: 'Storms break outside. Inside, every voice you trust reaches you — and the rest waits quietly.',
   },
 ];
 
 const PROMISES = [
   {
-    title: '7 days free, no risk',
-    desc: 'Full access for a week. If your phone doesn’t feel calmer, cancel in one tap.',
+    title: '7 days free',
+    desc: 'Full access for a week, card on file. If your phone doesn’t feel calmer, cancel anytime before the trial ends.',
   },
   {
     title: 'Cancel anytime',
@@ -51,8 +51,8 @@ const PROMISES = [
     desc: 'While subscribed, your Cove number is yours. Cancel and you get 30 days grace.',
   },
   {
-    title: 'Undo in ten seconds',
-    desc: 'Forwarding turns off with one tap. Your phone goes back to normal instantly.',
+    title: 'Undo anytime',
+    desc: 'Turn forwarding off with one tap. Your phone goes back to normal.',
   },
 ];
 
@@ -63,11 +63,11 @@ const USE_CASES = [
   },
   {
     title: 'For parents and grandparents',
-    desc: 'Scam calls prey on the people you love most. Cove stands between them and the storm — family always rings through.',
+    desc: 'Scam calls prey on the people you love most. Cove stands between them and the storm — family on your trusted list rings straight through.',
   },
   {
     title: 'For small business owners',
-    desc: 'Never miss a real customer, never take a spam call mid-job. Every caller explains themselves; you see it all transcribed.',
+    desc: 'New customers introduce themselves to Cove first — spam never rings your phone mid-job. Every caller is screened and transcribed for you to review.',
   },
 ];
 
@@ -78,7 +78,7 @@ const FAQS = [
   },
   {
     q: 'Will I miss important calls?',
-    a: 'Your trusted contacts ring straight through, and anyone with your extension code connects immediately. Everything else is screened, transcribed, and waiting — nothing vanishes.',
+    a: 'Your trusted contacts ring straight through, and anyone with your extension code connects immediately. Everything else is screened, transcribed, and waiting for you.',
   },
   {
     q: 'What about emergencies?',
@@ -90,11 +90,11 @@ const FAQS = [
   },
   {
     q: 'Is my call data private?',
-    a: 'Your recordings and transcripts are yours. We never sell your data or use call content for advertising. Delete anything, anytime, from your dashboard.',
+    a: 'Your recordings and transcripts are yours. We never sell your data or use call content for advertising. Manage your caller lists, codes, and questions anytime from your dashboard.',
   },
   {
     q: 'What happens when I cancel?',
-    a: 'Forwarding stops, calls ring your phone directly again, and you keep your Cove number for 30 days in case you return. Your data is deleted after the grace period.',
+    a: 'Forwarding stops, calls ring your phone directly again, and you keep your Cove number for 30 days in case you return. Your call history stays available during the grace period.',
   },
 ];
 
@@ -160,14 +160,14 @@ export default function Landing() {
         <section className="landing-hero">
           <CoveMark size={220} className="cove-hero-mark" />
           <div className="landing-copy">
-            <h1 className="landing-headline">Your phone rings only for people who matter.</h1>
+            <h1 className="landing-headline">Your phone rings for the people who matter.</h1>
             <p className="landing-subhead">
               Cove is the breakwater between you and the storm — hard rock outside, calm water within.
             </p>
             <p className="landing-support">
-              Scam calls, spammers, and strangers crash against the shell and never reach you.
-              The voices you love arrive on still water. Every call is held, transcribed, and
-              waiting — nothing demands your attention, everything waits for it.
+              Scam calls and spammers break against the shell. Strangers explain themselves to Cove first.
+              The voices you love arrive on still water — every answered call held, transcribed, and
+              waiting for the moment you choose.
             </p>
 
             <div className="landing-ctas">
@@ -259,7 +259,7 @@ export default function Landing() {
           </p>
           <p className="price-block__plan">7-day trial → $49/mo</p>
           <p className="price-block__fine">
-            Card required. Cancel anytime in trial. Number after payment method saved. Sticky while
+            Card required. Cancel anytime in trial. Number provisions after payment method saved. Yours while
             subscribed; 30-day grace after cancel. Cancel or update your card anytime in the
             Customer Portal.
           </p>
@@ -277,8 +277,8 @@ export default function Landing() {
         <section className="landing-features" aria-label="Begin" style={{ marginTop: '3rem', textAlign: 'center' }}>
           <h2 className="landing-headline" style={{ fontSize: '2rem' }}>The storm can wait.</h2>
           <p className="landing-support" style={{ maxWidth: '30rem', margin: '1rem auto 1.5rem' }}>
-            Seven free days. Ten-second setup. Your phone, finally quiet —
-            except for the voices that matter.
+            Seven free days. One-tap setup. Your phone, finally quiet —
+            except for the voices you trust.
           </p>
           <div className="landing-ctas" style={{ justifyContent: 'center' }}>
             <button

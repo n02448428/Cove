@@ -50,19 +50,17 @@ export default function Privacy() {
           <h3 style={{ marginBottom: '0.5rem' }}>Retention and deletion</h3>
           <p style={{ fontSize: '0.9rem', lineHeight: 1.7, color: 'var(--color-text-muted)' }}>
             Call recordings and transcripts are kept while your account is active so you can
-            review your history. You can delete individual call records from your dashboard. If
-            you cancel your account, your data is deleted after the 30-day number grace period,
-            except where we are required to retain records by law.
+            review your history. If you cancel, your number is held for a 30-day grace period,
+            then released.
           </p>
         </section>
 
         <section style={{ marginBottom: '1.75rem' }}>
           <h3 style={{ marginBottom: '0.5rem' }}>Your rights</h3>
           <p style={{ fontSize: '0.9rem', lineHeight: 1.7, color: 'var(--color-text-muted)' }}>
-            You can access, correct, or delete your personal information at any time from your
-            dashboard or by contacting us. If you are in a jurisdiction with additional privacy
-            rights (such as the EU or California), we honor applicable access, deletion, and
-            opt-out requests.
+            You can access and update your personal information from your dashboard at any
+            time. If you are in a jurisdiction with additional privacy rights (such as the EU
+            or California), we honor applicable access, deletion, and opt-out requests.
           </p>
         </section>
 

@@ -4,97 +4,47 @@ import { supabase } from '../lib/supabase.js';
 import CoveMark from '../components/CoveMark.jsx';
 import CoveWordmark from '../components/CoveWordmark.jsx';
 import ThemeToggle from '../components/ThemeToggle.jsx';
-import BreakwaterDiagram from '../components/BreakwaterDiagram.jsx';
 import WaveDivider from '../components/WaveDivider.jsx';
-
-const FEATURES = [
-  {
-    title: 'Hard shell. The storm breaks outside.',
-    desc: 'Scam calls and spammers break against the rock. Your phone stays quiet — except for the voices you’ve trusted.',
-  },
-  {
-    title: 'Calm water. Your people reach you gently.',
-    desc: 'Family and trusted voices ring straight through to still water.',
-  },
-  {
-    title: 'Every answered call, held and transcribed.',
-    desc: 'Strangers explain themselves to Cove first — transcribed, organized, and waiting for the moment you choose.',
-  },
-];
 
 const STEPS = [
   {
     title: 'Get your Cove number',
-    desc: 'Your own still water, provisioned in seconds. It’s yours while you’re subscribed.',
+    desc: 'Yours in seconds.',
   },
   {
     title: 'Forward your calls',
-    desc: 'One tap sends your calls into the cove. Undo anytime.',
+    desc: 'One tap. Undo anytime.',
   },
   {
-    title: 'Float in peace',
-    desc: 'Storms break outside. Inside, every voice you trust reaches you — and the rest waits quietly.',
-  },
-];
-
-const PROMISES = [
-  {
-    title: '7 days free',
-    desc: 'Full access for a week, card on file. If your phone doesn’t feel calmer, cancel anytime before the trial ends.',
-  },
-  {
-    title: 'Cancel anytime',
-    desc: 'No contracts, no retention calls, no dark patterns. Leave whenever you want.',
-  },
-  {
-    title: 'Your number stays yours',
-    desc: 'While subscribed, your Cove number is yours. Cancel and you get 30 days grace.',
-  },
-  {
-    title: 'Undo anytime',
-    desc: 'Turn forwarding off with one tap. Your phone goes back to normal.',
+    title: 'Breathe',
+    desc: 'Cove handles the rest.',
   },
 ];
 
-const USE_CASES = [
+const MOMENTS = [
   {
-    title: 'For professionals',
-    desc: 'Deep work without the pings. Clients with codes reach you; cold callers meet Cove. Review everything at 5pm, not 2pm.',
+    title: 'Mid-job, phone ringing in your pocket.',
+    desc: 'You don\u2019t stop. Cove answers, screens, and holds it for 5pm.',
   },
   {
-    title: 'For parents and grandparents',
-    desc: 'Scam calls prey on the people you love most. Cove stands between them and the storm — family on your trusted list rings straight through.',
+    title: 'Your hands are busy. Your next client is calling.',
+    desc: 'They\u2019re greeted warmly. You never miss the moment.',
   },
   {
-    title: 'For small business owners',
-    desc: 'New customers introduce themselves to Cove first — spam never rings your phone mid-job. Every caller is screened and transcribed for you to review.',
-  },
-];
-
-const FAQS = [
-  {
-    q: 'Do I keep my current phone number?',
-    a: 'Yes. Nothing changes about your number. You forward your calls to Cove — callers still dial the number they’ve always dialed.',
+    title: 'A patient calls after hours.',
+    desc: 'Answered kindly. Transcribed. Waiting in the morning.',
   },
   {
-    q: 'Will I miss important calls?',
-    a: 'Your trusted contacts ring straight through, and anyone with your extension code connects immediately. Everything else is screened, transcribed, and waiting for you.',
+    title: 'A big lead calls while you\u2019re driving.',
+    desc: 'Greeted like they matter. Qualified, transcribed, waiting when you park.',
   },
   {
-    q: 'What about emergencies?',
-    a: 'Cove is not for emergencies. Always dial emergency numbers directly from your phone. If you’re expecting an urgent call, turn forwarding off with one tap.',
+    title: 'You\u2019re at dinner. Unknown number.',
+    desc: 'Cove takes it. You stay at the table.',
   },
   {
-    q: 'How does the forwarding setup work?',
-    a: 'After signup you get a Cove number. Tap one button and your phone dials the forwarding code — ten seconds, no settings menus. It works on AT&T, T-Mobile, and most carriers; Verizon has its own one-tap codes.',
-  },
-  {
-    q: 'Is my call data private?',
-    a: 'Your recordings and transcripts are yours. We never sell your data or use call content for advertising. Manage your caller lists, codes, and questions anytime from your dashboard.',
-  },
-  {
-    q: 'What happens when I cancel?',
-    a: 'Forwarding stops, calls ring your phone directly again, and you keep your Cove number for 30 days in case you return. Your call history stays available during the grace period.',
+    title: 'Your mom gets a call from \u201cher bank.\u201d',
+    desc: 'Cove stands between her and the storm. You see every word.',
   },
 ];
 
@@ -157,17 +107,30 @@ export default function Landing() {
       </header>
 
       <div className="landing-shell">
+        <figure
+          aria-hidden="true"
+          style={{
+            width: '100vw',
+            marginLeft: 'calc(50% - 50vw)',
+            marginBottom: 'var(--space-8)',
+            maxHeight: '42vh',
+            overflow: 'hidden',
+            WebkitMaskImage: 'linear-gradient(180deg, #000 55%, transparent 100%)',
+            maskImage: 'linear-gradient(180deg, #000 55%, transparent 100%)',
+          }}
+        >
+          <img
+            src="/cove-calm-waters.webp"
+            alt=""
+            style={{ display: 'block', width: '100%', height: '100%', maxHeight: '42vh', objectFit: 'cover' }}
+          />
+        </figure>
         <section className="landing-hero">
           <CoveMark size={220} className="cove-hero-mark" />
           <div className="landing-copy">
-            <h1 className="landing-headline">Your phone rings for the people who matter.</h1>
+            <h1 className="landing-headline">The storm can wait.</h1>
             <p className="landing-subhead">
-              Cove is the breakwater between you and the storm — hard rock outside, calm water within.
-            </p>
-            <p className="landing-support">
-              Scam calls and spammers break against the shell. Strangers explain themselves to Cove first.
-              The voices you love arrive on still water — every answered call held, transcribed, and
-              waiting for the moment you choose.
+              Cove answers the calls you don&apos;t want, and lets through the voices you love.
             </p>
 
             <div className="landing-ctas">
@@ -176,7 +139,7 @@ export default function Landing() {
                 className="btn btn-primary"
                 onClick={goPrimary}
               >
-                {primaryLabel || 'Get your cove'}
+                {primaryLabel || 'Start my 7 free days'}
               </button>
               {!sessionUser && (
                 <button
@@ -191,20 +154,8 @@ export default function Landing() {
           </div>
         </section>
 
-        <section className="landing-features" aria-label="What Cove does">
-          {FEATURES.map(({ title, desc }) => (
-            <div key={title} className="feature-row">
-              <h3>{title}</h3>
-              <p>{desc}</p>
-            </div>
-          ))}
-        </section>
-
         <section className="landing-features" aria-label="How it works" style={{ marginTop: '3rem' }}>
           <h2 className="price-block__eyebrow" style={{ marginBottom: '1.5rem' }}>How it works</h2>
-          <div style={{ marginBottom: '2rem' }}>
-            <BreakwaterDiagram />
-          </div>
           {STEPS.map(({ title, desc }, i) => (
             <div key={title} className="feature-row">
               <h3><span style={{ color: 'var(--color-text-muted)', fontWeight: 500, marginRight: '0.5rem' }}>{i + 1}.</span>{title}</h3>
@@ -213,10 +164,9 @@ export default function Landing() {
           ))}
         </section>
 
-        <WaveDivider />
-        <section className="landing-features" aria-label="The Cove promise" style={{ marginTop: '3rem' }}>
-          <h2 className="price-block__eyebrow" style={{ marginBottom: '1.5rem' }}>The Cove promise</h2>
-          {PROMISES.map(({ title, desc }) => (
+        <section className="landing-features" aria-label="Sound familiar?" style={{ marginTop: '3rem' }}>
+          <h2 className="price-block__eyebrow" style={{ marginBottom: '1.5rem' }}>Sound familiar?</h2>
+          {MOMENTS.map(({ title, desc }) => (
             <div key={title} className="feature-row">
               <h3>{title}</h3>
               <p>{desc}</p>
@@ -225,43 +175,12 @@ export default function Landing() {
         </section>
 
         <WaveDivider />
-        <section className="landing-features" aria-label="Who Cove is for" style={{ marginTop: '3rem' }}>
-          <h2 className="price-block__eyebrow" style={{ marginBottom: '1.5rem' }}>Who it&apos;s for</h2>
-          <div className="cove-world-img" style={{ marginBottom: '2rem' }}>
-            <img src="/cove-calm-waters.webp" alt="Inside the cove: dark marble cliffs sheltering glass-calm water while a storm breaks beyond the rocks" loading="lazy" />
-          </div>
-          {USE_CASES.map(({ title, desc }) => (
-            <div key={title} className="feature-row">
-              <h3>{title}</h3>
-              <p>{desc}</p>
-            </div>
-          ))}
-        </section>
 
-        <WaveDivider />
-        <section className="landing-features" aria-label="Questions" style={{ marginTop: '3rem' }}>
-          <h2 className="price-block__eyebrow" style={{ marginBottom: '1.5rem' }}>Questions</h2>
-          {FAQS.map(({ q, a }) => (
-            <details key={q} className="feature-row">
-              <summary>{q}</summary>
-              <p style={{ marginTop: '0.5rem' }}>{a}</p>
-            </details>
-          ))}
-        </section>
-
-        <WaveDivider />
         <section className="price-block" aria-label="Pricing">
           <p className="price-block__eyebrow">Membership</p>
-          <h2 className="price-block__primary">Try Cove free for 7 days. $49/mo after — cancel anytime.</h2>
-          <p className="price-block__support">
-            Card on file for the trial · your Cove number provisions after payment method is saved ·
-            number stays yours while subscribed · 30-day grace if you cancel.
-          </p>
-          <p className="price-block__plan">7-day trial → $49/mo</p>
+          <h2 className="price-block__primary">7 days free. Then $49/mo. Cancel anytime.</h2>
           <p className="price-block__fine">
-            Card required. Cancel anytime in trial. Number provisions after payment method saved. Yours while
-            subscribed; 30-day grace after cancel. Cancel or update your card anytime in the
-            Customer Portal.
+            Card required for the trial.
           </p>
           <div className="landing-ctas" style={{ marginTop: '1.25rem', marginBottom: 0 }}>
             <button
@@ -269,18 +188,14 @@ export default function Landing() {
               className="btn btn-primary"
               onClick={goPrimary}
             >
-              {primaryLabel || 'Get your cove'}
+              {primaryLabel || 'Start my 7 free days'}
             </button>
           </div>
         </section>
 
         <section className="landing-features" aria-label="Begin" style={{ marginTop: '3rem', textAlign: 'center' }}>
-          <h2 className="landing-headline" style={{ fontSize: '2rem' }}>The storm can wait.</h2>
-          <p className="landing-support" style={{ maxWidth: '30rem', margin: '1rem auto 1.5rem' }}>
-            Seven free days. One-tap setup. Your phone, finally quiet —
-            except for the voices you trust.
-          </p>
-          <div className="landing-ctas" style={{ justifyContent: 'center' }}>
+          <h2 className="landing-headline" style={{ fontSize: '2rem' }}>Your phone, finally quiet.</h2>
+          <div className="landing-ctas" style={{ justifyContent: 'center', marginTop: '1.5rem' }}>
             <button
               type="button"
               className="btn btn-primary"
@@ -295,11 +210,6 @@ export default function Landing() {
       <footer className="cove-footer">
         <CoveWordmark markSize={28} />
         <p className="cove-footer-tag">Protected by rock. Held by water.</p>
-        <p className="cove-footer-legal">
-          Calls answered by Cove may be recorded and transcribed. Call-forwarding availability,
-          codes, and charges vary by carrier — Cove numbers are currently US-based. Cove screens
-          calls but can&apos;t block every unwanted call; it&apos;s not a replacement for emergency services.
-        </p>
         <p className="cove-footer-links">
           <a href="/terms">Terms</a>
           {' · '}

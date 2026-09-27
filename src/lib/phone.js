@@ -19,17 +19,10 @@ export function toE164(raw) {
 }
 
 const E164_RE = /^\+[1-9]\d{1,14}$/;
-const CODE_RE = /^[0-9]{3,}$/;
 
 /** True if a string is a valid E.164 phone number. */
 export function isValidE164(value) {
   return E164_RE.test(value);
 }
 
-/** True if a string is a valid access code (3+ digits). */
-export function isValidCode(value) {
-  return CODE_RE.test(value);
-}
-
 export const E164_ERROR = 'Enter a valid phone in E.164 format, e.g. +16195551234';
-export const CODE_ERROR = 'Access code must be 3+ digits';

@@ -1,5 +1,5 @@
 // supabase/functions/call-transcribe/index.ts
-// Cove Call Kernel v0.1 — async Twilio transcription callback.
+// Cove Call Kernel v0.2 — async Twilio transcription callback.
 // Fills review_ticket_answers.transcript for a captured answer. Twilio sends
 // this after the Record action callback, so transcripts arrive late.
 // Source of truth: docs/Cove-Call-Kernel.md

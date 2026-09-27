@@ -4,8 +4,10 @@
 //   question-> qi=0: greeting intro only (no recording), then -> qi=1;
 //             qi=1..N: saved question spoken (with {name} substitution);
 //             record the answer (transcribe async). No questions =>
-//             unreachable mode: greeting, goodbye, hangup.
+//             unreachable mode: greeting, then take a voicemail message.
 //   answer  -> capture recording; no-answer repeats once, then goodbye; else thank + next/final
+//   voicemail -> Record action callback: missed live-connect or unreachable
+//             mode; store the message, finalize the ticket.
 // Source of truth: docs/Cove-Call-Kernel.md
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
@@ -21,6 +23,7 @@ import {
   validateTwilioSignature,
   SCRIPT,
   NO_ANSWER_DURATION_S,
+  dispatchTicketWebhook,
 } from '../_shared/cove.ts'
 
 const TERMINAL = ['new', 'reviewed', 'actioned', 'failed']
@@ -104,9 +107,23 @@ serve(async (req: Request) => {
     // qi=0 is the greeting: intro only, no recording. It plays, then the
     // call moves straight to Q1 (or goodbye if there are no questions).
     if (qi === 0) {
-      // The greeting plays once: intro only, no recording. Falls through to
-      // Q1 (or goodbye when there are no questions).
       const greetingText = withName(greetingTemplate)
+      if (numQuestions === 0) {
+        // Unreachable mode: no screening questions — take a message instead
+        // of hanging up. The message is transcribed and ticketed like any
+        // answer, so nothing the caller says is ever lost.
+        const vmAction = `${stepBase}?stage=voicemail&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
+        const transcribeCb = `${fnUrl('call-transcribe')}?ticketId=${encodeURIComponent(ticketId)}&qi=0&attempt=1`
+        return twiml(
+          `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say>${xmlEscape(greetingText)}</Say>
+  <Say>${xmlEscape(SCRIPT.voicemailPrompt)}</Say>
+  <Record maxLength="120" timeout="5" playBeep="true" trim="trim-silence" transcribe="true" transcribeCallback="${xmlEscape(transcribeCb)}" action="${xmlEscape(vmAction)}" method="POST" />
+</Response>`,
+        )
+      }
+      // The greeting plays once: intro only, no recording. Falls through to Q1.
       const q1Url = `${stepBase}?stage=question&qi=1&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
       return twiml(
         `<?xml version="1.0" encoding="UTF-8"?>
@@ -190,6 +207,34 @@ serve(async (req: Request) => {
     )
   }
 
+  // ----------------------------------------------------------- stage=voicemail
+  // Record action callback for a voicemail: a missed live-connect (GREEN not
+  // answered) or unreachable mode (zero questions). The message is stored as
+  // answer ord 0 so the normal transcription pipeline picks it up, then the
+  // ticket is finalized.
+  if (stage === 'voicemail') {
+    const recordingUrl = formGet(params, 'RecordingUrl')
+    const recordingSid = formGet(params, 'RecordingSid')
+    const durationStr = formGet(params, 'RecordingDuration')
+    const duration = durationStr ? parseInt(durationStr, 10) : null
+    const noMessage = !recordingSid || (duration !== null && duration < NO_ANSWER_DURATION_S)
+    await supabase.from('review_ticket_answers').upsert(
+      {
+        ticket_id: ticketId,
+        question_ord: 0,
+        attempt: 1,
+        question_text: 'Voicemail message',
+        recording_sid: recordingSid || null,
+        recording_url: recordingUrl || null,
+        recording_duration: duration,
+        transcript: null,
+        transcription_status: noMessage ? 'none' : 'pending',
+      },
+      { onConflict: 'ticket_id,question_ord,attempt' },
+    )
+    return await finalize(supabase, callSid, ticketId, user_id, 'voicemail', 'voicemail', SCRIPT.thanksGoodbye)
+  }
+
   // Unknown stage.
   return twiml('<?xml version="1.0" encoding="UTF-8"?><Response><Hangup/></Response>')
 })
@@ -200,7 +245,7 @@ async function finalize(
   callSid: string,
   ticketId: string,
   userId: string,
-  endedReason: 'completed' | 'no_answer' | 'caller_hung_up' | 'failed',
+  endedReason: 'completed' | 'no_answer' | 'caller_hung_up' | 'failed' | 'voicemail',
   callOutcome: string,
   closingScript: string,
 ): Promise<Response> {
@@ -216,6 +261,10 @@ async function finalize(
     call_state: callOutcome,
   })
   await audit(supabase, userId, callSid, `ticket_${endedReason}`, 'kernel', { ticket_id: ticketId })
+
+  // The ticket is reviewable now; the webhook fires once every recording has
+  // a terminal transcript (immediately when there is nothing to transcribe).
+  dispatchTicketWebhook(supabase, ticketId)
 
   return twiml(
     `<?xml version="1.0" encoding="UTF-8"?><Response><Say>${xmlEscape(closingScript)}</Say><Hangup/></Response>`,

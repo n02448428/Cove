@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { toE164, isValidE164, isValidCode, E164_ERROR, CODE_ERROR } from '../lib/phone';
+import { toE164, isValidE164, E164_ERROR } from '../lib/phone';
 
 // — Auth ————————————————————————————————————————
 export const signUp = (email, password) =>
@@ -88,51 +88,6 @@ export const addCallerList = async (userId, { phone_number, classification, cont
 
 export const deleteCallerList = async (id) => {
   const { error } = await supabase.from('caller_lists').delete().eq('id', id);
-  if (error) throw error;
-};
-
-// — Access Codes ———————————————————————————————
-export const getAccessCodes = async (userId, { includeRevoked = true } = {}) => {
-  let query = supabase
-    .from('access_codes')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
-  if (!includeRevoked) query = query.is('revoked_at', null);
-  const { data, error } = await query;
-  if (error) throw error;
-  return data ?? [];
-};
-
-export const addAccessCode = async (userId, { code, label, expires_at }) => {
-  if (!isValidCode(code)) throw new Error(CODE_ERROR);
-  const { data, error } = await supabase
-    .from('access_codes')
-    .insert({
-      user_id: userId,
-      code: String(code).trim(),
-      label: label?.trim() || null,
-      expires_at: expires_at || null,
-    })
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
-};
-
-export const revokeAccessCode = async (id) => {
-  const { data, error } = await supabase
-    .from('access_codes')
-    .update({ revoked_at: new Date().toISOString() })
-    .eq('id', id)
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
-};
-
-export const deleteAccessCode = async (id) => {
-  const { error } = await supabase.from('access_codes').delete().eq('id', id);
   if (error) throw error;
 };
 

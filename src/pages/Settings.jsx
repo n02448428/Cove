@@ -116,7 +116,7 @@ export default function Settings() {
 
       <div className="card section-card" style={{ marginBottom: '1.25rem' }}>
         <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 1.55 }}>
-          RED &amp; GREEN lists, access codes, and screening questions now live on the{' '}
+          RED &amp; GREEN lists and screening questions now live on the{' '}
           <button className="btn-text" onClick={() => navigate('/dashboard')} style={{ fontSize: '0.85rem' }}>Dashboard</button>.
         </p>
       </div>

@@ -105,7 +105,8 @@ serve(async (req: Request) => {
   // ------------------------------------------------------------ stage=question
   if (stage === 'question') {
     // qi=0 is the greeting: intro only, no recording. It plays, then the
-    // call moves straight to Q1 (or goodbye if there are no questions).
+    // call moves straight to Q1 (or to a voicemail prompt when there are
+    // no questions).
     if (qi === 0) {
       const greetingText = withName(greetingTemplate)
       if (numQuestions === 0) {

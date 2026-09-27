@@ -114,7 +114,10 @@ export default function Dashboard() {
   const [provisioningStatus, setProvisioningStatus] = useState('');
 
   // collapsible sections
-  const [openSections, setOpenSections] = useState({ green: true, yellow: true, red: false });
+  const [openSections, setOpenSections] = useState({ green: true, yellow: true, red: false, webhooks: false });
+  const [webhookUrl, setWebhookUrl] = useState('');
+  const [webhookSecret, setWebhookSecret] = useState('');
+  const [webhookMsg, setWebhookMsg] = useState('');
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -156,7 +159,7 @@ export default function Dashboard() {
       getReviewTickets(uid),
       getCallLogs(uid, { limit: 100 }),
       supabase.from('phone_numbers').select('twilio_number, provisioning_status').eq('user_id', uid).order('created_at', { ascending: false }).limit(1).maybeSingle(),
-      supabase.from('profiles').select('greeting, display_name').eq('id', uid).maybeSingle(),
+      supabase.from('profiles').select('greeting, display_name, webhook_url, webhook_secret').eq('id', uid).maybeSingle(),
     ]);
     setCallerLists(lists);
     setQuestions(qs);
@@ -164,6 +167,8 @@ export default function Dashboard() {
     setCalls(logs);
     setGreeting(profile.data?.greeting || '');
     setDisplayName(profile.data?.display_name || '');
+    setWebhookUrl(profile.data?.webhook_url || '');
+    setWebhookSecret(profile.data?.webhook_secret || '');
     if (phone.data) {
       setConciergeNumber(phone.data.twilio_number || '');
       setProvisioningStatus(phone.data.provisioning_status || '');
@@ -193,6 +198,77 @@ export default function Dashboard() {
 
   function toggleSection(name) {
     setOpenSections(prev => ({ ...prev, [name]: !prev[name] }));
+  }
+
+  async function hmacHex(secret, body) {
+    const key = await crypto.subtle.importKey(
+      'raw', new TextEncoder().encode(secret || ''),
+      { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body));
+    return [...new Uint8Array(sig)].map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  function newSecret() {
+    return [...crypto.getRandomValues(new Uint8Array(24))]
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function saveWebhook() {
+    setError('');
+    setWebhookMsg('');
+    try {
+      let secret = webhookSecret;
+      if (webhookUrl.trim() && !secret) {
+        secret = newSecret();
+        setWebhookSecret(secret);
+      }
+      const { error } = await supabase.from('profiles').update({
+        webhook_url: webhookUrl.trim() || null,
+        webhook_secret: secret || null,
+      }).eq('id', userId);
+      if (error) throw error;
+      setWebhookMsg('Saved.');
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  function regenerateWebhookSecret() {
+    setWebhookSecret(newSecret());
+    setWebhookMsg('New secret generated — press Save.');
+  }
+
+  async function testWebhook() {
+    setError('');
+    setWebhookMsg('Sending…');
+    try {
+      const body = JSON.stringify({
+        event: 'webhook.test',
+        ticket_id: 'test',
+        caller_number: '+16195550100',
+        urgent: false,
+        ended_reason: 'completed',
+        created_at: new Date().toISOString(),
+        transcripts_complete: true,
+        messages: [
+          { question: 'Test question', transcript: 'This is a test postcard from Cove.', recording_url: null },
+        ],
+      });
+      const res = await fetch(webhookUrl.trim(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Cove-Event': 'webhook.test',
+          'X-Cove-Signature': 'sha256=' + (await hmacHex(webhookSecret, body)),
+        },
+        body,
+      });
+      setWebhookMsg(res.ok
+        ? `Test delivered (${res.status}). Check the receiving app.`
+        : `Receiver replied ${res.status} — check the URL.`);
+    } catch (err) {
+      setWebhookMsg('Could not reach the URL.');
+    }
   }
 
   function copyNumber() {
@@ -868,6 +944,38 @@ export default function Dashboard() {
           </div>
         )}
         </>
+        )}
+      </section>
+
+      {/* Webhooks */}
+      <section className="kernel-section card section-card">
+        <button type="button" className="section-toggle" onClick={() => toggleSection('webhooks')} aria-expanded={openSections.webhooks}>
+          <span className="section-dot section-dot--green"></span>
+          <span className="kernel-section-title">Webhooks</span>
+          {webhookUrl.trim() && <span className="badge badge-green">on</span>}
+          <Chevron open={openSections.webhooks} />
+        </button>
+        {openSections.webhooks && (
+          <div className="section-body">
+            <p className="hint" style={{ textAlign: 'left', marginTop: 0 }}>Every completed ticket is posted here as JSON — connect Zapier or Make to reach your CRM, Slack, or spreadsheets.</p>
+            <div className="field">
+              <label>Webhook URL</label>
+              <input value={webhookUrl} onChange={e => setWebhookUrl(e.target.value)} placeholder="https://hooks.zapier.com/hooks/catch/…" />
+            </div>
+            <div className="field">
+              <label>Signing secret</label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input value={webhookSecret} readOnly placeholder="Generated when you save" style={{ flex: 1 }} />
+                <button className="btn btn-ghost" onClick={regenerateWebhookSecret}>Regenerate</button>
+              </div>
+              <p className="hint">Each post is signed: the X-Cove-Signature header carries the HMAC-SHA256 of the body.</p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <button className="btn btn-primary" onClick={saveWebhook}>Save</button>
+              <button className="btn btn-ghost" onClick={testWebhook} disabled={!webhookUrl.trim()}>Send test</button>
+              {webhookMsg && <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>{webhookMsg}</span>}
+            </div>
+          </div>
         )}
       </section>
       <AppFooter />

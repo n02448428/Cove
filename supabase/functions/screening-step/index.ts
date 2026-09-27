@@ -1,7 +1,6 @@
 // supabase/functions/screening-step/index.ts
-// Cove Call Kernel v0.1 — Yellow screening state machine.
+// Cove Call Kernel v0.2 — Yellow screening state machine.
 // Stages:
-//   code    -> validate private keypad code; valid => connect live; else silent => questions
 //   question-> qi=0: greeting intro only (no recording), then -> qi=1;
 //             qi=1..N: saved question spoken (with {name} substitution);
 //             record the answer (transcribe async). No questions =>
@@ -85,7 +84,7 @@ serve(async (req: Request) => {
   // Load the user's custom greeting (dashboard-editable). {name} is
   // substituted with the display name at speak time. Falls back to the
   // default template if unset.
-  let greetingTemplate = `Hello, this is Cove, {name}'s assistant. This call may be recorded. If you have an extension code, enter it while I'm still talking, followed by the pound key.`
+  let greetingTemplate = `Hello, this is Cove, {name}'s assistant. This call may be recorded.`
   try {
     const { data: prof } = await supabase
       .from('profiles')
@@ -100,87 +99,19 @@ serve(async (req: Request) => {
   // (otherwise TTS reads the literal "{name}").
   const withName = (text) => (text ?? '').replace(/\{name\}/g, userName)
 
-  // ---------------------------------------------------------------- stage=code
-  if (stage === 'code') {
-    const digits = formGet(params, 'Digits')
-    let codeValid = false
-    if (digits) {
-      const { data: codeRows } = await supabase
-        .from('access_codes')
-        .select('id, label')
-        .eq('user_id', user_id)
-        .eq('code', digits)
-        .is('revoked_at', null)
-        .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
-        .limit(1)
-      const codeRow = codeRows?.[0] ?? null
-      if (codeRow) {
-        codeValid = true
-        await supabase
-          .from('access_codes')
-          .update({ last_used_at: new Date().toISOString() })
-          .eq('id', codeRow.id)
-        // A valid code connects live; the screening ticket is closed as
-        // actioned (no question loop, no review needed).
-        await supabase
-          .from('review_tickets')
-          .update({ status: 'actioned', ended_reason: 'completed' })
-          .eq('id', ticketId)
-          .in('status', ['collecting', 'transcribing'])
-        await logCall(supabase, callSid, user_id, {
-          outcome: 'code_connected',
-          status: 'code_connected',
-          call_state: 'code_connected',
-        })
-        await audit(supabase, user_id, callSid, 'code_connected', 'kernel', {
-          label: codeRow.label,
-        })
-      } else {
-        await audit(supabase, user_id, callSid, 'code_invalid', 'kernel', {})
-      }
-    }
-
-    if (codeValid && real_number) {
-      const statusCb = `${fnUrl('call-status')}?callSid=${encodeURIComponent(callSid)}&userId=${encodeURIComponent(user_id)}&source=code`
-      return twiml(
-        `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Dial callerId="${xmlEscape(caller_number ?? '')}" action="${xmlEscape(statusCb)}" method="POST" timeout="30">
-    <Number>${xmlEscape(real_number)}</Number>
-  </Dial>
-</Response>`,
-      )
-    }
-
-    // Invalid / no code: return to the current question.
-    const qiParam = url.searchParams.get('qi') ?? '1'
-    const attemptParam = url.searchParams.get('attempt') ?? '1'
-    const qUrl = `${stepBase}?stage=question&qi=${qiParam}&attempt=${attemptParam}&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
-    return twiml(
-      `<?xml version="1.0" encoding="UTF-8"?><Response><Redirect method="POST">${xmlEscape(qUrl)}</Redirect></Response>`,
-    )
-  }
-
   // ------------------------------------------------------------ stage=question
   if (stage === 'question') {
     // qi=0 is the greeting: intro only, no recording. It plays, then the
     // call moves straight to Q1 (or goodbye if there are no questions).
     if (qi === 0) {
+      // The greeting plays once: intro only, no recording. Falls through to
+      // Q1 (or goodbye when there are no questions).
       const greetingText = withName(greetingTemplate)
-      const codeAction = `${stepBase}?stage=code&qi=0&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
-    // qi=0 is the greeting: intro only, no recording. The code instruction
-      // lives inside the greeting speech itself, so code holders enter their
-      // code WHILE Cove is talking — never in silence. The Gather's short
-      // timeout only ever cuts silence: each keypress resets the clock, and
-      // "#" submits immediately. Falls through to Q1 (or goodbye when there
-      // are no questions) after a 1s beat.
       const q1Url = `${stepBase}?stage=question&qi=1&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
       return twiml(
         `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather input="dtmf" timeout="1" finishOnKey="#" action="${xmlEscape(codeAction)}" method="POST">
-    <Say>${xmlEscape(greetingText)}</Say>
-  </Gather>
+  <Say>${xmlEscape(greetingText)}</Say>
   <Redirect method="POST">${xmlEscape(q1Url)}</Redirect>
 </Response>`,
       )
@@ -194,22 +125,10 @@ serve(async (req: Request) => {
     const questionText = withName(q?.question ?? '')
     const answerAction = `${stepBase}?stage=answer&qi=${qi}&attempt=${attempt}&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
     const transcribeCb = `${fnUrl('call-transcribe')}?ticketId=${encodeURIComponent(ticketId)}&qi=${qi}&attempt=${attempt}`
-    // The question is wrapped in a DTMF Gather so code holders can enter
-    // their code at any point while the question is playing — pressing keys
-    // interrupts the speech and jumps to code validation. After the speech,
-    // a 1s beat (the caller's turn to start answering) falls through to
-    // recording. The timeout is inter-digit: any keypress resets the clock,
-    // so it only ever cuts silence, never someone mid-entry.
-    // (DTMF cannot interrupt the <Record> itself — a Twilio limitation —
-    // but the 2s silence timeout keeps that window short.)
-    const codeAction = `${stepBase}?stage=code&qi=${qi}&attempt=${attempt}&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
-
     return twiml(
       `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather input="dtmf" timeout="1" finishOnKey="#" action="${xmlEscape(codeAction)}" method="POST">
-    <Say>${xmlEscape(questionText)}</Say>
-  </Gather>
+  <Say>${xmlEscape(questionText)}</Say>
   <Record maxLength="60" timeout="2" playBeep="false" trim="trim-silence" transcribe="true" transcribeCallback="${xmlEscape(transcribeCb)}" action="${xmlEscape(answerAction)}" method="POST" />
 </Response>`,
     )
@@ -258,22 +177,14 @@ serve(async (req: Request) => {
       )
     }
 
-    // Answer captured. Code holders get a natural moment AFTER speaking:
-    // keypad presses can't interrupt the recording itself (Twilio), so the
-    // instruction is spoken here and entry happens while Cove is talking.
-    // The 2s timeout after the speech is inter-digit — any keypress resets
-    // it, so it only ever cuts silence. Valid code connects live; anything
-    // else advances (past the last question, stage=question finalizes).
+    // Answer captured: advance. Past the last question, stage=question
+    // finalizes the call.
     const isLast = qi >= numQuestions
     const nextQi = isLast ? numQuestions + 1 : qi + 1
     const nextQ = `${stepBase}?stage=question&qi=${nextQi}&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
-    const codeAction = `${stepBase}?stage=code&qi=${nextQi}&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
     return twiml(
       `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather input="dtmf" timeout="2" finishOnKey="#" action="${xmlEscape(codeAction)}" method="POST">
-    <Say>${xmlEscape(isLast ? SCRIPT.codePrompt : SCRIPT.thanksWithCode)}</Say>
-  </Gather>
   <Redirect method="POST">${xmlEscape(nextQ)}</Redirect>
 </Response>`,
     )

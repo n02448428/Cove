@@ -1,5 +1,5 @@
 // supabase/functions/_shared/cove.ts
-// Cove Call Kernel v0.1 — shared helpers for all webhook edge functions.
+// Cove Call Kernel v0.2 — shared helpers for all webhook edge functions.
 // Source of truth: docs/Cove-Call-Kernel.md
 
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -181,13 +181,7 @@ export async function audit(
 // Kernel scripts, spoken verbatim.
 export const SCRIPT = {
   noAnswer: 'No answer. Goodbye.',
-  // Spoken after each recorded answer: code holders get a natural window
-  // AFTER speaking, since keypad presses can't interrupt a recording.
-  thanksWithCode: 'Thank you. If you have an extension code, enter it, followed by the pound key.',
-  // Same window after the final question — no leading "Thank you" since the
-  // goodbye script ("Thank you. I will pass this along...") follows.
-  codePrompt: 'If you have an extension code, enter it, followed by the pound key.',
-  thanksGoodbye: 'Thank you. I will pass this along. Have a great day. Goodbye.',
+  thanksGoodbye: 'Thank you. I will pass this along. Goodbye.',
   notConfigured: 'This number is not configured yet.',
 } as const
 
@@ -196,8 +190,9 @@ export const SCRIPT = {
 // a truly silent recording ~0s.
 export const NO_ANSWER_DURATION_S = 1
 
-// Emergency keywords: if a caller's transcript contains one of these, the call
-// is treated as a possible emergency — connected immediately and flagged URGENT.
+// Emergency keywords: if a caller's transcript contains one of these, the
+// ticket is flagged URGENT so the user can call back immediately. The live
+// call is never redirected on a keyword match.
 // Word-boundary matched, case-insensitive. Kept tight to limit false positives;
 // "it's not an emergency" will still match — the user sees the transcript and
 // decides in seconds. Includes Spanish (common in California).

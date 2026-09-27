@@ -1,7 +1,7 @@
 // supabase/functions/twilio-voice-inbound/index.ts
-// Cove Call Kernel v0.1 — inbound call entry point.
+// Cove Call Kernel v0.2 — inbound call entry point.
 // RED number -> Reject. GREEN number -> Connect live. All others -> Yellow
-// (code-Gather then question loop via screening-step).
+// (question loop via screening-step).
 // Source of truth: docs/Cove-Call-Kernel.md
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
@@ -112,9 +112,8 @@ serve(async (req: Request) => {
       )
     }
 
-    // 5. YELLOW: create a review ticket, then offer a silent code entry
-    //    before the question loop. Code holders enter <digits>#; everyone
-    //    else times out into the first question.
+    // 5. YELLOW: create a review ticket, then start the question loop
+    //    at the greeting (qi=0).
     const { data: ticket, error: ticketErr } = await supabase
       .from('review_tickets')
       .insert({
@@ -153,8 +152,6 @@ serve(async (req: Request) => {
 
     const stepBase = `${fnUrl('screening-step')}`
     // Redirect to the greeting (qi=0); saved questions are qi=1..N.
-    // Code holders can enter their code at any point during screening via
-    // the DTMF Gather before each question's Record.
     const questionRedirect = `${stepBase}?stage=question&qi=0&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
 
     return twiml(

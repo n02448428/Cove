@@ -11,6 +11,7 @@ import {
   audit,
   validateTwilioSignature,
   containsEmergencyKeyword,
+  dispatchTicketWebhook,
 } from '../_shared/cove.ts'
 
 serve(async (req: Request) => {
@@ -53,6 +54,10 @@ serve(async (req: Request) => {
     console.error('transcribe update error:', error)
     return new Response('error', { status: 500 })
   }
+
+  // The ticket may be fully transcribed now; the webhook fires exactly once,
+  // only when every recording has a terminal transcript.
+  if (ticketId) dispatchTicketWebhook(supabase, ticketId)
 
   // Best-effort audit (ticket -> user lookup).
   if (ticketId) {

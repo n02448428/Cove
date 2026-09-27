@@ -11,8 +11,6 @@ import {
   audit,
   validateTwilioSignature,
   containsEmergencyKeyword,
-  redirectLiveCall,
-  fnUrl,
 } from '../_shared/cove.ts'
 
 serve(async (req: Request) => {
@@ -69,9 +67,10 @@ serve(async (req: Request) => {
         status: transcriptionStatus,
       })
 
-      // Emergency path: a caller in distress may not survive the full
-      // screening queue. Flag the ticket URGENT and, if the call is still
-      // live, pull it out of screening and connect immediately.
+      // Emergency path: a keyword match flags the ticket URGENT so the user
+      // is notified immediately and can call back. The live call is never
+      // pulled out of screening on a caller's word alone — the filter does
+      // not open for self-declared urgency.
       // Idempotent: only fires once per ticket.
       if (
         transcript &&
@@ -86,14 +85,6 @@ serve(async (req: Request) => {
         await audit(supabase, ticket.user_id, ticket.call_sid, 'emergency_keyword_detected', 'kernel', {
           question_ord: qi,
           transcript: transcript.slice(0, 500),
-        })
-        const emergencyUrl =
-          `${fnUrl('screening-step')}?stage=emergency_connect` +
-          `&callSid=${encodeURIComponent(ticket.call_sid ?? '')}` +
-          `&ticketId=${encodeURIComponent(ticketId)}`
-        const redirected = await redirectLiveCall(ticket.call_sid, emergencyUrl)
-        await audit(supabase, ticket.user_id, ticket.call_sid, 'emergency_redirect', 'kernel', {
-          redirected,
         })
       }
     }

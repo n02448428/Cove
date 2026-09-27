@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
-import { toE164, isValidE164, isValidCode, E164_ERROR, CODE_ERROR } from '../lib/phone.js';
+import { toE164, isValidE164, E164_ERROR } from '../lib/phone.js';
 import { formatPhone } from '../lib/format.js';
 import AppHeader from '../components/AppHeader.jsx';
 import AppFooter from '../components/AppFooter.jsx';
@@ -10,10 +10,6 @@ import {
   getCallerLists,
   addCallerList,
   deleteCallerList,
-  getAccessCodes,
-  addAccessCode,
-  revokeAccessCode,
-  deleteAccessCode,
   getScreeningQuestions,
   replaceScreeningQuestions,
   getReviewTickets,
@@ -109,7 +105,6 @@ export default function Dashboard() {
 
   // kernel data
   const [callerLists, setCallerLists] = useState([]);
-  const [accessCodes, setAccessCodes] = useState([]);
   const [questions, setQuestions] = useState([]);
   const [tickets, setTickets] = useState([]);
   const [calls, setCalls] = useState([]);
@@ -143,9 +138,6 @@ export default function Dashboard() {
   const [greenPhone, setGreenPhone] = useState('');
   const [greenName, setGreenName] = useState('');
 
-  // access code form
-  const [codeValue, setCodeValue] = useState('');
-  const [codeLabel, setCodeLabel] = useState('');
 
   // question editing
   const [questionDrafts, setQuestionDrafts] = useState({});
@@ -160,9 +152,6 @@ export default function Dashboard() {
   const [displayNameDraft, setDisplayNameDraft] = useState(null);
 
   const loadAll = useCallback(async (uid) => {
-    const [lists, codes, qs, tix, logs, phone, profile] = await Promise.all([
-      getCallerLists(uid),
-      getAccessCodes(uid),
       getScreeningQuestions(uid),
       getReviewTickets(uid),
       getCallLogs(uid, { limit: 100 }),
@@ -170,7 +159,6 @@ export default function Dashboard() {
       supabase.from('profiles').select('greeting, display_name').eq('id', uid).maybeSingle(),
     ]);
     setCallerLists(lists);
-    setAccessCodes(codes);
     setQuestions(qs);
     setTickets(tix);
     setCalls(logs);
@@ -246,41 +234,6 @@ export default function Dashboard() {
     }
   }
 
-  // — Access codes ————————————————————————————————
-  async function handleAddCode() {
-    setError('');
-    if (!isValidCode(codeValue)) {
-      setError(CODE_ERROR);
-      return;
-    }
-    try {
-      const added = await addAccessCode(userId, { code: codeValue, label: codeLabel });
-      setAccessCodes(prev => [added, ...prev]);
-      setCodeValue('');
-      setCodeLabel('');
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  async function handleRevokeCode(id) {
-    setError('');
-    try {
-      const updated = await revokeAccessCode(id);
-      setAccessCodes(prev => prev.map(c => (c.id === id ? updated : c)));
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  async function handleDeleteCode(id) {
-    setError('');
-    try {
-      await deleteAccessCode(id);
-      setAccessCodes(prev => prev.filter(c => c.id !== id));
-    } catch (err) {
-      setError(err.message);
-    }
   }
 
   // — Display name ({name} substitution) ————————————————————
@@ -668,49 +621,6 @@ export default function Dashboard() {
             )}
             </div>
 
-            {/* Access codes inside YELLOW section */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <h3 className="kernel-section-title" style={{ margin: 0, fontSize: '1.05rem' }}>Access codes</h3>
-                  <span className="badge badge-green">{accessCodes.filter(c => !c.revoked_at).length}</span>
-                </div>
-                <span className="hint" style={{ margin: 0 }}>Share with family — their instant way through, even in an emergency</span>
-              </div>
-              {accessCodes.length === 0 ? (
-                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>No access codes yet.</p>
-              ) : (
-                accessCodes.map(c => (
-                  <div key={c.id} className="kernel-row">
-                    <div className="kernel-row-meta">
-                      <strong>{c.code}{c.label ? ` — ${c.label}` : ''}</strong>
-                      <span>
-                        {c.revoked_at ? 'revoked' : 'active'}
-                        {c.last_used_at ? ` · last used ${new Date(c.last_used_at).toLocaleDateString()}` : ''}
-                        {c.expires_at ? ` · expires ${new Date(c.expires_at).toLocaleDateString()}` : ''}
-                      </span>
-                    </div>
-                    <div className="kernel-actions">
-                      {!c.revoked_at && (
-                        <button className="btn btn-ghost" onClick={() => handleRevokeCode(c.id)}>Revoke</button>
-                      )}
-                      <button className="btn btn-ghost" onClick={() => handleDeleteCode(c.id)}>Delete</button>
-                    </div>
-                  </div>
-                ))
-              )}
-              <div className="kernel-inline-form">
-                <div className="field">
-                  <label>Code</label>
-                  <input inputMode="numeric" value={codeValue} onChange={e => setCodeValue(e.target.value)} placeholder="1234" />
-                </div>
-                <div className="field">
-                  <label>Label (optional)</label>
-                  <input value={codeLabel} onChange={e => setCodeLabel(e.target.value)} placeholder="Family" />
-                </div>
-                <button className="btn btn-primary" onClick={handleAddCode}>Add code</button>
-              </div>
-            </div>
           </div>
         )}
       </section>

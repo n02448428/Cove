@@ -151,17 +151,12 @@ export default function Landing() {
                 </button>
               )}
             </div>
+            <p className="landing-support" style={{ marginTop: '1.5rem' }}>
+              Cove gives you a second phone number with an AI receptionist. Forward your calls &mdash;
+              it screens every unknown caller with your questions, transcribes the answers, and lets
+              trusted voices ring straight through. 7 days free, then $49/mo. Cancel anytime.
+            </p>
           </div>
-        </section>
-
-        <section className="landing-features" aria-label="How it works" style={{ marginTop: '3rem' }}>
-          <h2 className="price-block__eyebrow" style={{ marginBottom: '1.5rem' }}>How it works</h2>
-          {STEPS.map(({ title, desc }, i) => (
-            <div key={title} className="feature-row">
-              <h3><span style={{ color: 'var(--color-text-muted)', fontWeight: 500, marginRight: '0.5rem' }}>{i + 1}.</span>{title}</h3>
-              <p>{desc}</p>
-            </div>
-          ))}
         </section>
 
         <section className="landing-features" aria-label="Sound familiar?" style={{ marginTop: '3rem' }}>
@@ -169,6 +164,16 @@ export default function Landing() {
           {MOMENTS.map(({ title, desc }) => (
             <div key={title} className="feature-row">
               <h3>{title}</h3>
+              <p>{desc}</p>
+            </div>
+          ))}
+        </section>
+
+        <section className="landing-features" aria-label="How it works" style={{ marginTop: '3rem' }}>
+          <h2 className="price-block__eyebrow" style={{ marginBottom: '1.5rem' }}>How it works</h2>
+          {STEPS.map(({ title, desc }, i) => (
+            <div key={title} className="feature-row">
+              <h3><span style={{ color: 'var(--color-text-muted)', fontWeight: 500, marginRight: '0.5rem' }}>{i + 1}.</span>{title}</h3>
               <p>{desc}</p>
             </div>
           ))}

@@ -183,6 +183,8 @@ export const SCRIPT = {
   noAnswer: 'No answer. Goodbye.',
   thanksGoodbye: 'Thank you. I will pass this along. Goodbye.',
   notConfigured: 'This number is not configured yet.',
+  voicemailMissed: "Sorry, they couldn't pick up. Please leave a message after the tone.",
+  voicemailPrompt: 'Please leave a message after the tone.',
 } as const
 
 // Threshold (seconds) below which a recording is treated as "no answer" (caller
@@ -263,5 +265,140 @@ export async function redirectLiveCall(
   } catch (e) {
     console.error('redirectLiveCall failed:', e)
     return false
+  }
+}
+
+// ---- Outbound webhooks: ticket.completed postcards ----
+// A user-configured URL receives the finished ticket as JSON, signed with
+// HMAC-SHA256 (header X-Cove-Signature: sha256=<hex>). Zapier / Make turn
+// one webhook into thousands of integrations (CRM, Slack, sheets...).
+const TERMINAL_TRANSCRIPTION = ['completed', 'failed', 'none']
+
+async function hmacSha256Hex(secret: string, body: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  )
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body))
+  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+// Run a promise after the response without delaying the caller.
+function background(p: Promise<void>): void {
+  try {
+    // @ts-ignore - Supabase Edge runtime global
+    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+      // @ts-ignore
+      EdgeRuntime.waitUntil(p)
+      return
+    }
+  } catch { /* fall through */ }
+  p.catch((e) => console.error('background task failed:', e))
+}
+
+// Fire the ticket.completed webhook exactly once per ticket, only when every
+// recording has a terminal transcript. Safe to call from finalize (call end)
+// and from call-transcribe (each transcript); only the moment the ticket is
+// fully done actually dispatches.
+export function dispatchTicketWebhook(
+  supabase: ReturnType<typeof createSupabase>,
+  ticketId: string,
+): void {
+  background(_dispatchTicketWebhook(supabase, ticketId))
+}
+
+async function _dispatchTicketWebhook(
+  supabase: ReturnType<typeof createSupabase>,
+  ticketId: string,
+): Promise<void> {
+  try {
+    const { data: ticket } = await supabase
+      .from('review_tickets')
+      .select('id, user_id, call_sid, caller_number, urgent, ended_reason, status, webhook_sent_at, created_at')
+      .eq('id', ticketId)
+      .maybeSingle()
+    if (!ticket || ticket.status !== 'new' || ticket.webhook_sent_at) return
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('webhook_url, webhook_secret')
+      .eq('id', ticket.user_id)
+      .maybeSingle()
+    const url = (profile?.webhook_url ?? '').trim()
+    const lowerUrl = url.toLowerCase()
+    if (!(lowerUrl.startsWith('http://') || lowerUrl.startsWith('https://'))) return
+
+    const { data: answers } = await supabase
+      .from('review_ticket_answers')
+      .select('question_ord, question_text, transcript, transcription_status, recording_url, recording_duration')
+      .eq('ticket_id', ticketId)
+      .order('question_ord', { ascending: true })
+    const rows = answers ?? []
+    if (rows.some((a) => !TERMINAL_TRANSCRIPTION.includes(a.transcription_status))) return
+
+    // Atomic claim: exactly one dispatcher wins per ticket.
+    const claimedAt = new Date().toISOString()
+    const { data: claimed } = await supabase
+      .from('review_tickets')
+      .update({ webhook_sent_at: claimedAt })
+      .eq('id', ticketId)
+      .is('webhook_sent_at', null)
+      .select('id')
+    if (!claimed || claimed.length === 0) return
+
+    const payload = {
+      event: 'ticket.completed',
+      ticket_id: ticket.id,
+      call_sid: ticket.call_sid,
+      caller_number: ticket.caller_number,
+      urgent: !!ticket.urgent,
+      ended_reason: ticket.ended_reason,
+      created_at: ticket.created_at,
+      transcripts_complete: true,
+      messages: rows.map((a) => ({
+        question: a.question_text,
+        transcript: a.transcript,
+        recording_url: a.recording_url,
+        recording_duration_s: a.recording_duration,
+      })),
+    }
+    const body = JSON.stringify(payload)
+    const signature = 'sha256=' + (await hmacSha256Hex(profile?.webhook_secret ?? '', body))
+
+    let ok = false
+    let status = 0
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Cove-Event': 'ticket.completed',
+          'X-Cove-Signature': signature,
+        },
+        body,
+        signal: AbortSignal.timeout(8000),
+      })
+      status = res.status
+      ok = res.ok
+    } catch (e) {
+      console.error('webhook post failed:', e)
+    }
+
+    if (ok) {
+      await audit(supabase, ticket.user_id, ticket.call_sid, 'webhook_dispatched', 'kernel', { status })
+    } else {
+      // Release the claim so a later ticket event can retry.
+      await supabase
+        .from('review_tickets')
+        .update({ webhook_sent_at: null })
+        .eq('id', ticketId)
+        .eq('webhook_sent_at', claimedAt)
+      await audit(supabase, ticket.user_id, ticket.call_sid, 'webhook_failed', 'kernel', { status })
+    }
+  } catch (e) {
+    console.error('dispatchTicketWebhook error:', e)
   }
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
-import { toE164, isValidE164, isValidCode, E164_ERROR, CODE_ERROR } from '../lib/phone.js';
+import { toE164, isValidE164, E164_ERROR } from '../lib/phone.js';
 import AppHeader from '../components/AppHeader.jsx';
 import CoveMark from '../components/CoveMark.jsx';
 import { createCheckoutSession } from '../services/api.js';
@@ -17,7 +17,6 @@ export default function Onboarding() {
   // optional initial lists
   const [redList, setRedList] = useState(''); // one per line: Name +1XXXXXXXXXX
   const [greenList, setGreenList] = useState('');
-  const [codes, setCodes] = useState(''); // one per line: 1234 Label
   const [questions, setQuestions] = useState(''); // one per line
 
   const [error, setError] = useState('');
@@ -81,19 +80,6 @@ export default function Onboarding() {
         }
       }
 
-      // parse + validate codes
-      const parsedCodes = codes.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
-        const parts = line.split(/\s+/);
-        const code = parts[0];
-        const label = parts.slice(1).join(' ').trim() || null;
-        return { code, label };
-      });
-      for (const c of parsedCodes) {
-        if (!isValidCode(c.code)) {
-          throw new Error(CODE_ERROR);
-        }
-      }
-
       // parse questions
       const parsedQuestions = questions.split('\n').map(l => l.trim()).filter(Boolean).slice(0, MAX_QUESTIONS);
 
@@ -129,13 +115,6 @@ export default function Onboarding() {
       if (listRows.length) {
         const { error: listErr } = await supabase.from('caller_lists').upsert(listRows, { onConflict: 'user_id,classification,phone_number', ignoreDuplicates: true });
         if (listErr) throw new Error(`Could not save RED/GREEN lists: ${listErr.message}`);
-      }
-
-      // insert access codes
-      if (parsedCodes.length) {
-        const codeRows = parsedCodes.map(c => ({ user_id: user.id, code: c.code, label: c.label }));
-        const { error: codeErr } = await supabase.from('access_codes').insert(codeRows);
-        if (codeErr) throw new Error(`Could not save access codes: ${codeErr.message}`);
       }
 
       // insert questions (ord 1..N)
@@ -216,17 +195,6 @@ export default function Onboarding() {
           </div>
 
           <div className="field">
-            <label>Access codes (optional)</label>
-            <textarea
-              value={codes}
-              onChange={e => setCodes(e.target.value)}
-              placeholder={"1234 Family\n9999 Work"}
-              rows={3}
-            />
-            <p className="hint">One per line: code then label. Callers in YELLOW can enter a code to connect live. 3+ digits.</p>
-          </div>
-
-          <div className="field">
             <label>Screening questions (optional)</label>
             <textarea
               value={questions}
@@ -250,7 +218,7 @@ export default function Onboarding() {
             {loading ? 'Saving...' : 'Continue to checkout · 7-day trial → $49/mo'}
           </button>
           <p className="hint" style={{ marginTop: '0.75rem' }}>
-            You can add or edit RED/GREEN lists, access codes, and questions anytime on the Dashboard.
+            You can add or edit RED/GREEN lists and questions anytime on the Dashboard.
           </p>
         </form>
       </div>

@@ -155,6 +155,8 @@ export default function Dashboard() {
   const [displayNameDraft, setDisplayNameDraft] = useState(null);
 
   const loadAll = useCallback(async (uid) => {
+    const [lists, qs, tix, logs, phone, profile] = await Promise.all([
+      getCallerLists(uid),
       getScreeningQuestions(uid),
       getReviewTickets(uid),
       getCallLogs(uid, { limit: 100 }),
@@ -308,8 +310,6 @@ export default function Dashboard() {
     } catch (err) {
       setError(err.message);
     }
-  }
-
   }
 
   // — Display name ({name} substitution) ————————————————————

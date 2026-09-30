@@ -34,7 +34,8 @@ export default function Terms() {
             from the customer portal; cancellation takes effect at the end of the current billing
             period. After cancellation you have a 30-day grace period before your Cove number is
             released. Your Cove number provisions after your payment method is saved and remains
-            yours while your subscription is active.
+            yours while your subscription is active. All payments are final — Cove does not offer
+            refunds. Cancel before your next billing date to stop future charges.
           </p>
         </section>
 

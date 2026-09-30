@@ -185,7 +185,7 @@ export default function Landing() {
           <p className="price-block__eyebrow">Membership</p>
           <h2 className="price-block__primary">7 days free. Then $49/mo. Cancel anytime.</h2>
           <p className="price-block__fine">
-            Card required for the trial.
+            Card required for the trial. All payments are final — cancel before your next billing date to stop future charges.
           </p>
           <div className="landing-ctas" style={{ marginTop: '1.25rem', marginBottom: 0 }}>
             <button

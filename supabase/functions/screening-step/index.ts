@@ -24,6 +24,7 @@ import {
   SCRIPT,
   NO_ANSWER_DURATION_S,
   dispatchTicketWebhook,
+  dispatchTicketNotifications,
 } from '../_shared/cove.ts'
 
 const TERMINAL = ['new', 'reviewed', 'actioned', 'failed']
@@ -265,7 +266,9 @@ async function finalize(
 
   // The ticket is reviewable now; the webhook fires once every recording has
   // a terminal transcript (immediately when there is nothing to transcribe).
+  // Built-in notifications (email + push) fire from the same completion point.
   dispatchTicketWebhook(supabase, ticketId)
+  dispatchTicketNotifications(ticketId)
 
   return twiml(
     `<?xml version="1.0" encoding="UTF-8"?><Response><Say>${xmlEscape(closingScript)}</Say><Hangup/></Response>`,

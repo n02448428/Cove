@@ -12,6 +12,7 @@ import {
   validateTwilioSignature,
   containsEmergencyKeyword,
   dispatchTicketWebhook,
+  dispatchTicketNotifications,
 } from '../_shared/cove.ts'
 
 serve(async (req: Request) => {
@@ -58,6 +59,7 @@ serve(async (req: Request) => {
   // The ticket may be fully transcribed now; the webhook fires exactly once,
   // only when every recording has a terminal transcript.
   if (ticketId) dispatchTicketWebhook(supabase, ticketId)
+  if (ticketId) dispatchTicketNotifications(ticketId)
 
   // Best-effort audit (ticket -> user lookup).
   if (ticketId) {

@@ -83,3 +83,6 @@ verify_jwt = false
 
 [functions.twilio-voice-screen]
 verify_jwt = false
+
+[functions.send-ticket-notifications]
+verify_jwt = false

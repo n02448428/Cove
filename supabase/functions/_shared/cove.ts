@@ -402,3 +402,32 @@ async function _dispatchTicketWebhook(
     console.error('dispatchTicketWebhook error:', e)
   }
 }
+
+// ---- Built-in notifications: email + web push ----
+// Same completion point as the ticket.completed webhook, but independent of
+// it: notifications have their own exactly-once claim
+// (review_tickets.notifications_sent_at, claimed inside the edge function),
+// so they fire even when no webhook URL is configured. Safe to call from
+// finalize (call end) and from call-transcribe (each transcript); only the
+// moment the ticket is fully done actually sends.
+export function dispatchTicketNotifications(ticketId: string): void {
+  background(_dispatchTicketNotifications(ticketId))
+}
+
+async function _dispatchTicketNotifications(ticketId: string): Promise<void> {
+  try {
+    if (!SUPABASE_URL || !SERVICE_ROLE_KEY) return
+    await fetch(fnUrl('send-ticket-notifications'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+        'apikey': SERVICE_ROLE_KEY,
+      },
+      body: JSON.stringify({ ticket_id: ticketId }),
+      signal: AbortSignal.timeout(8000),
+    })
+  } catch (e) {
+    console.error('dispatchTicketNotifications failed:', e)
+  }
+}

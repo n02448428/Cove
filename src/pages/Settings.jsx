@@ -187,6 +187,11 @@ export default function Settings() {
     }
   }
 
+  function handlePushToggle(e) {
+    if (e.target.checked) handleEnablePush();
+    else handleDisablePush();
+  }
+
   if (loading) return <main className="page-narrow"><p style={{ color: 'var(--color-text-muted)' }}>Loading...</p></main>;
 
   return (
@@ -250,7 +255,7 @@ export default function Settings() {
       <section className="card section-card" style={{ marginBottom: '1.25rem' }}>
         <h3 style={{ fontFamily: 'var(--font-serif)', fontWeight: 600, fontSize: '1.25rem', marginBottom: '0.5rem' }}>Notifications</h3>
         <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', lineHeight: 1.55, marginBottom: '1rem' }}>
-          We email you after every call. Want your phone to buzz too? Turn on push below.
+          We email you after every call. Want your phone to buzz too? Both are your call — flip either one anytime.
         </p>
 
         <div className="field" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -260,25 +265,18 @@ export default function Settings() {
           </label>
         </div>
 
-        <div className="field" style={{ marginTop: '0.5rem' }}>
-          {pushState === 'on' ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.9rem' }}>Push is on for this device.</span>
-              <button type="button" className="btn btn-ghost" onClick={handleDisablePush} disabled={pushBusy}>
-                {pushBusy ? 'Working…' : 'Turn off'}
-              </button>
-            </div>
-          ) : pushState === 'unsupported' ? (
-            <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
-              Push isn't available in this browser.
-            </p>
-          ) : (
-            <button type="button" className="btn btn-primary" onClick={handleEnablePush} disabled={pushBusy || pushState === 'unknown'} style={{ width: '100%' }}>
-              {pushBusy ? 'Working…' : 'Turn on push'}
-            </button>
-          )}
-          {pushError && <p className="error-msg" style={{ marginTop: '0.5rem' }}>{pushError}</p>}
+        <div className="field" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem' }}>
+          <input type="checkbox" id="pushNotifs" checked={pushState === 'on'} onChange={handlePushToggle} disabled={pushBusy || pushState === 'unsupported' || pushState === 'unknown'} style={{ width: 'auto' }} />
+          <label htmlFor="pushNotifs" style={{ margin: 0, textTransform: 'none', letterSpacing: 'normal', fontSize: '0.9rem', color: 'var(--color-text)' }}>
+            Buzz my phone after every call
+          </label>
         </div>
+        {pushState === 'unsupported' && (
+          <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
+            Push isn't available in this browser.
+          </p>
+        )}
+        {pushError && <p className="error-msg" style={{ marginTop: '0.5rem' }}>{pushError}</p>}
 
         <button type="button" className="btn-text" onClick={() => setShowHowItWorks(true)} style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>
           How this works
@@ -299,13 +297,13 @@ export default function Settings() {
           >
             <h3 style={{ fontFamily: 'var(--font-serif)', fontWeight: 600, fontSize: '1.2rem', marginBottom: '0.75rem' }}>How this works</h3>
             <p style={{ fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '0.75rem' }}>
-              After each screened call, Cove emails you what the caller said.
+              After each call, Cove emails you what the caller said — so you never miss a thing.
             </p>
             <p style={{ fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '0.75rem' }}>
-              Turn on push and your phone buzzes too — no app needed. On iPhone, add Cove to your home screen first.
+              Turn on push and your phone buzzes too. No app needed — and iPhone just needs one extra step: add Cove to your home screen first, then you're all set.
             </p>
             <p style={{ fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1rem' }}>
-              Turn either off anytime. Nothing changes about how calls are handled.
+              How your calls are handled never changes — this only changes how we let you know.
             </p>
             <button type="button" className="btn btn-primary" onClick={() => setShowHowItWorks(false)} style={{ width: '100%' }}>
               Got it

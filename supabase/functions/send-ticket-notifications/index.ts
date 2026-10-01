@@ -140,7 +140,7 @@ serve(async (req) => {
         : '<p>They hung up before answering.</p>'
       const html = `<!DOCTYPE html><html><body style="font-family:Georgia,serif;color:#1c1c1c;max-width:560px;margin:0 auto;padding:24px">
 <p style="font-size:13px;color:#888;margin:0 0 16px">Cove &middot; ${esc(when)}${name ? ` &middot; for ${esc(name)}` : ''}</p>
-<h2 style="font-weight:600;margin:0 0 8px">${urgent ? '🚨 Urgent call' : 'New screened call'}</h2>
+<h2 style="font-weight:600;margin:0 0 8px">${urgent ? 'Urgent call' : 'New screened call'}</h2>
 <p style="margin:0 0 16px"><strong>${esc(caller)}</strong>${ticket.ended_reason ? ` &mdash; ${esc(ticket.ended_reason)}` : ''}</p>
 ${qaHtml}
 <p style="font-size:13px;color:#888;margin-top:24px">See the full ticket and recordings in your <a href="https://withcove.co/dashboard">Cove dashboard</a>.</p>

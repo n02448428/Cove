@@ -152,15 +152,14 @@ export default function Landing() {
               )}
             </div>
             <p className="landing-support" style={{ marginTop: '1.5rem' }}>
-              Cove gives you a second phone number with an AI receptionist. Forward your calls &mdash;
-              it screens every unknown caller with your questions, transcribes the answers, and lets
-              trusted voices ring straight through. 7 days free, then $49/mo. Cancel anytime.
+              Your pocket stays quiet. Your heart stays full.
             </p>
           </div>
         </section>
 
         <section className="landing-features" aria-label="Sound familiar?" style={{ marginTop: '3rem' }}>
-          <h2 className="price-block__eyebrow" style={{ marginBottom: '1.5rem' }}>Sound familiar?</h2>
+          <h2 className="price-block__eyebrow" style={{ marginBottom: '1rem' }}>Sound familiar?</h2>
+          <p className="landing-quote">Remember when a ringing phone meant someone that mattered? It&rsquo;s like that again.</p>
           {MOMENTS.map(({ title, desc }) => (
             <div key={title} className="feature-row">
               <h3>{title}</h3>
@@ -170,7 +169,8 @@ export default function Landing() {
         </section>
 
         <section className="landing-features" aria-label="How it works" style={{ marginTop: '3rem' }}>
-          <h2 className="price-block__eyebrow" style={{ marginBottom: '1.5rem' }}>How it works</h2>
+          <h2 className="price-block__eyebrow" style={{ marginBottom: '1rem' }}>How it works</h2>
+          <p className="landing-quote">Breathe easier. Your phone&rsquo;s got the noise; you&rsquo;ve got the people.</p>
           {STEPS.map(({ title, desc }, i) => (
             <div key={title} className="feature-row">
               <h3><span style={{ color: 'var(--color-text-muted)', fontWeight: 500, marginRight: '0.5rem' }}>{i + 1}.</span>{title}</h3>
@@ -183,6 +183,7 @@ export default function Landing() {
 
         <section className="price-block" aria-label="Pricing">
           <p className="price-block__eyebrow">Membership</p>
+          <p className="landing-quote landing-quote--center">Calm isn&rsquo;t the absence of calls. It&rsquo;s the absence of the wrong ones.</p>
           <h2 className="price-block__primary">7 days free. Then $49/mo. Cancel anytime.</h2>
           <p className="price-block__fine">
             Card required for the trial. All payments are final — cancel before your next billing date to stop future charges.
@@ -200,6 +201,7 @@ export default function Landing() {
 
         <section className="landing-features" aria-label="Begin" style={{ marginTop: '3rem', textAlign: 'center' }}>
           <h2 className="landing-headline" style={{ fontSize: '2rem' }}>Your phone, finally quiet.</h2>
+          <p className="landing-quote landing-quote--center">Your life, uninterrupted &mdash; except by the people you&rsquo;d interrupt anything for.</p>
           <div className="landing-ctas" style={{ justifyContent: 'center', marginTop: '1.5rem' }}>
             <button
               type="button"

@@ -103,6 +103,16 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [userId, setUserId] = useState(null);
 
+  // rotating daily line — one of the Cove voice lines, changes each day
+  const DAILY_LINES = [
+    'Your pocket stays quiet. Your heart stays full.',
+    'Remember when a ringing phone meant someone that mattered? It\u2019s like that again.',
+    'Your life, uninterrupted \u2014 except by the people you\u2019d interrupt anything for.',
+    'Breathe easier. Your phone\u2019s got the noise; you\u2019ve got the people.',
+    'Calm isn\u2019t the absence of calls. It\u2019s the absence of the wrong ones.',
+  ];
+  const dailyLine = DAILY_LINES[Math.floor(Date.now() / 86400000) % DAILY_LINES.length];
+
   // kernel data
   const [callerLists, setCallerLists] = useState([]);
   const [questions, setQuestions] = useState([]);
@@ -491,6 +501,10 @@ export default function Dashboard() {
         <CoveMark size={30} />
         {displayName ? `${displayName}'s Dashboard` : 'Dashboard'}
       </h1>
+
+      <p style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', color: 'var(--color-text-muted)', fontSize: '1rem', lineHeight: 1.5, margin: '-0.25rem 0 1.5rem' }}>
+        {dailyLine}
+      </p>
 
       {/* Concierge number — prominent */}
       {conciergeNumber ? (

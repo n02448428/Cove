@@ -921,7 +921,7 @@ export default function Dashboard() {
                     {call.summary ? (
                       <p style={{ fontSize: '0.85rem', marginBottom: '0.75rem' }}>{call.summary}</p>
                     ) : linkedTicket ? (
-                      <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>No summary yet — open the review ticket for recording and transcript.</p>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>No summary yet — open the call summary for the recording and transcript.</p>
                     ) : (
                       <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>No details available for this call.</p>
                     )}

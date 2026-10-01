@@ -28,7 +28,7 @@ const MOMENTS = [
   },
   {
     title: 'Your hands are busy. Your next client is calling.',
-    desc: 'They\u2019re greeted warmly. You never miss the moment.',
+    desc: 'They\u2019re greeted warmly \u2014 and you catch up when you\u2019re free.',
   },
   {
     title: 'A patient calls after hours.',

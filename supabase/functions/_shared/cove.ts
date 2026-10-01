@@ -198,9 +198,10 @@ export const NO_ANSWER_DURATION_S = 1
 // Word-boundary matched, case-insensitive. Kept tight to limit false positives;
 // "it's not an emergency" will still match — the user sees the transcript and
 // decides in seconds. Includes Spanish (common in California).
-// NOTE: scammers can learn these words. The tradeoff is deliberate: a connected
-// fake emergency costs seconds of the user's time; a blocked real one could cost
-// far more. Every emergency connection is recorded, transcribed, and flagged.
+// NOTE: scammers can learn these words. The tradeoff is deliberate: the filter
+// never opens for self-declared urgency — a keyword match only flags the ticket
+// URGENT so the user can call back. The live call is never redirected or
+// connected on a caller's word alone.
 const EMERGENCY_KEYWORDS = [
   'emergency',
   'urgent',
@@ -237,35 +238,6 @@ const EMERGENCY_RE = new RegExp(
 export function containsEmergencyKeyword(text: string | null | undefined): boolean {
   if (!text) return false
   return EMERGENCY_RE.test(text)
-}
-
-// Redirect a live Twilio call to a new TwiML URL via the REST API.
-// Used to pull a caller out of screening mid-call when an emergency keyword
-// is detected in a transcript. Best-effort: if the call already ended, the
-// API returns 4xx and we just keep the URGENT flag on the ticket.
-export async function redirectLiveCall(
-  callSid: string,
-  twimlUrl: string,
-): Promise<boolean> {
-  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !callSid) return false
-  try {
-    const creds = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`)
-    const res = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Calls/${callSid}.json`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Basic ${creds}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: `Url=${encodeURIComponent(twimlUrl)}&Method=POST`,
-      },
-    )
-    return res.ok
-  } catch (e) {
-    console.error('redirectLiveCall failed:', e)
-    return false
-  }
 }
 
 // ---- Outbound webhooks: ticket.completed postcards ----

@@ -300,7 +300,7 @@ export default function Settings() {
               After each call, Cove emails you what the caller said — so you never miss a thing.
             </p>
             <p style={{ fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '0.75rem' }}>
-              Turn on push and your phone buzzes too. No app needed — and iPhone just needs one extra step: add Cove to your home screen first, then you're all set.
+              Turn on push and your phone buzzes too. No app needed — iPhone just needs one extra step first: in Safari, tap Share, then Add to Home Screen. Then you're all set.
             </p>
             <p style={{ fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1rem' }}>
               How your calls are handled never changes — this only changes how we let you know.

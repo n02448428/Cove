@@ -11,8 +11,9 @@ const MAX_QUESTIONS = 5;
 export default function Onboarding() {
   const navigate = useNavigate();
   const [realPhone, setRealPhone] = useState('');
-  const [smsNotifs, setSmsNotifs] = useState(false);
   const [emailNotifs, setEmailNotifs] = useState(true);
+  // NOTE: SMS notifications are not offered in this beta. The phone_numbers.notify_sms
+  // column stays as a placeholder for a future SMS channel — nothing user-facing reads it.
 
   // optional initial lists
   const [redList, setRedList] = useState(''); // one per line: Name +1XXXXXXXXXX
@@ -29,14 +30,22 @@ export default function Onboarding() {
 
       const { data: phone } = await supabase
         .from('phone_numbers')
-        .select('real_number, notify_sms, notify_email')
+        .select('real_number')
         .eq('user_id', user.id)
         .maybeSingle();
 
       if (phone) {
         if (phone.real_number) setRealPhone(phone.real_number);
-        setSmsNotifs(!!phone.notify_sms);
-        setEmailNotifs(phone.notify_email ?? true);
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('notify_email')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profile && typeof profile.notify_email === 'boolean') {
+        setEmailNotifs(profile.notify_email);
       }
     }
     loadExisting();
@@ -59,10 +68,13 @@ export default function Onboarding() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Ensure public.profiles exists before any FK-dependent upserts
+      // Ensure public.profiles exists before any FK-dependent upserts.
+      // The email preference lives here now (profiles.notify_email) — the same
+      // switch the Settings page and the notification sender read.
       const { error: profileErr } = await supabase.from('profiles').upsert({
         id: user.id,
         email: user.email,
+        notify_email: emailNotifs,
       }, { onConflict: 'id' });
       if (profileErr) throw profileErr;
 
@@ -83,7 +95,8 @@ export default function Onboarding() {
       // parse questions
       const parsedQuestions = questions.split('\n').map(l => l.trim()).filter(Boolean).slice(0, MAX_QUESTIONS);
 
-      // phone_numbers owns real_number, notify flags, provisioning_status
+      // phone_numbers owns real_number and provisioning_status.
+      // notify_sms stays NULL/unset — no SMS channel in this beta.
       // Keep existing twilio_number if already provisioned (do not wipe live number)
       const { data: existingPhone } = await supabase
         .from('phone_numbers')
@@ -97,8 +110,6 @@ export default function Onboarding() {
       const phonePayload = {
         user_id: user.id,
         real_number: realNumber,
-        notify_sms: smsNotifs,
-        notify_email: emailNotifs,
         provisioning_status: alreadyActive ? 'active' : 'pending',
       };
 
@@ -191,7 +202,7 @@ export default function Onboarding() {
               placeholder={"Mom +16195550001\nDad +16195550002"}
               rows={3}
             />
-            <p className="hint">Family, doctors, schools — anyone who must always reach you, especially in an emergency. One per line: Name then number.</p>
+            <p className="hint">Family, doctors, schools — anyone who should always reach you directly. One per line: Name then number.</p>
           </div>
 
           <div className="field">
@@ -206,12 +217,8 @@ export default function Onboarding() {
           </div>
 
           <div className="field" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <input type="checkbox" id="smsNotifs" checked={smsNotifs} onChange={e => setSmsNotifs(e.target.checked)} style={{ width: 'auto' }} />
-            <label htmlFor="smsNotifs" style={{ margin: 0, textTransform: 'none', letterSpacing: 'normal', fontSize: '0.9rem', color: 'var(--color-text)' }}>SMS me new review ticket summaries</label>
-          </div>
-          <div className="field" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <input type="checkbox" id="emailNotifs" checked={emailNotifs} onChange={e => setEmailNotifs(e.target.checked)} style={{ width: 'auto' }} />
-            <label htmlFor="emailNotifs" style={{ margin: 0, textTransform: 'none', letterSpacing: 'normal', fontSize: '0.9rem', color: 'var(--color-text)' }}>Email me new review ticket summaries</label>
+            <label htmlFor="emailNotifs" style={{ margin: 0, textTransform: 'none', letterSpacing: 'normal', fontSize: '0.9rem', color: 'var(--color-text)' }}>Email me after every call</label>
           </div>
           {error && <p className="error-msg">{error}</p>}
           <button className="btn btn-primary" type="submit" disabled={loading} style={{ width: '100%', marginTop: '0.5rem' }}>

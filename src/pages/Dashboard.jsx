@@ -6,6 +6,7 @@ import { formatPhone } from '../lib/format.js';
 import AppHeader from '../components/AppHeader.jsx';
 import AppFooter from '../components/AppFooter.jsx';
 import CoveMark from '../components/CoveMark.jsx';
+import NotificationsPanel from '../components/NotificationsPanel.jsx';
 import {
   getCallerLists,
   addCallerList,
@@ -166,6 +167,17 @@ export default function Dashboard() {
   const [displayName, setDisplayName] = useState('');
   const [displayNameDraft, setDisplayNameDraft] = useState(null);
 
+  // test call ("Call me now")
+  const [testCallState, setTestCallState] = useState('idle'); // idle | calling | done
+  const [testCallMsg, setTestCallMsg] = useState('');
+
+  // Live conversation preview: greeting (draft if editing) with {name} resolved,
+  // falling back to the kernel default greeting when none is saved.
+  const DEFAULT_GREETING = "Hello, this is Cove, {name}'s assistant. This call may be recorded.";
+  const previewName = displayNameDraft !== null ? displayNameDraft : (displayName || '{name}');
+  const previewGreeting = ((greetingDraft ?? greeting) || DEFAULT_GREETING).replace(/\{name\}/g, previewName);
+  const KERNEL_CLOSE = 'Thank you. I will pass this along. Goodbye.';
+
   const loadAll = useCallback(async (uid) => {
     const [lists, qs, tix, logs, phone, profile] = await Promise.all([
       getCallerLists(uid),
@@ -287,6 +299,33 @@ export default function Dashboard() {
 
   function copyNumber() {
     if (conciergeNumber) navigator.clipboard.writeText(conciergeNumber);
+  }
+
+  // — Test call: ring the user's real number through the live screening flow —
+  async function handleTestCall() {
+    setTestCallState('calling');
+    setTestCallMsg('');
+    setError('');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not signed in.');
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/request-test-call`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: '{}',
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(payload.error || `Call failed (${res.status})`);
+      setTestCallState('done');
+      setTestCallMsg(payload.message || 'Calling you now — pick up to hear what your callers hear.');
+    } catch (err) {
+      setTestCallState('idle');
+      setError(err.message);
+    }
   }
 
   // — RED / GREEN lists ————————————————————————————
@@ -742,6 +781,58 @@ export default function Dashboard() {
 
           </div>
         )}
+      </section>
+
+      {/* What callers hear — live conversation preview, notifications, test call */}
+      <section className="kernel-section card section-card" aria-label="What callers hear">
+        <h2 className="kernel-section-title" style={{ marginBottom: '0.25rem' }}>What callers hear</h2>
+        <p className="hint" style={{ textAlign: 'left', marginTop: 0, marginBottom: '1rem' }}>
+          A live preview — it updates as you edit your greeting and questions. Example caller shown.
+        </p>
+
+        <div className="convo-preview">
+          <div className="convo-line convo-line--cove">
+            <span className="convo-speaker">Cove</span>
+            <p>{previewGreeting}</p>
+          </div>
+          <div className="convo-line convo-line--caller">
+            <span className="convo-speaker">Caller</span>
+            <p>Hi, it&rsquo;s Alex — is Dmitry there?</p>
+          </div>
+          {questions.map(q => (
+            <div key={q.id} className="convo-line convo-line--cove">
+              <span className="convo-speaker">Cove</span>
+              <p>{q.question}</p>
+            </div>
+          ))}
+          <div className="convo-line convo-line--cove">
+            <span className="convo-speaker">Cove</span>
+            <p>{KERNEL_CLOSE}</p>
+          </div>
+        </div>
+
+        <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--color-border)' }}>
+          <NotificationsPanel />
+        </div>
+
+        <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--color-border)' }}>
+          <h3 className="kernel-section-title" style={{ margin: '0 0 0.5rem', fontSize: '1.05rem' }}>Try it yourself</h3>
+          <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', lineHeight: 1.55, marginBottom: '0.9rem' }}>
+            We&rsquo;ll call your real number from your Cove number, so you hear exactly what a caller hears.
+            Limited to 3 test calls a day.
+          </p>
+          <button
+            className="btn btn-primary"
+            onClick={handleTestCall}
+            disabled={testCallState === 'calling'}
+            style={{ width: '100%' }}
+          >
+            {testCallState === 'calling' ? 'Calling…' : testCallState === 'done' ? 'Call again' : 'Call me now'}
+          </button>
+          {testCallMsg && (
+            <p style={{ fontSize: '0.9rem', color: 'var(--color-success)', marginTop: '0.6rem' }}>{testCallMsg}</p>
+          )}
+        </div>
       </section>
 
       {/* RED — rejected (collapsible) */}

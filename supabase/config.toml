@@ -86,3 +86,6 @@ verify_jwt = false
 
 [functions.send-ticket-notifications]
 verify_jwt = false
+
+[functions.request-test-call]
+verify_jwt = true

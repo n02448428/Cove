@@ -240,7 +240,7 @@ export default function Settings() {
 
       <div className="card section-card" style={{ marginBottom: '1.25rem' }}>
         <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 1.55 }}>
-          Email and push notifications now live on the{' '}
+          Email notifications now live on the{' '}
           <button className="btn-text" onClick={() => navigate('/dashboard')} style={{ fontSize: '0.85rem' }}>Dashboard</button>,
           right under your call preview.
         </p>

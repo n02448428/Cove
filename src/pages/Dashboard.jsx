@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
 import { toE164, isValidE164, E164_ERROR } from '../lib/phone.js';
 import { formatPhone } from '../lib/format.js';
@@ -118,6 +119,12 @@ export default function Dashboard() {
 
   // dashboard tabs: 'overview' | 'tickets'
   const [dashTab, setDashTab] = useState('overview');
+  const [searchParams] = useSearchParams();
+
+  // Deep link: digest emails link to /dashboard?tab=tickets, opened in a new tab.
+  useEffect(() => {
+    if (searchParams.get('tab') === 'tickets') setDashTab('tickets');
+  }, []);
 
   // tickets
   const [ticketFilter, setTicketFilter] = useState('all');
@@ -128,6 +135,10 @@ export default function Dashboard() {
   // RED form
   const [redPhone, setRedPhone] = useState('');
   const [redName, setRedName] = useState('');
+
+  // Custom urgent words/phrases (user-defined, comma-separated)
+  const [urgentWords, setUrgentWords] = useState('');
+  const [urgentWordsNote, setUrgentWordsNote] = useState('');
 
   // GREEN form
   const [greenPhone, setGreenPhone] = useState('');
@@ -163,13 +174,14 @@ export default function Dashboard() {
       getScreeningQuestions(uid),
       getReviewTickets(uid),
       supabase.from('phone_numbers').select('twilio_number, provisioning_status').eq('user_id', uid).order('created_at', { ascending: false }).limit(1).maybeSingle(),
-      supabase.from('profiles').select('greeting, display_name').eq('id', uid).maybeSingle(),
+      supabase.from('profiles').select('greeting, display_name, urgent_keywords').eq('id', uid).maybeSingle(),
     ]);
     setCallerLists(lists);
     setQuestions(qs);
     setTickets(tix);
     setGreeting(profile.data?.greeting || '');
     setDisplayName(profile.data?.display_name || '');
+    setUrgentWords((profile.data?.urgent_keywords || []).join(', '));
     if (phone.data) {
       setConciergeNumber(phone.data.twilio_number || '');
       setProvisioningStatus(phone.data.provisioning_status || '');
@@ -286,6 +298,24 @@ export default function Dashboard() {
   }
 
   // — Greeting ————————————————————————————————————
+  // — Custom urgent words —————————————————————————
+  async function saveUrgentWords() {
+    setError('');
+    setUrgentWordsNote('');
+    const words = (urgentWords || '')
+      .split(',')
+      .map(w => w.trim().toLowerCase())
+      .filter(Boolean)
+      .slice(0, 50);
+    try {
+      const { error } = await supabase.from('profiles').update({ urgent_keywords: words }).eq('id', userId);
+      if (error) throw error;
+      setUrgentWords(words.join(', '));
+      setUrgentWordsNote('Saved. Calls mentioning these will be marked urgent.');
+    } catch (err) {
+      setError(err.message || "Couldn't save that. Try again.");
+    }
+  }
   async function saveGreeting() {
     setError('');
     const text = (greetingDraft ?? '').trim();
@@ -705,6 +735,25 @@ export default function Dashboard() {
 
             <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--color-border)' }}>
               <NotificationsPanel />
+            </div>
+
+            <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--color-border)' }}>
+              <h3 className="kernel-section-title" style={{ margin: '0 0 0.5rem', fontSize: '1.05rem' }}>Words that mean urgent</h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.6rem' }}>
+                Separate with commas — e.g. hot lead, closing, water leak.
+              </p>
+              <div style={{ display: 'flex', gap: '0.6rem' }}>
+                <input
+                  value={urgentWords}
+                  onChange={e => { setUrgentWords(e.target.value); setUrgentWordsNote(''); }}
+                  placeholder="hot lead"
+                  style={{ flex: 1 }}
+                />
+                <button className="btn btn-primary" onClick={saveUrgentWords}>Save</button>
+              </div>
+              {urgentWordsNote && (
+                <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', marginTop: '0.4rem' }}>{urgentWordsNote}</p>
+              )}
             </div>
 
             <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--color-border)' }}>

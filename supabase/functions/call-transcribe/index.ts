@@ -78,10 +78,16 @@ serve(async (req: Request) => {
       // is notified immediately and can call back. The live call is never
       // pulled out of screening on a caller's word alone — the filter does
       // not open for self-declared urgency.
+      // Checks the built-in emergency list plus the user's own urgent words.
       // Idempotent: only fires once per ticket.
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('urgent_keywords')
+        .eq('id', ticket.user_id)
+        .maybeSingle()
       if (
         transcript &&
-        containsEmergencyKeyword(transcript) &&
+        containsEmergencyKeyword(transcript, prof?.urgent_keywords ?? []) &&
         !ticket.urgent &&
         !['new', 'reviewed', 'actioned', 'failed'].includes(ticket.status)
       ) {

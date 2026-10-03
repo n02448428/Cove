@@ -235,9 +235,20 @@ const EMERGENCY_RE = new RegExp(
   'i',
 )
 
-export function containsEmergencyKeyword(text: string | null | undefined): boolean {
+function customKeywordsRe(extra: string[]): RegExp | null {
+  const words = (extra ?? []).map((w) => (w ?? '').trim().toLowerCase()).filter(Boolean).slice(0, 50)
+  if (!words.length) return null
+  return new RegExp(
+    `\\b(${words.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`,
+    'i',
+  )
+}
+
+export function containsEmergencyKeyword(text: string | null | undefined, extraKeywords: string[] = []): boolean {
   if (!text) return false
-  return EMERGENCY_RE.test(text)
+  if (EMERGENCY_RE.test(text)) return true
+  const re = customKeywordsRe(extraKeywords)
+  return re ? re.test(text) : false
 }
 
 // ---- Outbound webhooks: ticket.completed postcards ----

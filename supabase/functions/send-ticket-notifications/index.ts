@@ -104,6 +104,23 @@ serve(async (req) => {
       return json(200, { ...result, skipped: 'transcripts_pending' })
     }
 
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('email, email_mode, display_name')
+      .eq('id', ticket.user_id)
+      .maybeSingle()
+
+    // Email routing by the user's chosen mode:
+    //   off     — nothing, ever (claim so the digest skips it too)
+    //   instant — email now (previous behavior)
+    //   daily   — leave unclaimed; the hourly digest job picks it up
+    //   urgent  — urgent tickets now, everything else waits for the digest
+    const emailMode = profile?.email_mode ?? 'instant'
+    const urgent = !!ticket.urgent
+    if (emailMode === 'daily' || (emailMode === 'urgent' && !urgent)) {
+      return json(200, { ...result, skipped: `deferred_to_digest (mode=${emailMode})` })
+    }
+
     // Atomic claim: exactly one sender wins per ticket.
     const claimedAt = new Date().toISOString()
     const { data: claimed } = await supabase
@@ -116,14 +133,7 @@ serve(async (req) => {
       return json(200, { ...result, skipped: 'claim_lost' })
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('email, notify_email, display_name')
-      .eq('id', ticket.user_id)
-      .maybeSingle()
-
     const caller = ticket.caller_number || 'Unknown caller'
-    const urgent = !!ticket.urgent
     const when = fmtTime(ticket.created_at)
     const name = profile?.display_name || ''
     const qa = rows.map((a) => ({
@@ -133,7 +143,7 @@ serve(async (req) => {
 
     // ---- Email ----
     let emailSent = false
-    if (profile?.notify_email !== false && profile?.email) {
+    if (emailMode !== 'off' && profile?.email) {
       const subject = urgent ? `Urgent call from ${caller} — Cove` : `Call from ${caller} — Cove`
       const qaHtml = qa.length
         ? qa.map((x) => `<p style="margin:0 0 12px"><strong>${esc(x.q)}</strong><br>${esc(x.a)}</p>`).join('')
@@ -152,8 +162,11 @@ ${qaHtml}
     result.email_sent = emailSent
 
     // ---- Web Push ----
+    // Dormant: the dashboard no longer offers push (email is the notification
+    // method). Only fires for pre-existing subscriptions on instant sends.
     let pushSent = 0
-    if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+    const pushAllowed = emailMode === 'instant' || (emailMode === 'urgent' && urgent)
+    if (pushAllowed && VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
       const { data: subs } = await supabase
         .from('push_subscriptions')
         .select('id, endpoint, p256dh, auth')

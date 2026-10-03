@@ -11,7 +11,7 @@ const MAX_QUESTIONS = 5;
 export default function Onboarding() {
   const navigate = useNavigate();
   const [realPhone, setRealPhone] = useState('');
-  const [emailNotifs, setEmailNotifs] = useState(true);
+  const [emailMode, setEmailMode] = useState('instant');
   // NOTE: SMS notifications are not offered in this beta. The phone_numbers.notify_sms
   // column stays as a placeholder for a future SMS channel — nothing user-facing reads it.
 
@@ -40,12 +40,13 @@ export default function Onboarding() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('notify_email')
+        .select('email_mode')
         .eq('id', user.id)
         .maybeSingle();
 
-      if (profile && typeof profile.notify_email === 'boolean') {
-        setEmailNotifs(profile.notify_email);
+      if (profile && typeof profile.email_mode === 'string') {
+        const m = ['off', 'instant', 'daily', 'urgent'].includes(profile.email_mode) ? profile.email_mode : 'instant';
+        setEmailMode(m);
       }
     }
     loadExisting();
@@ -69,12 +70,14 @@ export default function Onboarding() {
       if (!user) throw new Error('Not authenticated');
 
       // Ensure public.profiles exists before any FK-dependent upserts.
-      // The email preference lives here now (profiles.notify_email) — the same
-      // switch the Settings page and the notification sender read.
+      // The email preference lives here now (profiles.email_mode) — the same
+      // setting the dashboard notification panel and the senders read.
       const { error: profileErr } = await supabase.from('profiles').upsert({
         id: user.id,
         email: user.email,
-        notify_email: emailNotifs,
+        email_mode: emailMode,
+        digest_time: '08:00',
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Los_Angeles',
       }, { onConflict: 'id' });
       if (profileErr) throw profileErr;
 
@@ -216,9 +219,14 @@ export default function Onboarding() {
             <p className="hint">One per line, max 5. Spoken verbatim to unscreened callers. You can edit these later on the Dashboard.</p>
           </div>
 
-          <div className="field" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <input type="checkbox" id="emailNotifs" checked={emailNotifs} onChange={e => setEmailNotifs(e.target.checked)} style={{ width: 'auto' }} />
-            <label htmlFor="emailNotifs" style={{ margin: 0, textTransform: 'none', letterSpacing: 'normal', fontSize: '0.9rem', color: 'var(--color-text)' }}>Email me after every call</label>
+          <div className="field">
+            <label htmlFor="emailMode">Email me</label>
+            <select id="emailMode" value={emailMode} onChange={e => setEmailMode(e.target.value)}>
+              <option value="instant">After every call</option>
+              <option value="daily">One daily digest</option>
+              <option value="urgent">Urgent calls now, rest in the digest</option>
+              <option value="off">No emails</option>
+            </select>
           </div>
           {error && <p className="error-msg">{error}</p>}
           <button className="btn btn-primary" type="submit" disabled={loading} style={{ width: '100%', marginTop: '0.5rem' }}>

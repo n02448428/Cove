@@ -89,3 +89,6 @@ verify_jwt = false
 
 [functions.request-test-call]
 verify_jwt = true
+
+[functions.send-digest-emails]
+verify_jwt = false

@@ -181,7 +181,7 @@ export async function audit(
 // Kernel scripts, spoken verbatim.
 export const SCRIPT = {
   noAnswer: 'No answer. Goodbye.',
-  thanksGoodbye: 'Thank you. I will pass this along. Goodbye.',
+  thanksGoodbye: 'Thank you. I will pass this along. Goodbye from Cove.',
   notConfigured: 'This number is not configured yet.',
   voicemailMissed: "Sorry, they couldn't pick up. Please leave a message after the tone.",
   voicemailPrompt: 'Please leave a message after the tone.',

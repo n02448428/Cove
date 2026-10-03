@@ -166,7 +166,7 @@ export default function Dashboard() {
   const DEFAULT_GREETING = "Hello, this is Cove, {name}'s assistant. This call may be recorded.";
   const previewName = displayNameDraft !== null ? displayNameDraft : (displayName || '{name}');
   const previewGreeting = ((greetingDraft ?? greeting) || DEFAULT_GREETING).replace(/\{name\}/g, previewName);
-  const KERNEL_CLOSE = 'Thank you. I will pass this along. Goodbye.';
+  const KERNEL_CLOSE = 'Thank you. I will pass this along. Goodbye from Cove.';
 
   const loadAll = useCallback(async (uid) => {
     const [lists, qs, tix, phone, profile] = await Promise.all([
@@ -740,13 +740,13 @@ export default function Dashboard() {
             <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--color-border)' }}>
               <h3 className="kernel-section-title" style={{ margin: '0 0 0.5rem', fontSize: '1.05rem' }}>Words that mean urgent</h3>
               <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.6rem' }}>
-                Separate with commas — e.g. hot lead, closing, water leak.
+                Separate with commas — e.g. closing, water leak, cancel.
               </p>
               <div style={{ display: 'flex', gap: '0.6rem' }}>
                 <input
                   value={urgentWords}
                   onChange={e => { setUrgentWords(e.target.value); setUrgentWordsNote(''); }}
-                  placeholder="hot lead"
+                  placeholder="closing, water leak"
                   style={{ flex: 1 }}
                 />
                 <button className="btn btn-primary" onClick={saveUrgentWords}>Save</button>

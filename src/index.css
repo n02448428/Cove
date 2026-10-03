@@ -297,6 +297,7 @@ a:hover { color: var(--color-accent-hover); }
   margin: 0 auto;
   padding: var(--space-8) var(--space-6);
   position: relative;
+  overflow-x: clip;
 }
 
 /* —— Cove wash: breakwater imagery behind authenticated page headers —— */

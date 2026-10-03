@@ -16,7 +16,6 @@ import { getCallerLists, addCallerList, deleteCallerList } from '../services/api
 export default function Settings() {
   const navigate = useNavigate();
   const [realPhone, setRealPhone] = useState('');
-  const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -55,7 +54,6 @@ export default function Settings() {
           stripeCustomerId: profileRes.data.stripe_customer_id || null,
           subscriptionStatus: profileRes.data.subscription_status || null,
         });
-        setDisplayName(profileRes.data.display_name || '');
         setWebhookUrl(profileRes.data.webhook_url || '');
         setWebhookSecret(profileRes.data.webhook_secret || '');
       }
@@ -175,13 +173,6 @@ export default function Settings() {
       }, { onConflict: 'user_id' });
       if (phoneErr) throw phoneErr;
 
-      const { error: profileErr } = await supabase.from('profiles').upsert({
-        id: user.id,
-        email: user.email,
-        display_name: displayName.trim() || null,
-      }, { onConflict: 'id' });
-      if (profileErr) throw profileErr;
-
       setSuccess(true);
     } catch (err) {
       setError(err.message);
@@ -203,41 +194,7 @@ export default function Settings() {
         Settings
       </h2>
 
-      <div className="card section-card" style={{ marginBottom: '1.25rem' }}>
-        <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 1.55 }}>
-          RED &amp; GREEN lists and screening questions now live on the{' '}
-          <button className="btn-text" onClick={() => navigate('/dashboard')} style={{ fontSize: '0.85rem' }}>Dashboard</button>.
-        </p>
-      </div>
-
-      {showBilling && (
-        <div className="card section-card" style={{ marginBottom: '1.25rem' }}>
-          <h3 style={{ fontFamily: 'var(--font-serif)', fontWeight: 600, fontSize: '1.25rem', marginBottom: '0.5rem' }}>Billing</h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.75rem', lineHeight: 1.55 }}>
-            Cancel, update your card, or view invoices in the Customer Portal. Number stays yours while subscribed; 30-day grace if you cancel.
-            {billing.subscriptionStatus ? (
-              <> Status: <strong>{billing.subscriptionStatus}</strong>.</>
-            ) : null}
-          </p>
-          {portalError && <p className="error-msg">{portalError}</p>}
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={handleManageBilling}
-            disabled={portalLoading}
-            style={{ width: '100%' }}
-          >
-            {portalLoading ? 'Opening…' : 'Manage billing'}
-          </button>
-        </div>
-      )}
-
       <form className="card section-card" onSubmit={handleSave}>
-        <div className="field">
-          <label>Display Name</label>
-          <input type="text" value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="e.g. Visionary Minds" maxLength={60} />
-          <p className="hint">Callers hear “Cove, {displayName.trim() || 'your name'}'s assistant”. Leave blank to use your email name.</p>
-        </div>
         <div className="field">
           <label>Your Real Phone Number</label>
           <input type="tel" value={realPhone} onChange={e => setRealPhone(e.target.value)} placeholder="+16195551234" />
@@ -315,6 +272,27 @@ export default function Settings() {
           </>
         )}
       </div>
+      {showBilling && (
+        <div className="card section-card" style={{ marginBottom: '1.25rem' }}>
+          <h3 style={{ fontFamily: 'var(--font-serif)', fontWeight: 600, fontSize: '1.25rem', marginBottom: '0.5rem' }}>Billing</h3>
+          <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.75rem', lineHeight: 1.55 }}>
+            Cancel, update your card, or view invoices in the Customer Portal. Number stays yours while subscribed; 30-day grace if you cancel.
+            {billing.subscriptionStatus ? (
+              <> Status: <strong>{billing.subscriptionStatus}</strong>.</>
+            ) : null}
+          </p>
+          {portalError && <p className="error-msg">{portalError}</p>}
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={handleManageBilling}
+            disabled={portalLoading}
+            style={{ width: '100%' }}
+          >
+            {portalLoading ? 'Opening…' : 'Manage billing'}
+          </button>
+        </div>
+      )}
       <AppFooter />
     </main>
   );

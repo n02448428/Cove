@@ -53,7 +53,7 @@ export default function UrgentWordsField() {
           value={words}
           onChange={e => { setWords(e.target.value); setNote(''); }}
           placeholder="urgent, emergency"
-          style={{ flex: 1 }}
+          style={{ flex: 1, minWidth: 0 }}
           aria-label="Words that mean urgent"
         />
         <button className="btn btn-primary" onClick={save}>Save</button>

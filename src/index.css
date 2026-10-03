@@ -1286,18 +1286,26 @@ details.feature-row summary:hover {
 }
 .call-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 1.25rem;
   margin-top: 0.9rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--color-border);
   flex-wrap: wrap;
 }
-.call-action-btn {
-  padding: 0.55rem 1.2rem;
+.call-action {
+  background: none;
+  border: none;
+  padding: 0;
   font-size: 0.85rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.35rem;
   text-decoration: none;
+  font-family: inherit;
 }
+.call-action:hover { color: var(--color-text); }
 /* Live screening pulse */
 .live-card { border-color: var(--cove-gold); }
 .live-pulse { animation: live-breathe 2.4s ease-in-out infinite; }
@@ -1369,3 +1377,5 @@ details.feature-row summary:hover {
   color: var(--color-bg);
   border-color: var(--color-text);
 }
+
+.mfa-qr svg { max-width: 100%; height: auto; display: block; }

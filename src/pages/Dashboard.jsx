@@ -65,6 +65,7 @@ export default function Dashboard() {
   // inbox | tickets (the digest deep-link ?tab=tickets opens the history)
   const [view, setView] = useState('inbox');
   const [ticketFilter, setTicketFilter] = useState('all');
+  const [ticketSearch, setTicketSearch] = useState('');
   const [expandedTicket, setExpandedTicket] = useState(null);
   const [ticketAnswers, setTicketAnswers] = useState({});
   const [ticketAnswersLoading, setTicketAnswersLoading] = useState({});
@@ -186,9 +187,42 @@ export default function Dashboard() {
       ? tickets.filter(t => t.status === 'new')
       : tickets.filter(t => t.urgent);
 
+  // Search across name, number, and summary — narrows the filtered set.
+  const searchQ = ticketSearch.trim().toLowerCase();
+  const searchedTickets = searchQ
+    ? filteredTickets.filter(t =>
+        (t.caller_name || '').toLowerCase().includes(searchQ) ||
+        (t.caller_number || '').includes(searchQ) ||
+        (t.summary || '').toLowerCase().includes(searchQ))
+    : filteredTickets;
+
+  // Export downloads exactly what's on screen (filters + search).
+  function exportCsv() {
+    const rows = [['Date', 'Caller', 'Number', 'Status', 'Urgent', 'Summary']];
+    for (const t of searchedTickets) {
+      rows.push([
+        new Date(t.created_at).toLocaleString(),
+        t.caller_name || '',
+        t.caller_number || '',
+        t.status || '',
+        t.urgent ? 'yes' : 'no',
+        (t.summary || '').replace(/\s+/g, ' ').trim(),
+      ]);
+    }
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'cove-calls.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   // Group history by day, newest first
   const grouped = [];
-  for (const t of filteredTickets) {
+  for (const t of searchedTickets) {
     const label = dayLabel(t.created_at);
     const last = grouped[grouped.length - 1];
     if (last && last.label === label) last.items.push(t);
@@ -257,20 +291,32 @@ export default function Dashboard() {
             ‹ Dashboard
           </button>
           <h1 className="inbox-greeting" style={{ marginBottom: '1rem' }}>All calls.</h1>
-          <div className="chips-row" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
-            {TICKET_FILTERS.map(f => (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => setTicketFilter(f.id)}
-                className={`chip${ticketFilter === f.id ? ' chip--active' : ''}`}
-              >
-                {f.label}
-              </button>
-            ))}
+          <input
+            value={ticketSearch}
+            onChange={e => setTicketSearch(e.target.value)}
+            placeholder="Search calls…"
+            aria-label="Search calls"
+            style={{ width: '100%', marginBottom: '0.75rem', minWidth: 0 }}
+          />
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div className="chips-row" style={{ display: 'flex', gap: '0.5rem', flex: 1, flexWrap: 'wrap' }}>
+              {TICKET_FILTERS.map(f => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setTicketFilter(f.id)}
+                  className={`chip${ticketFilter === f.id ? ' chip--active' : ''}`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+            <button type="button" className="call-action" onClick={exportCsv}>Export</button>
           </div>
           {grouped.length === 0 ? (
-            <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>Nothing here yet.</p>
+            <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
+              {searchQ ? 'No calls match.' : 'Nothing here yet.'}
+            </p>
           ) : (
             grouped.map(g => (
               <div key={g.label}>

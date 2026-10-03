@@ -259,7 +259,7 @@ export default function Settings() {
             <div className="field">
               <label>Signing secret</label>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input value={webhookSecret} readOnly placeholder="Generated when you save" style={{ flex: 1 }} />
+                <input value={webhookSecret} readOnly placeholder="Generated when you save" style={{ flex: 1, minWidth: 0 }} />
                 <button type="button" className="btn btn-ghost" onClick={regenerateWebhookSecret}>Regenerate</button>
               </div>
               <p className="hint">Signed via the X-Cove-Signature header (HMAC-SHA256 of the body).</p>

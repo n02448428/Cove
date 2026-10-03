@@ -48,6 +48,12 @@ export default function InboxView({
   const [liveOpen, setLiveOpen] = useState(false);
   const pollRef = useRef(null);
 
+  // The inbox shows unseen calls — but the card you're reading stays put
+  // until you close it, even though opening it already marked it seen.
+  const inboxCards = useMemo(
+    () => tickets.filter(t => t.status === 'new' || t.id === expandedTicket),
+    [tickets, expandedTicket]
+  );
   const newTickets = useMemo(() => tickets.filter(t => t.status === 'new'), [tickets]);
   const liveTicket = useMemo(() => {
     const cutoff = Date.now() - LIVE_WINDOW_MS;
@@ -139,10 +145,10 @@ export default function InboxView({
         </div>
       )}
 
-      {newCount > 0 && (
+      {inboxCards.length > 0 && (
         <div style={{ marginTop: liveTicket ? '1.4rem' : '1.1rem' }}>
           <p className="inbox-label">New</p>
-          {newTickets.map(t => (
+          {inboxCards.map(t => (
             <CallCard
               key={t.id}
               ticket={t}

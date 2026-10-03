@@ -120,7 +120,8 @@ export default function MfaPanel() {
           </p>
           {qrCode && (
             <div
-              style={{ background: '#fff', padding: '0.75rem', borderRadius: '0.75rem', display: 'inline-block', marginBottom: '0.75rem' }}
+              className="mfa-qr"
+              style={{ background: '#fff', padding: '0.75rem', borderRadius: '0.75rem', display: 'inline-block', marginBottom: '0.75rem', maxWidth: '100%' }}
               dangerouslySetInnerHTML={{ __html: qrCode }}
             />
           )}
@@ -135,7 +136,7 @@ export default function MfaPanel() {
               onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
               placeholder="6-digit code"
               inputMode="numeric"
-              style={{ flex: 1 }}
+              style={{ flex: 1, minWidth: 0 }}
               aria-label="Authenticator code"
             />
             <button className="btn btn-primary" onClick={verifyEnroll} disabled={busy || !code.trim()}>

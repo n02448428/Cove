@@ -112,15 +112,15 @@ export default function CallCard({
           )}
           <div className="call-actions">
             {t.caller_number && (
-              <a className="btn btn-primary call-action-btn" href={`tel:${t.caller_number}`}>Call back</a>
+              <a className="call-action" href={`tel:${t.caller_number}`}>Call back</a>
             )}
             {t.caller_number && !isGreen && (
-              <button className="btn btn-ghost call-action-btn" onClick={() => onMoveToList(t, 'green')}>
+              <button className="call-action" onClick={() => onMoveToList(t, 'green')}>
                 <span className="dot dot--green dot--sm" /> Trust
               </button>
             )}
             {t.caller_number && !isRed && (
-              <button className="btn btn-ghost call-action-btn" onClick={() => onMoveToList(t, 'red')}>
+              <button className="call-action" onClick={() => onMoveToList(t, 'red')}>
                 <span className="dot dot--red dot--sm" /> Block
               </button>
             )}

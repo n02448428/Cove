@@ -250,7 +250,7 @@ export default function KernelManager({ userId, callerLists, onAddCallerList, on
               </div>
               {displayNameDraft !== null ? (
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.75rem' }}>
-                  <input value={displayNameDraft} onChange={e => setDisplayNameDraft(e.target.value)} style={{ flex: 1 }} placeholder="Dmitry the architect" aria-label="Your name" />
+                  <input value={displayNameDraft} onChange={e => setDisplayNameDraft(e.target.value)} style={{ flex: 1, minWidth: 0 }} placeholder="Dmitry the architect" aria-label="Your name" />
                   <button className="btn btn-primary" onClick={saveDisplayName}>Save</button>
                   <button className="btn btn-ghost" onClick={() => setDisplayNameDraft(null)}>Cancel</button>
                 </div>
@@ -298,7 +298,7 @@ export default function KernelManager({ userId, callerLists, onAddCallerList, on
                     <strong style={{ display: 'flex', gap: '0.5rem', alignItems: 'baseline' }}>
                       <span style={{ color: 'var(--color-text-muted)', fontWeight: 500 }}>{q.ord}.</span>
                       {questionDrafts[q.id] !== undefined ? (
-                        <input value={questionDrafts[q.id]} onChange={e => setQuestionDrafts(d => ({ ...d, [q.id]: e.target.value }))} style={{ flex: 1 }} />
+                        <input value={questionDrafts[q.id]} onChange={e => setQuestionDrafts(d => ({ ...d, [q.id]: e.target.value }))} style={{ flex: 1, minWidth: 0 }} />
                       ) : (
                         <span>{q.question}</span>
                       )}

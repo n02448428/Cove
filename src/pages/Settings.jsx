@@ -5,7 +5,13 @@ import { toE164, isValidE164, E164_ERROR } from '../lib/phone.js';
 import AppHeader from '../components/AppHeader.jsx';
 import AppFooter from '../components/AppFooter.jsx';
 import CoveMark from '../components/CoveMark.jsx';
+import NotificationsPanel from '../components/NotificationsPanel.jsx';
+import UrgentWordsField from '../components/UrgentWordsField.jsx';
+import TestCallPanel from '../components/TestCallPanel.jsx';
+import MfaPanel from '../components/MfaPanel.jsx';
+import KernelManager from '../components/KernelManager.jsx';
 import { createPortalSession } from '../services/api.js';
+import { getCallerLists, addCallerList, deleteCallerList } from '../services/api.js';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -24,16 +30,22 @@ export default function Settings() {
   const [webhookUrl, setWebhookUrl] = useState('');
   const [webhookSecret, setWebhookSecret] = useState('');
   const [webhookMsg, setWebhookMsg] = useState('');
+  const [userId, setUserId] = useState(null);
+  const [callerLists, setCallerLists] = useState([]);
 
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      setUserId(user.id);
 
-      const [phoneRes, profileRes] = await Promise.all([
+      const [phoneRes, profileRes, lists] = await Promise.all([
         supabase.from('phone_numbers').select('real_number').eq('user_id', user.id).maybeSingle(),
         supabase.from('profiles').select('stripe_customer_id, subscription_status, display_name, webhook_url, webhook_secret').eq('id', user.id).maybeSingle(),
+        getCallerLists(user.id).catch(() => []),
       ]);
+
+      setCallerLists(lists || []);
 
       if (phoneRes.data) {
         setRealPhone(phoneRes.data.real_number || '');
@@ -239,11 +251,33 @@ export default function Settings() {
       </form>
 
       <div className="card section-card" style={{ marginBottom: '1.25rem' }}>
-        <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 1.55 }}>
-          Email notifications now live on the{' '}
-          <button className="btn-text" onClick={() => navigate('/dashboard')} style={{ fontSize: '0.85rem' }}>Dashboard</button>,
-          right under your call preview.
-        </p>
+        <NotificationsPanel />
+        <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--color-border)' }}>
+          <UrgentWordsField />
+        </div>
+      </div>
+
+      {userId && (
+        <KernelManager
+          userId={userId}
+          callerLists={callerLists}
+          onAddCallerList={async (classification, { phone_number, contact_name }) => {
+            const added = await addCallerList(userId, { phone_number, classification, contact_name });
+            setCallerLists(prev => [...prev, added]);
+          }}
+          onDeleteCallerList={async (id) => {
+            await deleteCallerList(id);
+            setCallerLists(prev => prev.filter(c => c.id !== id));
+          }}
+        />
+      )}
+
+      <div className="card section-card" style={{ marginBottom: '1.25rem' }}>
+        <TestCallPanel />
+      </div>
+
+      <div className="card section-card" style={{ marginBottom: '1.25rem' }}>
+        <MfaPanel />
       </div>
 
       <div className="card section-card" style={{ marginBottom: '1.25rem' }}>

@@ -16,6 +16,10 @@ export default function Auth() {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
+  // MFA step: after password sign-in, users with 2FA enrolled must enter a code.
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaFactorId, setMfaFactorId] = useState(null);
 
   useEffect(() => {
     const next =
@@ -36,6 +40,9 @@ export default function Auth() {
     setError('');
     setInfo('');
     setPassword('');
+    setMfaRequired(false);
+    setMfaCode('');
+    setMfaFactorId(null);
     setSearchParams(
       next === 'signup'
         ? { mode: 'signup' }
@@ -83,20 +90,60 @@ export default function Auth() {
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        // provisioning_status lives on phone_numbers, not profiles
-        const { data: phoneRow } = await supabase
-          .from('phone_numbers')
-          .select('provisioning_status')
-          .eq('user_id', data.user.id)
-          .maybeSingle();
-        if (phoneRow?.provisioning_status === 'active') {
-          navigate('/dashboard');
-        } else {
-          navigate('/onboarding');
+        // 2FA (opt-in): password gets you to aal1; a verified TOTP factor
+        // requires a second step before the session is fully trusted.
+        const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (aal?.nextLevel === 'aal2' && aal?.currentLevel !== 'aal2') {
+          const { data: factors } = await supabase.auth.mfa.listFactors();
+          const verified = (factors?.totp || []).find(f => f.status === 'verified');
+          if (verified) {
+            setMfaFactorId(verified.id);
+            setMfaRequired(true);
+            setLoading(false);
+            return;
+          }
         }
+        await afterSignIn(data.user.id);
       }
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function afterSignIn(userId) {
+    // provisioning_status lives on phone_numbers, not profiles
+    const { data: phoneRow } = await supabase
+      .from('phone_numbers')
+      .select('provisioning_status')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (phoneRow?.provisioning_status === 'active') {
+      navigate('/dashboard');
+    } else {
+      navigate('/onboarding');
+    }
+  }
+
+  async function handleMfaSubmit(e) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const { data: challenge, error: chErr } = await supabase.auth.mfa.challenge({ factorId: mfaFactorId });
+      if (chErr) throw chErr;
+      const { data, error } = await supabase.auth.mfa.verify({
+        factorId: mfaFactorId,
+        challengeId: challenge.id,
+        code: mfaCode.trim(),
+      });
+      if (error) throw error;
+      setMfaRequired(false);
+      setMfaCode('');
+      await afterSignIn(data.user.id);
+    } catch (err) {
+      setError(err.message || 'That code didn’t work. Try again.');
     } finally {
       setLoading(false);
     }
@@ -151,6 +198,40 @@ export default function Auth() {
             >
               {loading ? 'Sending...' : 'Send reset link'}
             </button>
+          </form>
+        ) : mfaRequired ? (
+          <form onSubmit={handleMfaSubmit}>
+            <div className="field">
+              <label>Two-factor code</label>
+              <input
+                type="text"
+                value={mfaCode}
+                onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                placeholder="6-digit code"
+                required
+                inputMode="numeric"
+                autoComplete="one-time-code"
+              />
+              <p className="hint">From your authenticator app.</p>
+            </div>
+            {error && <p className="error-msg">{error}</p>}
+            <button
+              className="btn btn-primary"
+              type="submit"
+              disabled={loading}
+              style={{ width: '100%', marginTop: '1rem' }}
+            >
+              {loading ? 'Verifying...' : 'Verify'}
+            </button>
+            <p style={{ textAlign: 'center', marginTop: '0.75rem' }}>
+              <button
+                type="button"
+                onClick={() => { setMfaRequired(false); setMfaCode(''); setError(''); }}
+                style={{ background: 'none', border: 'none', color: 'var(--color-accent)', cursor: 'pointer', fontSize: '0.85rem', padding: 0 }}
+              >
+                Back to sign in
+              </button>
+            </p>
           </form>
         ) : (
           <form onSubmit={handleSubmit}>

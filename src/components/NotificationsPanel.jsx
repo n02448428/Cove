@@ -121,7 +121,7 @@ export default function NotificationsPanel() {
     <div className="notifications-panel">
       <h3 className="kernel-section-title" style={{ margin: '0 0 0.5rem', fontSize: '1.05rem' }}>Notifications</h3>
       <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', lineHeight: 1.55, marginBottom: '1rem' }}>
-        We let you know after every call. Email, a buzz on your phone, or both — flip either one anytime.
+        After every call — email, a buzz, or both.
       </p>
 
       <div className="field" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

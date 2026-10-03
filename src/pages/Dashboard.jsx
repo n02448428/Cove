@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
 import { toE164, isValidE164, E164_ERROR } from '../lib/phone.js';
@@ -16,20 +16,7 @@ import {
   getReviewTickets,
   getReviewTicketAnswers,
   updateReviewTicketStatus,
-  getCallLogs,
 } from '../services/api.js';
-
-const OUTCOME_LABELS = {
-  received: 'Received',
-  screening: 'Screening',
-  rejected: 'Rejected',
-  connected_live: 'Connected',
-  screened: 'Screened',
-  code_connected: 'Code',
-  emergency_connected: 'Emergency',
-  no_answer: 'No answer',
-  failed: 'Failed',
-};
 
 const TICKET_STATUS_LABELS = {
   collecting: 'Collecting',
@@ -47,7 +34,6 @@ const ENDED_REASON_LABELS = {
   failed: 'Failed',
 };
 
-const CALL_OUTCOMES = ['all', 'received', 'screening', 'rejected', 'connected_live', 'screened', 'code_connected', 'no_answer', 'failed'];
 const TICKET_FILTERS = ['all', 'new', 'reviewed', 'actioned'];
 
 const MAX_QUESTIONS = 5;
@@ -118,24 +104,17 @@ export default function Dashboard() {
   const [callerLists, setCallerLists] = useState([]);
   const [questions, setQuestions] = useState([]);
   const [tickets, setTickets] = useState([]);
-  const [calls, setCalls] = useState([]);
 
   // concierge number
   const [conciergeNumber, setConciergeNumber] = useState('');
   const [provisioningStatus, setProvisioningStatus] = useState('');
 
   // collapsible sections
-  const [openSections, setOpenSections] = useState({ green: true, yellow: true, red: false, webhooks: false });
-  const [webhookUrl, setWebhookUrl] = useState('');
-  const [webhookSecret, setWebhookSecret] = useState('');
-  const [webhookMsg, setWebhookMsg] = useState('');
+  const [openSections, setOpenSections] = useState({ green: true, yellow: true, red: false });
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // call log
-  const [expandedCall, setExpandedCall] = useState(null);
-  const [callFilter, setCallFilter] = useState('all');
 
   // dashboard tabs: 'overview' | 'tickets'
   const [dashTab, setDashTab] = useState('overview');
@@ -179,22 +158,18 @@ export default function Dashboard() {
   const KERNEL_CLOSE = 'Thank you. I will pass this along. Goodbye.';
 
   const loadAll = useCallback(async (uid) => {
-    const [lists, qs, tix, logs, phone, profile] = await Promise.all([
+    const [lists, qs, tix, phone, profile] = await Promise.all([
       getCallerLists(uid),
       getScreeningQuestions(uid),
       getReviewTickets(uid),
-      getCallLogs(uid, { limit: 100 }),
       supabase.from('phone_numbers').select('twilio_number, provisioning_status').eq('user_id', uid).order('created_at', { ascending: false }).limit(1).maybeSingle(),
-      supabase.from('profiles').select('greeting, display_name, webhook_url, webhook_secret').eq('id', uid).maybeSingle(),
+      supabase.from('profiles').select('greeting, display_name').eq('id', uid).maybeSingle(),
     ]);
     setCallerLists(lists);
     setQuestions(qs);
     setTickets(tix);
-    setCalls(logs);
     setGreeting(profile.data?.greeting || '');
     setDisplayName(profile.data?.display_name || '');
-    setWebhookUrl(profile.data?.webhook_url || '');
-    setWebhookSecret(profile.data?.webhook_secret || '');
     if (phone.data) {
       setConciergeNumber(phone.data.twilio_number || '');
       setProvisioningStatus(phone.data.provisioning_status || '');
@@ -224,77 +199,6 @@ export default function Dashboard() {
 
   function toggleSection(name) {
     setOpenSections(prev => ({ ...prev, [name]: !prev[name] }));
-  }
-
-  async function hmacHex(secret, body) {
-    const key = await crypto.subtle.importKey(
-      'raw', new TextEncoder().encode(secret || ''),
-      { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-    const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body));
-    return [...new Uint8Array(sig)].map(b => b.toString(16).padStart(2, '0')).join('');
-  }
-
-  function newSecret() {
-    return [...crypto.getRandomValues(new Uint8Array(24))]
-      .map(b => b.toString(16).padStart(2, '0')).join('');
-  }
-
-  async function saveWebhook() {
-    setError('');
-    setWebhookMsg('');
-    try {
-      let secret = webhookSecret;
-      if (webhookUrl.trim() && !secret) {
-        secret = newSecret();
-        setWebhookSecret(secret);
-      }
-      const { error } = await supabase.from('profiles').update({
-        webhook_url: webhookUrl.trim() || null,
-        webhook_secret: secret || null,
-      }).eq('id', userId);
-      if (error) throw error;
-      setWebhookMsg('Saved.');
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  function regenerateWebhookSecret() {
-    setWebhookSecret(newSecret());
-    setWebhookMsg('New secret generated — press Save.');
-  }
-
-  async function testWebhook() {
-    setError('');
-    setWebhookMsg('Sending…');
-    try {
-      const body = JSON.stringify({
-        event: 'webhook.test',
-        ticket_id: 'test',
-        caller_number: '+16195550100',
-        urgent: false,
-        ended_reason: 'completed',
-        created_at: new Date().toISOString(),
-        transcripts_complete: true,
-        messages: [
-          { question: 'Test question', transcript: 'This is a test postcard from Cove.', recording_url: null },
-        ],
-      });
-      const res = await fetch(webhookUrl.trim(), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Cove-Event': 'webhook.test',
-          'X-Cove-Signature': 'sha256=' + (await hmacHex(webhookSecret, body)),
-        },
-        body,
-      });
-      setWebhookMsg(res.ok
-        ? `Test delivered (${res.status}). Check the receiving app.`
-        : `Receiver replied ${res.status} — check the URL.`);
-    } catch (err) {
-      setWebhookMsg('Could not reach the URL.');
-    }
   }
 
   function copyNumber() {
@@ -511,9 +415,6 @@ export default function Dashboard() {
     .slice()
     .sort((a, b) => Number(b.urgent || false) - Number(a.urgent || false));
 
-  // — Call log ————————————————————————————————————
-  const filteredCalls = callFilter === 'all' ? calls : calls.filter(c => c.outcome === callFilter);
-
   if (loading) {
     return (
       <main className="page">
@@ -719,13 +620,8 @@ export default function Dashboard() {
                   </div>
                 </div>
               )}
-              {(greetingDraft !== null ? greetingDraft : greeting) && (
-                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: '0 0 0.35rem', fontStyle: 'italic' }}>
-                  “{(greetingDraft !== null ? greetingDraft : greeting).replace(/\{name\}/g, displayNameDraft !== null ? displayNameDraft : (displayName || '{name}'))}”
-                </p>
-              )}
               <p className="hint" style={{ margin: 0 }}>
-                Keep the recording notice in your greeting — it’s required in two-party consent states, including California.
+                Keep the recording notice — required in California and other two-party states.
               </p>
             </div>
             {/* Questions */}
@@ -779,60 +675,58 @@ export default function Dashboard() {
             )}
             </div>
 
+            {/* Script — what callers hear, live */}
+            <div className="convo-preview">
+              <div className="convo-line convo-line--cove">
+                <span className="convo-speaker">Cove</span>
+                <p>{previewGreeting}</p>
+              </div>
+              {questions.map(q => (
+                <Fragment key={q.id}>
+                  <div className="convo-line convo-line--caller">
+                    <span className="convo-speaker">Caller</span>
+                    <p>recorded</p>
+                  </div>
+                  <div className="convo-line convo-line--cove">
+                    <span className="convo-speaker">Cove</span>
+                    <p>{q.question}</p>
+                  </div>
+                </Fragment>
+              ))}
+              <div className="convo-line convo-line--caller">
+                <span className="convo-speaker">Caller</span>
+                <p>recorded</p>
+              </div>
+              <div className="convo-line convo-line--cove">
+                <span className="convo-speaker">Cove</span>
+                <p>{KERNEL_CLOSE}</p>
+              </div>
+            </div>
+
+            <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--color-border)' }}>
+              <NotificationsPanel />
+            </div>
+
+            <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--color-border)' }}>
+              <h3 className="kernel-section-title" style={{ margin: '0 0 0.5rem', fontSize: '1.05rem' }}>Try it</h3>
+              <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', lineHeight: 1.55, marginBottom: '0.9rem' }}>
+                We call your number from your Cove number — hear what callers hear. 3 a day.
+              </p>
+              <button
+                className="btn btn-primary"
+                onClick={handleTestCall}
+                disabled={testCallState === 'calling'}
+                style={{ width: '100%' }}
+              >
+                {testCallState === 'calling' ? 'Calling…' : testCallState === 'done' ? 'Call again' : 'Call me now'}
+              </button>
+              {testCallMsg && (
+                <p style={{ fontSize: '0.9rem', color: 'var(--color-success)', marginTop: '0.6rem' }}>{testCallMsg}</p>
+              )}
+            </div>
+
           </div>
         )}
-      </section>
-
-      {/* What callers hear — live conversation preview, notifications, test call */}
-      <section className="kernel-section card section-card" aria-label="What callers hear">
-        <h2 className="kernel-section-title" style={{ marginBottom: '0.25rem' }}>What callers hear</h2>
-        <p className="hint" style={{ textAlign: 'left', marginTop: 0, marginBottom: '1rem' }}>
-          A live preview — it updates as you edit your greeting and questions. Example caller shown.
-        </p>
-
-        <div className="convo-preview">
-          <div className="convo-line convo-line--cove">
-            <span className="convo-speaker">Cove</span>
-            <p>{previewGreeting}</p>
-          </div>
-          <div className="convo-line convo-line--caller">
-            <span className="convo-speaker">Caller</span>
-            <p>Hi, it&rsquo;s Alex — is Dmitry there?</p>
-          </div>
-          {questions.map(q => (
-            <div key={q.id} className="convo-line convo-line--cove">
-              <span className="convo-speaker">Cove</span>
-              <p>{q.question}</p>
-            </div>
-          ))}
-          <div className="convo-line convo-line--cove">
-            <span className="convo-speaker">Cove</span>
-            <p>{KERNEL_CLOSE}</p>
-          </div>
-        </div>
-
-        <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--color-border)' }}>
-          <NotificationsPanel />
-        </div>
-
-        <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--color-border)' }}>
-          <h3 className="kernel-section-title" style={{ margin: '0 0 0.5rem', fontSize: '1.05rem' }}>Try it yourself</h3>
-          <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', lineHeight: 1.55, marginBottom: '0.9rem' }}>
-            We&rsquo;ll call your real number from your Cove number, so you hear exactly what a caller hears.
-            Limited to 3 test calls a day.
-          </p>
-          <button
-            className="btn btn-primary"
-            onClick={handleTestCall}
-            disabled={testCallState === 'calling'}
-            style={{ width: '100%' }}
-          >
-            {testCallState === 'calling' ? 'Calling…' : testCallState === 'done' ? 'Call again' : 'Call me now'}
-          </button>
-          {testCallMsg && (
-            <p style={{ fontSize: '0.9rem', color: 'var(--color-success)', marginTop: '0.6rem' }}>{testCallMsg}</p>
-          )}
-        </div>
       </section>
 
       {/* RED — rejected (collapsible) */}
@@ -876,151 +770,7 @@ export default function Dashboard() {
         )}
       </section>
 
-      {/* Calls — history (tickets live in the Tickets tab) */}
-      <section className="kernel-section" id="calls">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h2 className="kernel-section-title" style={{ margin: 0 }}>Calls</h2>
-          {tickets.filter(t => t.status === 'new').length > 0 && (
-            <button
-              className="btn btn-ghost"
-              style={{ padding: '0.4rem 1rem', fontSize: '0.8rem' }}
-              onClick={() => setDashTab('tickets')}
-            >
-              {tickets.filter(t => t.status === 'new').length} new ticket{tickets.filter(t => t.status === 'new').length === 1 ? '' : 's'} to review
-            </button>
-          )}
-        </div>
-        <>
-        <div className="filter-row">
-          {CALL_OUTCOMES.map(f => (
-            <button
-              key={f}
-              className={`btn ${callFilter === f ? 'btn-primary' : 'btn-ghost'}`}
-              style={{ padding: '0.4rem 1rem', fontSize: '0.8rem' }}
-              onClick={() => setCallFilter(f)}
-            >
-              {f === 'all' ? 'All' : OUTCOME_LABELS[f] || f}
-            </button>
-          ))}
-        </div>
-        {filteredCalls.length === 0 ? (
-          <div className="card-quiet" style={{ textAlign: 'center', padding: '3rem' }}>
-            <p style={{ color: 'var(--color-text-muted)' }}>No calls yet. Make sure your number is forwarded to Cove.</p>
-            <button className="btn btn-ghost" style={{ marginTop: '1rem' }} onClick={() => navigate('/forwarding')}>
-              View forwarding instructions
-            </button>
-          </div>
-        ) : (
-          <div className="call-list">
-            {filteredCalls.map(call => (
-              <div
-                key={call.id}
-                className="call-row"
-                onClick={() => setExpandedCall(expandedCall === call.id ? null : call.id)}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div>
-                    <p style={{ fontWeight: 600 }}>{call.caller_name || call.caller_number || 'Unknown'}</p>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
-                      {new Date(call.created_at).toLocaleString()}
-                    </p>
-                  </div>
-                  <span className={`badge badge-${call.outcome}`}>
-                    {OUTCOME_LABELS[call.outcome] || call.outcome}
-                  </span>
-                </div>
-                {expandedCall === call.id && (() => {
-                  const linkedTicket = tickets.find(t => t.call_sid === call.call_sid) || tickets.find(t => t.id === call.ticket_id);
-                  return (
-                  <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--color-rule)' }} onClick={e => e.stopPropagation()}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem 1.5rem', marginBottom: '0.75rem' }}>
-                      {call.caller_number && (
-                        <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>From: <strong style={{ color: 'var(--color-text)' }}>{call.caller_number}</strong></span>
-                      )}
-                      {call.duration != null && call.duration > 0 && (
-                        <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Duration: {Math.floor(call.duration / 60)}m {call.duration % 60}s</span>
-                      )}
-                      <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Status: <strong style={{ color: 'var(--color-text)' }}>{OUTCOME_LABELS[call.outcome] || call.outcome}</strong></span>
-                      {linkedTicket && (
-                        <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Ticket: <strong style={{ color: 'var(--color-text)' }}>{TICKET_STATUS_LABELS[linkedTicket.status] || linkedTicket.status}</strong>{linkedTicket.ended_reason ? ` · ${ENDED_REASON_LABELS[linkedTicket.ended_reason] || linkedTicket.ended_reason}` : ''}</span>
-                      )}
-                    </div>
-                    {call.summary ? (
-                      <p style={{ fontSize: '0.85rem', marginBottom: '0.75rem' }}>{call.summary}</p>
-                    ) : linkedTicket ? (
-                      <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>No summary yet — open the call summary for the recording and transcript.</p>
-                    ) : (
-                      <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>No details available for this call.</p>
-                    )}
-                    {call.transcript && (
-                      <details>
-                        <summary style={{ cursor: 'pointer', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Full transcript</summary>
-                        <p style={{ fontSize: '0.8rem', marginTop: '0.5rem', whiteSpace: 'pre-wrap', color: 'var(--color-text-muted)' }}>{call.transcript}</p>
-                      </details>
-                    )}
-                    {call.voicemail_url && (() => {
-                      const sid = (call.voicemail_url.match(/Recordings\/([A-Za-z0-9]+)/) || [])[1];
-                      return sid ? <RecordingPlayer recordingSid={sid} /> : null;
-                    })()}
-                    {linkedTicket && (
-                      <button className="btn btn-ghost" style={{ marginTop: '0.75rem', padding: '0.4rem 0.9rem', fontSize: '0.8rem' }} onClick={() => {
-                        const t = linkedTicket;
-                        setCallsView('review');
-                        setTicketFilter('all');
-                        setExpandedTicket(t.id);
-                        setDashTab('tickets');
-                        if (!ticketAnswers[t.id]) {
-                          setTicketAnswersLoading(s => ({ ...s, [t.id]: true }));
-                          getReviewTicketAnswers(t.id)
-                            .then(answers => setTicketAnswers(prev => ({ ...prev, [t.id]: answers })))
-                            .catch(() => {})
-                            .finally(() => setTicketAnswersLoading(s => ({ ...s, [t.id]: false })));
-                        }
-                      }}>Open ticket →</button>
-                    )}
-                  </div>
-                  );
-                })()}
-              </div>
-            ))}
-          </div>
-        )}
-        </>
-      </section>
-
-      {/* Webhooks */}
-      <section className="kernel-section card section-card">
-        <button type="button" className="section-toggle" onClick={() => toggleSection('webhooks')} aria-expanded={openSections.webhooks}>
-          <span className="section-dot section-dot--green"></span>
-          <span className="kernel-section-title">Webhooks</span>
-          {webhookUrl.trim() && <span className="badge badge-green">on</span>}
-          <Chevron open={openSections.webhooks} />
-        </button>
-        {openSections.webhooks && (
-          <div className="section-body">
-            <p className="hint" style={{ textAlign: 'left', marginTop: 0 }}>Every completed ticket is posted here as JSON — connect Zapier or Make to reach your CRM, Slack, or spreadsheets.</p>
-            <div className="field">
-              <label>Webhook URL</label>
-              <input value={webhookUrl} onChange={e => setWebhookUrl(e.target.value)} placeholder="https://hooks.zapier.com/hooks/catch/…" />
-            </div>
-            <div className="field">
-              <label>Signing secret</label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input value={webhookSecret} readOnly placeholder="Generated when you save" style={{ flex: 1 }} />
-                <button className="btn btn-ghost" onClick={regenerateWebhookSecret}>Regenerate</button>
-              </div>
-              <p className="hint">Each post is signed: the X-Cove-Signature header carries the HMAC-SHA256 of the body.</p>
-            </div>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-              <button className="btn btn-primary" onClick={saveWebhook}>Save</button>
-              <button className="btn btn-ghost" onClick={testWebhook} disabled={!webhookUrl.trim()}>Send test</button>
-              {webhookMsg && <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>{webhookMsg}</span>}
-            </div>
-          </div>
-        )}
-      </section>
       </>)}
-      )}
 
       {dashTab === 'tickets' && (
       <section className="kernel-section" id="tickets">

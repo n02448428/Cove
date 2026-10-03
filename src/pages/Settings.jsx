@@ -16,6 +16,7 @@ import { getCallerLists, addCallerList, deleteCallerList } from '../services/api
 export default function Settings() {
   const navigate = useNavigate();
   const [realPhone, setRealPhone] = useState('');
+  const [coveNumber, setCoveNumber] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -39,7 +40,7 @@ export default function Settings() {
       setUserId(user.id);
 
       const [phoneRes, profileRes, lists] = await Promise.all([
-        supabase.from('phone_numbers').select('real_number').eq('user_id', user.id).maybeSingle(),
+        supabase.from('phone_numbers').select('real_number, twilio_number').eq('user_id', user.id).maybeSingle(),
         supabase.from('profiles').select('stripe_customer_id, subscription_status, display_name, webhook_url, webhook_secret').eq('id', user.id).maybeSingle(),
         getCallerLists(user.id).catch(() => []),
       ]);
@@ -48,6 +49,7 @@ export default function Settings() {
 
       if (phoneRes.data) {
         setRealPhone(phoneRes.data.real_number || '');
+        setCoveNumber(phoneRes.data.twilio_number || '');
       }
       if (profileRes.data) {
         setBilling({
@@ -230,7 +232,7 @@ export default function Settings() {
       )}
 
       <div className="card section-card" style={{ marginBottom: '1.25rem' }}>
-        <TestCallPanel />
+        <TestCallPanel coveNumber={coveNumber} />
       </div>
 
       <div className="card section-card" style={{ marginBottom: '1.25rem' }}>

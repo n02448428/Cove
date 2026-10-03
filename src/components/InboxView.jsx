@@ -170,9 +170,12 @@ export default function InboxView({
             <p className="number-label">Your Cove number</p>
             <p className="number-value">{formatPhone(conciergeNumber)}</p>
           </div>
-          <button className="btn btn-ghost" style={{ padding: '0.5rem 1rem', fontSize: '0.82rem' }} onClick={onCopyNumber}>
-            Copy
-          </button>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <a className="call-action" href={`tel:${conciergeNumber}`}>Call it</a>
+            <button className="btn btn-ghost" style={{ padding: '0.5rem 1rem', fontSize: '0.82rem' }} onClick={onCopyNumber}>
+              Copy
+            </button>
+          </div>
         </div>
       )}
 

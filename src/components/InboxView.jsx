@@ -56,7 +56,12 @@ export default function InboxView({
       .filter(t => { try { return new Date(t.created_at).getTime() > cutoff; } catch { return false; } })
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0] || null;
   }, [tickets]);
-  const handledToday = useMemo(() => tickets.filter(t => isToday(t.created_at)).length, [tickets]);
+  // "Handled" = calls Cove took today (screened and filed). Resets daily.
+  // Failed and in-progress calls don't count — they weren't handled.
+  const handledToday = useMemo(
+    () => tickets.filter(t => ['new', 'reviewed', 'actioned'].includes(t.status) && isToday(t.created_at)).length,
+    [tickets]
+  );
 
   const greenNumbers = useMemo(() => new Set(callerLists.filter(c => c.classification === 'green').map(c => c.phone_number)), [callerLists]);
   const redNumbers = useMemo(() => new Set(callerLists.filter(c => c.classification === 'red').map(c => c.phone_number)), [callerLists]);
@@ -84,18 +89,23 @@ export default function InboxView({
 
   const newCount = newTickets.length;
   const name = displayName ? `, ${displayName}` : '';
+  const needsWord = newCount === 1 ? 'needs' : 'need';
+  let briefing;
+  if (newCount > 0 && handledToday > 0) {
+    briefing = `I handled ${handledToday} call${handledToday === 1 ? '' : 's'} today. ${newCount} call${newCount === 1 ? '' : 's'} ${needsWord} your review.`;
+  } else if (newCount > 0) {
+    briefing = `${newCount} call${newCount === 1 ? '' : 's'} ${needsWord} your review.`;
+  } else if (handledToday > 0) {
+    briefing = `All quiet — I handled ${handledToday} call${handledToday === 1 ? '' : 's'} today.`;
+  } else {
+    briefing = 'All quiet — no calls today.';
+  }
 
   return (
     <div>
       <h1 className="inbox-greeting">{daypart()}{name}.</h1>
-      {newCount > 0 ? (
-        <p className="inbox-status">{newCount} call{newCount === 1 ? '' : 's'} need{newCount === 1 ? 's' : ''} your review.</p>
-      ) : (
-        <>
-          <p className="inbox-status">All quiet — {handledToday} call{handledToday === 1 ? '' : 's'} handled today.</p>
-          <p className="inbox-serenity">{dailyLine}</p>
-        </>
-      )}
+      <p className="inbox-status">{briefing}</p>
+      {newCount === 0 && <p className="inbox-serenity">{dailyLine}</p>}
 
       {liveTicket && (
         <div className="call-card live-card" style={{ marginTop: '1.1rem' }}>

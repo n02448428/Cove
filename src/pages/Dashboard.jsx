@@ -21,6 +21,12 @@ const DAILY_LINES = [
   'Your life, uninterrupted \u2014 except by the people you\u2019d interrupt anything for.',
   'Breathe easier. Your phone\u2019s got the noise; you\u2019ve got the people.',
   'Calm isn\u2019t the absence of calls. It\u2019s the absence of the wrong ones.',
+  'Only the calls that matter make a sound.',
+  'Silence, except for the voices you love.',
+  'Answer less. Live more.',
+  'Your attention is yours again.',
+  'The right calls find you. The rest never existed.',
+  'Less ringing. More living.',
 ];
 
 const TICKET_FILTERS = [

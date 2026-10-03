@@ -4,6 +4,9 @@ import { formatPhone } from '../lib/format.js';
 import { getReviewTicketAnswers } from '../services/api.js';
 
 const LIVE_STATUSES = ['collecting', 'transcribing'];
+// A call is only "live" if it started recently — stale tickets stuck in a
+// non-terminal status must never light up the live card.
+const LIVE_WINDOW_MS = 15 * 60 * 1000;
 
 function daypart() {
   const h = new Date().getHours();
@@ -46,10 +49,13 @@ export default function InboxView({
   const pollRef = useRef(null);
 
   const newTickets = useMemo(() => tickets.filter(t => t.status === 'new'), [tickets]);
-  const liveTicket = useMemo(
-    () => tickets.filter(t => LIVE_STATUSES.includes(t.status)).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0] || null,
-    [tickets]
-  );
+  const liveTicket = useMemo(() => {
+    const cutoff = Date.now() - LIVE_WINDOW_MS;
+    return tickets
+      .filter(t => LIVE_STATUSES.includes(t.status))
+      .filter(t => { try { return new Date(t.created_at).getTime() > cutoff; } catch { return false; } })
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0] || null;
+  }, [tickets]);
   const handledToday = useMemo(() => tickets.filter(t => isToday(t.created_at)).length, [tickets]);
 
   const greenNumbers = useMemo(() => new Set(callerLists.filter(c => c.classification === 'green').map(c => c.phone_number)), [callerLists]);

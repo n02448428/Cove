@@ -35,12 +35,12 @@ const TERMINAL = ['new', 'reviewed', 'actioned', 'failed']
 // until its audio is generated.
 const VOICE_BASE = 'https://www.withcove.co/voice'
 const VOICE_FILES: Record<string, string> = {
-  "Hello \u2014 you've reached Visionary Minds Solutions, an AI software company. I'm Cove, the AI receptionist. This call may be recorded.": 'vms_greeting.mp3',
-  'May I ask who is calling, and what I can help you with?': 'vms_q1.mp3',
-  'What\u2019s the best number to reach you back on?': 'vms_q2.mp3',
-  'Thank you. I will pass this along. Goodbye from Cove.': 'goodbye.mp3',
-  'No answer. Goodbye.': 'noanswer.mp3',
-  'Please leave a message after the tone.': 'voicemail.mp3',
+  "Hello \u2014 you've reached Visionary Minds Solutions, an AI software company. I'm Cove, the AI receptionist. This call may be recorded.": 'paige_greeting.mp3',
+  'May I ask who is calling, and what I can help you with?': 'paige_q1.mp3',
+  'What\u2019s the best number to reach you back on?': 'paige_q2.mp3',
+  'Thank you. I will pass this along. Goodbye from Cove.': 'paige_goodbye.mp3',
+  'No answer. Goodbye.': 'paige_noanswer.mp3',
+  'Please leave a message after the tone.': 'paige_voicemail.mp3',
 }
 function speak(text: string): string {
   const f = VOICE_FILES[text]

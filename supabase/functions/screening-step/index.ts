@@ -163,7 +163,7 @@ serve(async (req: Request) => {
     const questionText = withName(q?.question ?? '')
     const answerAction = `${stepBase}?stage=answer&qi=${qi}&attempt=${attempt}&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
     // On a misfire retry, Paige excuses herself before repeating the question.
-    const sorryPrefix = params.get('sorry') === '1' ? `${speak("Sorry, I didn't quite catch that.")}\n  ` : ''
+    const sorryPrefix = url.searchParams.get('sorry') === '1' ? `${speak("Sorry, I didn't quite catch that.")}\n  ` : ''
     // Speech gather with automatic end-of-speech detection: the moment the
     // caller stops talking, Twilio moves on. No silence-timeout guessing.
     // Full-call audio is captured separately by <Start><Recording>.

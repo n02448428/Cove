@@ -196,6 +196,11 @@ export default function Settings() {
         Settings
       </h2>
 
+      <div className="card section-card" style={{ marginBottom: '1.25rem' }}>
+        <a href="/forwarding" className="call-action" style={{ textDecoration: 'none' }}>Call forwarding instructions →</a>
+        <p className="hint" style={{ marginTop: '0.5rem' }}>Send your personal calls to Cove.</p>
+      </div>
+
       <form className="card section-card" onSubmit={handleSave}>
         <div className="field">
           <label>Your Real Phone Number</label>

@@ -23,11 +23,28 @@ import {
   validateTwilioSignature,
   SCRIPT,
   NO_ANSWER_DURATION_S,
+  containsEmergencyKeyword,
   dispatchTicketWebhook,
   dispatchTicketNotifications,
 } from '../_shared/cove.ts'
 
 const TERMINAL = ['new', 'reviewed', 'actioned', 'failed']
+
+// Cove's voice: pre-generated ElevenLabs audio (Jessica), cached as static
+// files. Known texts play the recording; anything new falls back to <Say>
+// until its audio is generated.
+const VOICE_BASE = 'https://withcove.co/voice'
+const VOICE_FILES: Record<string, string> = {
+  "Hello, this is Cove, Dmitry's assistant. Please state your name and reason for calling.": 'greeting.mp3',
+  'Who is calling, please?': 'q1.mp3',
+  'Thank you. I will pass this along. Goodbye from Cove.': 'goodbye.mp3',
+  'No answer. Goodbye.': 'noanswer.mp3',
+  'Please leave a message after the tone.': 'voicemail.mp3',
+}
+function speak(text: string): string {
+  const f = VOICE_FILES[text]
+  return f ? `<Play>${xmlEscape(`${VOICE_BASE}/${f}`)}</Play>` : `<Say>${xmlEscape(text)}</Say>`
+}
 
 serve(async (req: Request) => {
   const body = await req.text()
@@ -119,8 +136,8 @@ serve(async (req: Request) => {
         return twiml(
           `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Kendra-Neural">${xmlEscape(greetingText)}</Say>
-  <Say voice="Polly.Kendra-Neural">${xmlEscape(SCRIPT.voicemailPrompt)}</Say>
+  ${speak(greetingText)}
+  ${speak(SCRIPT.voicemailPrompt)}
   <Record maxLength="120" timeout="5" playBeep="true" trim="trim-silence" transcribe="true" transcribeCallback="${xmlEscape(transcribeCb)}" action="${xmlEscape(vmAction)}" method="POST" />
 </Response>`,
         )
@@ -130,7 +147,7 @@ serve(async (req: Request) => {
       return twiml(
         `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Kendra-Neural">${xmlEscape(greetingText)}</Say>
+  ${speak(greetingText)}
   <Redirect method="POST">${xmlEscape(q1Url)}</Redirect>
 </Response>`,
       )
@@ -143,43 +160,83 @@ serve(async (req: Request) => {
     const q = qs[qi - 1]
     const questionText = withName(q?.question ?? '')
     const answerAction = `${stepBase}?stage=answer&qi=${qi}&attempt=${attempt}&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
-    const transcribeCb = `${fnUrl('call-transcribe')}?ticketId=${encodeURIComponent(ticketId)}&qi=${qi}&attempt=${attempt}`
+    // Speech gather with automatic end-of-speech detection: the moment the
+    // caller stops talking, Twilio moves on. No silence-timeout guessing.
+    // Full-call audio is captured separately by <Start><Recording>.
     return twiml(
       `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Kendra-Neural">${xmlEscape(questionText)}</Say>
-  <Record maxLength="60" timeout="3" playBeep="false" trim="trim-silence" transcribe="true" transcribeCallback="${xmlEscape(transcribeCb)}" action="${xmlEscape(answerAction)}" method="POST" />
+  <Gather input="speech" speechTimeout="auto" timeout="8" action="${xmlEscape(answerAction)}" method="POST">
+    ${speak(questionText)}
+  </Gather>
+  <Redirect method="POST">${xmlEscape(answerAction)}</Redirect>
 </Response>`,
     )
   }
 
   // -------------------------------------------------------------- stage=answer
   if (stage === 'answer') {
-    const recordingUrl = formGet(params, 'RecordingUrl')
-    const recordingSid = formGet(params, 'RecordingSid')
-    const durationStr = formGet(params, 'RecordingDuration')
-    const duration = durationStr ? parseInt(durationStr, 10) : null
-    // qi>=1 asked a saved question (qi=0 greeting has no recording).
+    const speechResult = (formGet(params, 'SpeechResult') || '').trim()
+    const confidence = parseFloat(formGet(params, 'Confidence') || '1')
+    // qi>=1 asked a saved question (qi=0 greeting has no gather).
     const q = qi >= 1 && qi <= numQuestions ? qs[qi - 1] : null
     const questionText = qi === 0 ? withName(greetingTemplate) : withName(q?.question ?? '')
 
-    const noAnswer = !recordingSid || (duration !== null && duration < NO_ANSWER_DURATION_S)
+    // A barge-in that caught only a cough or fragment comes back with very
+    // low confidence — treat it as if they didn't answer so the question
+    // repeats instead of their noise becoming the answer.
+    const misfire = !!speechResult && (confidence < 0.4 || speechResult.length < 2)
+    const noAnswer = !speechResult || misfire
 
     // Persist the captured answer (idempotent on ticket+ord+attempt).
+    // Transcript arrives with the answer — no async transcription needed.
+    // Misfires save nothing; the question simply repeats.
     await supabase.from('review_ticket_answers').upsert(
       {
         ticket_id: ticketId,
         question_ord: qi,
         attempt,
         question_text: questionText,
-        recording_sid: recordingSid || null,
-        recording_url: recordingUrl || null,
-        recording_duration: duration,
-        transcript: null,
-        transcription_status: noAnswer ? 'none' : 'pending',
+        recording_sid: null,
+        recording_url: null,
+        recording_duration: null,
+        transcript: misfire ? null : speechResult || null,
+        transcription_status: noAnswer ? 'none' : 'completed',
       },
       { onConflict: 'ticket_id,question_ord,attempt' },
     )
+
+    if (!noAnswer) {
+      await audit(supabase, user_id, callSid, 'transcription_received', 'twilio', {
+        question_ord: qi,
+        status: 'completed',
+      })
+      // Emergency path: a keyword match flags the ticket URGENT so the user
+      // is notified immediately and can call back. The live call is never
+      // pulled out of screening on a caller's word alone.
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('urgent_keywords')
+        .eq('id', user_id)
+        .maybeSingle()
+      const { data: tkt } = await supabase
+        .from('review_tickets')
+        .select('urgent, status')
+        .eq('id', ticketId)
+        .maybeSingle()
+      if (
+        containsEmergencyKeyword(speechResult, prof?.urgent_keywords ?? []) &&
+        !tkt?.urgent &&
+        tkt &&
+        !['new', 'reviewed', 'actioned', 'failed'].includes(tkt.status)
+      ) {
+        await supabase.from('review_tickets').update({ urgent: true }).eq('id', ticketId)
+        await audit(supabase, user_id, callSid, 'emergency_keyword_detected', 'kernel', {
+          question_ord: qi,
+          transcript: speechResult.slice(0, 500),
+        })
+      }
+    }
 
     if (noAnswer) {
       if (attempt < 2) {
@@ -271,6 +328,6 @@ async function finalize(
   dispatchTicketNotifications(ticketId)
 
   return twiml(
-    `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Kendra-Neural">${xmlEscape(closingScript)}</Say><Hangup/></Response>`,
+    `<?xml version="1.0" encoding="UTF-8"?><Response>${speak(closingScript)}<Hangup/></Response>`,
   )
 }

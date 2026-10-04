@@ -172,6 +172,7 @@ export default function InboxView({
           </div>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             <a className="call-action" href={`tel:${conciergeNumber}`}>Call it</a>
+            <a className="call-action" href="/forwarding">Forwarding</a>
             <button className="btn btn-ghost" style={{ padding: '0.5rem 1rem', fontSize: '0.82rem' }} onClick={onCopyNumber}>
               Copy
             </button>

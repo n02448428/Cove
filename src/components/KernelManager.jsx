@@ -104,6 +104,25 @@ export default function KernelManager({ userId, callerLists, onAddCallerList, on
     }
   }
 
+  // Trigger voice regeneration after text changes. Fire-and-forget: the
+  // audio updates in the background; the call flow falls back to the
+  // basic voice if a clip isn't ready yet.
+  async function refreshVoice(text) {
+    try {
+      const fnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/regenerate-voice`;
+      await fetch(fnUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ user_id: userId, text }),
+      });
+    } catch {
+      // Voice refresh is best-effort; the save already succeeded.
+    }
+  }
+
   async function saveGreeting() {
     setError('');
     const text = (greetingDraft ?? '').trim();
@@ -113,6 +132,7 @@ export default function KernelManager({ userId, callerLists, onAddCallerList, on
       if (error) throw error;
       setGreeting(text);
       setGreetingDraft(null);
+      refreshVoice(text.replace(/\{name\}/g, displayName || 'there'));
     } catch (err) {
       setError(err.message);
     }
@@ -131,6 +151,7 @@ export default function KernelManager({ userId, callerLists, onAddCallerList, on
       const fresh = await replaceScreeningQuestions(userId, texts);
       setQuestions(fresh);
       setQuestionDrafts(d => { const n = { ...d }; delete n[q.id]; return n; });
+      refreshVoice(text);
     } catch (err) {
       setError(err.message);
     }
@@ -146,6 +167,7 @@ export default function KernelManager({ userId, callerLists, onAddCallerList, on
       const fresh = await replaceScreeningQuestions(userId, texts);
       setQuestions(fresh);
       setNewQuestion('');
+      refreshVoice(text);
     } catch (err) {
       setError(err.message);
     }

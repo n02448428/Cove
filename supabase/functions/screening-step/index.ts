@@ -43,9 +43,29 @@ const VOICE_FILES: Record<string, string> = {
   'Please leave a message after the tone.': 'paige_voicemail.mp3',
   "Sorry, I didn't quite catch that.": 'paige_sorry.mp3',
 }
-function speak(text: string): string {
+async function sha256Hex(text: string): Promise<string> {
+  const data = new TextEncoder().encode(text)
+  const hash = await crypto.subtle.digest('SHA-256', data)
+  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+// Voice playback: hash-based URLs in Supabase Storage (`voice/{sha256}.mp3`),
+// generated on save by regenerate-voice. Falls back to <Say> if the clip
+// doesn't exist yet (e.g. generation still in progress).
+const VOICE_STORAGE_BASE = `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/voice`
+async function speak(text: string): Promise<string> {
+  // Legacy static files (GitHub Pages) for built-in lines.
   const f = VOICE_FILES[text]
-  return f ? `<Play>${xmlEscape(`${VOICE_BASE}/${f}`)}</Play>` : `<Say>${xmlEscape(text)}</Say>`
+  if (f) return `<Play>${xmlEscape(`${VOICE_BASE}/${f}`)}</Play>`
+  try {
+    const hash = await sha256Hex(text)
+    const url = `${VOICE_STORAGE_BASE}/${hash}.mp3`
+    const head = await fetch(url, { method: 'HEAD' })
+    if (head.ok) return `<Play>${xmlEscape(url)}</Play>`
+  } catch {
+    // fall through to Say
+  }
+  return `<Say>${xmlEscape(text)}</Say>`
 }
 
 serve(async (req: Request) => {
@@ -135,21 +155,24 @@ serve(async (req: Request) => {
         // answer, so nothing the caller says is ever lost.
         const vmAction = `${stepBase}?stage=voicemail&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
         const transcribeCb = `${fnUrl('call-transcribe')}?ticketId=${encodeURIComponent(ticketId)}&qi=0&attempt=1`
+        const greetingAudio = await speak(greetingText)
+        const vmPromptAudio = await speak(SCRIPT.voicemailPrompt)
         return twiml(
           `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  ${speak(greetingText)}
-  ${speak(SCRIPT.voicemailPrompt)}
+  ${greetingAudio}
+  ${vmPromptAudio}
   <Record maxLength="120" timeout="5" playBeep="true" trim="trim-silence" transcribe="true" transcribeCallback="${xmlEscape(transcribeCb)}" action="${xmlEscape(vmAction)}" method="POST" />
 </Response>`,
         )
       }
       // The greeting plays once: intro only, no recording. Falls through to Q1.
       const q1Url = `${stepBase}?stage=question&qi=1&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
+      const greetingAudio2 = await speak(greetingText)
       return twiml(
         `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  ${speak(greetingText)}
+  ${greetingAudio2}
   <Redirect method="POST">${xmlEscape(q1Url)}</Redirect>
 </Response>`,
       )
@@ -162,8 +185,10 @@ serve(async (req: Request) => {
     const q = qs[qi - 1]
     const questionText = withName(q?.question ?? '')
     const answerAction = `${stepBase}?stage=answer&qi=${qi}&attempt=${attempt}&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
-    // On a misfire retry, Paige excuses herself before repeating the question.
-    const sorryPrefix = url.searchParams.get('sorry') === '1' ? `${speak("Sorry, I didn't quite catch that.")}\n  ` : ''
+    // On a misfire retry, Cove excuses herself before repeating the question.
+    const sorryAudio = url.searchParams.get('sorry') === '1' ? await speak("Sorry, I didn't quite catch that.") : ''
+    const sorryPrefix = sorryAudio ? `${sorryAudio}\n  ` : ''
+    const questionAudio = await speak(questionText)
     // Speech gather with automatic end-of-speech detection: the moment the
     // caller stops talking, Twilio moves on. No silence-timeout guessing.
     // Full-call audio is captured separately by <Start><Recording>.
@@ -171,7 +196,7 @@ serve(async (req: Request) => {
       `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Gather input="speech" speechTimeout="auto" timeout="8" action="${xmlEscape(answerAction)}" method="POST">
-    ${sorryPrefix}${speak(questionText)}
+    ${sorryPrefix}${questionAudio}
   </Gather>
   <Redirect method="POST">${xmlEscape(answerAction)}</Redirect>
 </Response>`,
@@ -331,7 +356,8 @@ async function finalize(
   dispatchTicketWebhook(supabase, ticketId)
   dispatchTicketNotifications(ticketId)
 
+  const closingAudio = await speak(closingScript)
   return twiml(
-    `<?xml version="1.0" encoding="UTF-8"?><Response>${speak(closingScript)}<Hangup/></Response>`,
+    `<?xml version="1.0" encoding="UTF-8"?><Response>${closingAudio}<Hangup/></Response>`,
   )
 }

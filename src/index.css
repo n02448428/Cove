@@ -137,7 +137,7 @@ a:hover { color: var(--color-accent-hover); }
 .cove-wordmark {
   display: inline-flex;
   align-items: center;
-  gap: 0.15em;
+  gap: 0;
   line-height: 1;
   color: var(--color-text);
 }
@@ -149,6 +149,9 @@ a:hover { color: var(--color-accent-hover); }
   color: var(--cove-ove);
   line-height: 1;
   padding-top: 0.08em;
+  /* pull into the C's opening: the mark's viewBox carries dead space
+     on the right, so this keeps COVE reading as one word */
+  margin-left: -0.12em;
 }
 .cove-wordmark-link {
   display: inline-flex;

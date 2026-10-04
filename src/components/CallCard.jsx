@@ -109,7 +109,6 @@ export default function CallCard({
                   {a.transcript && (
                     <p style={{ color: 'var(--color-text-muted)', whiteSpace: 'pre-wrap' }}>{a.transcript}</p>
                   )}
-                  {a.recording_sid && <RecordingPlayer recordingSid={a.recording_sid} />}
                 </div>
               ))}
             </div>

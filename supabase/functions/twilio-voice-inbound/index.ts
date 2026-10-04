@@ -15,7 +15,6 @@ import {
   twiml,
   xmlEscape,
   validateTwilioSignature,
-  startFullCallRecording,
   SCRIPT,
 } from '../_shared/cove.ts'
 
@@ -128,10 +127,6 @@ serve(async (req: Request) => {
 
     const ticketId = ticket?.id ?? ''
 
-    // Record the whole call alongside the per-answer snippets, so the
-    // ticket carries the full conversation. Fire-and-forget.
-    if (ticketId) startFullCallRecording(callSid, ticketId)
-
     await logCall(supabase, callSid, user_id, {
       ticket_id: ticketId || null,
       outcome: 'screening',
@@ -159,8 +154,12 @@ serve(async (req: Request) => {
     // Redirect to the greeting (qi=0); saved questions are qi=1..N.
     const questionRedirect = `${stepBase}?stage=question&qi=0&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
 
+    // Full-call recording starts here via TwiML (no REST race: the call is
+    // guaranteed in-progress when Twilio executes <Start>). The completed
+    // RecordingSid lands on the ticket through the recording-status callback.
+    const recCb = `${fnUrl('recording-status')}?ticketId=${encodeURIComponent(ticketId)}`
     return twiml(
-      `<?xml version="1.0" encoding="UTF-8"?><Response><Redirect method="POST">${xmlEscape(questionRedirect)}</Redirect></Response>`,
+      `<?xml version="1.0" encoding="UTF-8"?><Response><Start><Recording name="cove-full-call" recordingStatusCallback="${xmlEscape(recCb)}" recordingStatusCallbackEvent="completed"/></Start><Redirect method="POST">${xmlEscape(questionRedirect)}</Redirect></Response>`,
     )
   } catch (err) {
     console.error('twilio-voice-inbound error:', err)

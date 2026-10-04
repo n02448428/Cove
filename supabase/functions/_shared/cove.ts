@@ -390,53 +390,11 @@ async function _dispatchTicketWebhook(
 // Starts a Twilio recording on the live inbound call (one API call) so the
 // ticket carries the whole conversation, not just per-answer snippets.
 // RecordingStatusCallback stores the RecordingSid on the ticket when done.
-export function startFullCallRecording(callSid: string, ticketId: string): void {
-  background(_startFullCallRecording(callSid, ticketId))
-}
-
-async function _startFullCallRecording(callSid: string, ticketId: string): Promise<void> {
-  const note = async (event: string, payload: Record<string, unknown> = {}) => {
-    try {
-      const supabase = createSupabase()
-      const { data: t } = await supabase.from('review_tickets').select('user_id').eq('id', ticketId).maybeSingle()
-      if (t?.user_id) await audit(supabase, t.user_id, callSid, event, 'twilio', payload)
-    } catch (e) {
-      console.error('full recording audit failed:', e)
-    }
-  }
-  try {
-    if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !SUPABASE_URL) {
-      await note('full_recording_skipped', { reason: 'missing_config' })
-      return
-    }
-    const creds = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`)
-    const cb = `${fnUrl('recording-status')}?ticketId=${encodeURIComponent(ticketId)}`
-    const res = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Calls/${callSid}/Recordings.json`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Basic ${creds}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          RecordingStatusCallback: cb,
-          RecordingStatusCallbackEvent: 'completed',
-        }).toString(),
-        signal: AbortSignal.timeout(8000),
-      },
-    )
-    if (!res.ok) {
-      await note('full_recording_start_failed', { status: res.status, body: (await res.text()).slice(0, 300) })
-      return
-    }
-    const rec = await res.json().catch(() => ({}))
-    await note('full_recording_started', { recording_sid: rec.sid ?? null })
-  } catch (e) {
-    console.error('startFullCallRecording error:', e)
-    await note('full_recording_error', { error: String(e).slice(0, 300) })
-  }
-}
+// ---------------------------------------------------------------------------
+// Full-call recording is started via <Start><Recording> in the inbound TwiML
+// (see twilio-voice-inbound); the completed RecordingSid is delivered to the
+// recording-status callback, which stores it on the ticket.
+// ---------------------------------------------------------------------------
 
 // ---- Built-in notifications: email + web push ----
 // Same completion point as the ticket.completed webhook, but independent of

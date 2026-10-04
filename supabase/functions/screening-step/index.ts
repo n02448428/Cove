@@ -119,8 +119,8 @@ serve(async (req: Request) => {
         return twiml(
           `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Joanna-Neural">${xmlEscape(greetingText)}</Say>
-  <Say voice="Polly.Joanna-Neural">${xmlEscape(SCRIPT.voicemailPrompt)}</Say>
+  <Say voice="Polly.Kendra-Neural">${xmlEscape(greetingText)}</Say>
+  <Say voice="Polly.Kendra-Neural">${xmlEscape(SCRIPT.voicemailPrompt)}</Say>
   <Record maxLength="120" timeout="5" playBeep="true" trim="trim-silence" transcribe="true" transcribeCallback="${xmlEscape(transcribeCb)}" action="${xmlEscape(vmAction)}" method="POST" />
 </Response>`,
         )
@@ -130,7 +130,7 @@ serve(async (req: Request) => {
       return twiml(
         `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Joanna-Neural">${xmlEscape(greetingText)}</Say>
+  <Say voice="Polly.Kendra-Neural">${xmlEscape(greetingText)}</Say>
   <Redirect method="POST">${xmlEscape(q1Url)}</Redirect>
 </Response>`,
       )
@@ -147,7 +147,7 @@ serve(async (req: Request) => {
     return twiml(
       `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Joanna-Neural">${xmlEscape(questionText)}</Say>
+  <Say voice="Polly.Kendra-Neural">${xmlEscape(questionText)}</Say>
   <Record maxLength="60" timeout="3" playBeep="false" trim="trim-silence" transcribe="true" transcribeCallback="${xmlEscape(transcribeCb)}" action="${xmlEscape(answerAction)}" method="POST" />
 </Response>`,
     )
@@ -271,6 +271,6 @@ async function finalize(
   dispatchTicketNotifications(ticketId)
 
   return twiml(
-    `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Joanna-Neural">${xmlEscape(closingScript)}</Say><Hangup/></Response>`,
+    `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Kendra-Neural">${xmlEscape(closingScript)}</Say><Hangup/></Response>`,
   )
 }

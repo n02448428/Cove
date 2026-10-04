@@ -1325,9 +1325,12 @@ details.feature-row summary:hover {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 .number-label { font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 3px; }
-.number-value { font-size: 1.05rem; font-weight: 600; letter-spacing: 0.04em; }
+.number-value { font-size: 1.05rem; font-weight: 600; letter-spacing: 0.04em; white-space: nowrap; }
+.number-card .call-action { white-space: nowrap; }
 .all-calls-link {
   display: block;
   text-align: center;

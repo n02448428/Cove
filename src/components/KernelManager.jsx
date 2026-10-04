@@ -330,6 +330,9 @@ export default function KernelManager({ userId, callerLists, onAddCallerList, on
               )}
             </div>
             {/* Script preview */}
+            <div style={{ marginTop: '1.25rem' }}>
+              <h4 style={{ margin: '0 0 0.75rem', fontSize: '0.95rem', fontWeight: 600 }}>Current call flow</h4>
+              <p className="hint" style={{ margin: '0 0 0.75rem' }}>What callers hear, in order.</p>
             <div className="convo-preview">
               <div className="convo-line convo-line--cove">
                 <span className="convo-speaker">Cove</span>
@@ -337,24 +340,21 @@ export default function KernelManager({ userId, callerLists, onAddCallerList, on
               </div>
               {questions.map(q => (
                 <Fragment key={q.id}>
-                  <div className="convo-line convo-line--caller">
-                    <span className="convo-speaker">Caller</span>
-                    <p>recorded</p>
-                  </div>
                   <div className="convo-line convo-line--cove">
                     <span className="convo-speaker">Cove</span>
                     <p>{q.question}</p>
                   </div>
+                  <div className="convo-line convo-line--caller">
+                    <span className="convo-speaker">Caller</span>
+                    <p>recorded</p>
+                  </div>
                 </Fragment>
               ))}
-              <div className="convo-line convo-line--caller">
-                <span className="convo-speaker">Caller</span>
-                <p>recorded</p>
-              </div>
               <div className="convo-line convo-line--cove">
                 <span className="convo-speaker">Cove</span>
                 <p>{KERNEL_CLOSE}</p>
               </div>
+            </div>
             </div>
           </div>
         ),

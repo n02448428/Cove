@@ -5,8 +5,9 @@ import CoveMark from './CoveMark.jsx';
  * OVE color follows theme via CSS var --cove-ove.
  */
 export default function CoveWordmark({ markSize = 36, className = '', linkTo }) {
+  // OVE scales with the mark so the lockup keeps its proportions at any size.
   const content = (
-    <span className={`cove-wordmark ${className}`.trim()} aria-label="Cove">
+    <span className={`cove-wordmark ${className}`.trim()} aria-label="Cove" style={{ fontSize: `${markSize * 0.5}px` }}>
       <CoveMark size={markSize} title="" />
       <span className="cove-wordmark-ove" aria-hidden="true">OVE</span>
     </span>

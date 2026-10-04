@@ -33,10 +33,11 @@ const TERMINAL = ['new', 'reviewed', 'actioned', 'failed']
 // Cove's voice: pre-generated ElevenLabs audio (Jessica), cached as static
 // files. Known texts play the recording; anything new falls back to <Say>
 // until its audio is generated.
-const VOICE_BASE = 'https://withcove.co/voice'
+const VOICE_BASE = 'https://www.withcove.co/voice'
 const VOICE_FILES: Record<string, string> = {
-  "Hello, this is Cove, Dmitry's assistant. Please state your name and reason for calling.": 'greeting.mp3',
-  'Who is calling, please?': 'q1.mp3',
+  "Hello \u2014 you've reachedVisionary Minds Solutions, an AI software company. I'm Cove, the AI receptionist. This call may be recorded.": 'vms_greeting.mp3',
+  'May I ask who is calling, and what I can help u wit ?': 'vms_q1.mp3',
+  'What\u2019s the best number to reach you back on?': 'vms_q2.mp3',
   'Thank you. I will pass this along. Goodbye from Cove.': 'goodbye.mp3',
   'No answer. Goodbye.': 'noanswer.mp3',
   'Please leave a message after the tone.': 'voicemail.mp3',

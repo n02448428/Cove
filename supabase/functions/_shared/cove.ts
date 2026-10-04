@@ -386,6 +386,40 @@ async function _dispatchTicketWebhook(
   }
 }
 
+// ---- Full-call recording ----
+// Starts a Twilio recording on the live inbound call (one API call) so the
+// ticket carries the whole conversation, not just per-answer snippets.
+// RecordingStatusCallback stores the RecordingSid on the ticket when done.
+export function startFullCallRecording(callSid: string, ticketId: string): void {
+  background(_startFullCallRecording(callSid, ticketId))
+}
+
+async function _startFullCallRecording(callSid: string, ticketId: string): Promise<void> {
+  try {
+    if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !SUPABASE_URL) return
+    const creds = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`)
+    const cb = `${fnUrl('recording-status')}?ticketId=${encodeURIComponent(ticketId)}`
+    const res = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Calls/${callSid}/Recordings.json`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${creds}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          RecordingStatusCallback: cb,
+          RecordingStatusCallbackEvent: 'completed',
+        }).toString(),
+        signal: AbortSignal.timeout(8000),
+      },
+    )
+    if (!res.ok) console.error('startFullCallRecording failed:', res.status, await res.text())
+  } catch (e) {
+    console.error('startFullCallRecording error:', e)
+  }
+}
+
 // ---- Built-in notifications: email + web push ----
 // Same completion point as the ticket.completed webhook, but independent of
 // it: notifications have their own exactly-once claim

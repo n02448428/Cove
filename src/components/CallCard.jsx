@@ -88,6 +88,12 @@ export default function CallCard({
       </button>
       {expanded && (
         <div className="card-detail">
+          {t.full_recording_sid && (
+            <div style={{ marginBottom: '1rem' }}>
+              <p className="inbox-label">Full call</p>
+              <RecordingPlayer recordingSid={t.full_recording_sid} />
+            </div>
+          )}
           {answersLoading ? (
             <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Loading…</p>
           ) : answers?.length ? (

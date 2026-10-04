@@ -15,6 +15,7 @@ import {
   twiml,
   xmlEscape,
   validateTwilioSignature,
+  startFullCallRecording,
   SCRIPT,
 } from '../_shared/cove.ts'
 
@@ -126,6 +127,10 @@ serve(async (req: Request) => {
       .single()
 
     const ticketId = ticket?.id ?? ''
+
+    // Record the whole call alongside the per-answer snippets, so the
+    // ticket carries the full conversation. Fire-and-forget.
+    if (ticketId) startFullCallRecording(callSid, ticketId)
 
     await logCall(supabase, callSid, user_id, {
       ticket_id: ticketId || null,

@@ -41,6 +41,7 @@ const VOICE_FILES: Record<string, string> = {
   'Thank you. I will pass this along. Goodbye from Cove.': 'paige_goodbye.mp3',
   'No answer. Goodbye.': 'paige_noanswer.mp3',
   'Please leave a message after the tone.': 'paige_voicemail.mp3',
+  "Sorry, I didn't quite catch that.": 'paige_sorry.mp3',
 }
 function speak(text: string): string {
   const f = VOICE_FILES[text]
@@ -161,6 +162,8 @@ serve(async (req: Request) => {
     const q = qs[qi - 1]
     const questionText = withName(q?.question ?? '')
     const answerAction = `${stepBase}?stage=answer&qi=${qi}&attempt=${attempt}&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
+    // On a misfire retry, Paige excuses herself before repeating the question.
+    const sorryPrefix = params.get('sorry') === '1' ? `${speak("Sorry, I didn't quite catch that.")}\n  ` : ''
     // Speech gather with automatic end-of-speech detection: the moment the
     // caller stops talking, Twilio moves on. No silence-timeout guessing.
     // Full-call audio is captured separately by <Start><Recording>.
@@ -168,7 +171,7 @@ serve(async (req: Request) => {
       `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Gather input="speech" speechTimeout="auto" timeout="8" action="${xmlEscape(answerAction)}" method="POST">
-    ${speak(questionText)}
+    ${sorryPrefix}${speak(questionText)}
   </Gather>
   <Redirect method="POST">${xmlEscape(answerAction)}</Redirect>
 </Response>`,
@@ -241,8 +244,8 @@ serve(async (req: Request) => {
 
     if (noAnswer) {
       if (attempt < 2) {
-        // Repeat the same question once.
-        const repeat = `${stepBase}?stage=question&qi=${qi}&attempt=2&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
+        // Repeat the same question once, with Paige excusing herself first.
+        const repeat = `${stepBase}?stage=question&qi=${qi}&attempt=2&sorry=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
         return twiml(
           `<?xml version="1.0" encoding="UTF-8"?><Response><Redirect method="POST">${xmlEscape(repeat)}</Redirect></Response>`,
         )

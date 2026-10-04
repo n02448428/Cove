@@ -145,15 +145,31 @@ serve(async (req) => {
     let emailSent = false
     if (emailMode !== 'off' && profile?.email) {
       const subject = urgent ? `Urgent call from ${caller} — Cove` : `Call from ${caller} — Cove`
-      const qaHtml = qa.length
-        ? qa.map((x) => `<p style="margin:0 0 12px"><strong>${esc(x.q)}</strong><br>${esc(x.a)}</p>`).join('')
-        : '<p>They hung up before answering.</p>'
-      const html = `<!DOCTYPE html><html><body style="font-family:Georgia,serif;color:#1c1c1c;max-width:560px;margin:0 auto;padding:24px">
-<p style="font-size:13px;color:#888;margin:0 0 16px">Cove &middot; ${esc(when)}${name ? ` &middot; for ${esc(name)}` : ''}</p>
-<h2 style="font-weight:600;margin:0 0 8px">${urgent ? 'Urgent call' : 'New screened call'}</h2>
-<p style="margin:0 0 16px"><strong>${esc(caller)}</strong>${ticket.ended_reason ? ` &mdash; ${esc(ticket.ended_reason)}` : ''}</p>
-${qaHtml}
-<p style="font-size:13px;color:#888;margin-top:24px">See the full ticket and recordings in your <a href="https://withcove.co/dashboard">Cove dashboard</a>.</p>
+      const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0B1016;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1016;padding:32px 16px;">
+<tr><td align="center">
+<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#111820;border:1px solid #22303a;border-radius:16px;overflow:hidden;">
+<tr><td style="padding:32px 32px 8px;text-align:center;">
+<p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:26px;letter-spacing:0.14em;color:#ffffff;"><span style="color:#5b9a9a;">C</span>OVE</p>
+<p style="margin:10px 0 0;font-family:Georgia,serif;font-size:12px;letter-spacing:0.08em;color:#8a9aa5;">Cove &middot; ${esc(when)}${name ? ` &middot; for ${esc(name)}` : ''}</p>
+</td></tr>
+<tr><td style="padding:0 32px;"><div style="height:1px;background:#B88848;opacity:0.55;margin:16px 0 0;"></div></td></tr>
+<tr><td style="padding:24px 32px 8px;">
+<h1 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-weight:600;font-size:24px;color:#f2f5f6;">${urgent ? 'Urgent call' : 'New screened call'}</h1>
+<p style="margin:10px 0 0;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:20px;font-weight:600;color:#5b9a9a;">${esc(caller)}</p>
+${ticket.ended_reason ? `<p style="margin:6px 0 0;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;color:#8a9aa5;">${esc(ticket.ended_reason)}</p>` : ''}
+</td></tr>
+<tr><td style="padding:8px 32px 8px;">
+${qa.length ? qa.map((x) => `<p style="margin:0 0 16px;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:#cfd8dd;"><strong style="color:#f2f5f6;">${esc(x.q)}</strong><br><span style="color:#9fb0ba;">${esc(x.a)}</span></p>`).join('') : '<p style="font-family:-apple-system,\'Segoe UI\',Helvetica,Arial,sans-serif;font-size:14px;color:#9fb0ba;">They hung up before answering.</p>'}
+</td></tr>
+<tr><td style="padding:8px 32px 32px;text-align:center;">
+<a href="https://withcove.co/dashboard" style="display:inline-block;background:#5b9a9a;color:#0B1016;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;text-decoration:none;padding:13px 34px;border-radius:999px;">Open in Cove</a>
+<p style="margin:18px 0 0;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;color:#5f6f79;">Hear the recordings and manage this call in your dashboard.</p>
+</td></tr>
+</table>
+<p style="margin:20px 0 0;font-family:Georgia,serif;font-size:12px;font-style:italic;color:#5f6f79;">Silence, except for the voices you love.</p>
+</td></tr>
+</table>
 </body></html>`
       emailSent = await sendEmail(profile.email, subject, html)
     } else {

@@ -148,7 +148,7 @@ serve(async (req: Request) => {
       `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="Polly.Joanna-Neural">${xmlEscape(questionText)}</Say>
-  <Record maxLength="60" timeout="4" playBeep="false" trim="trim-silence" transcribe="true" transcribeCallback="${xmlEscape(transcribeCb)}" action="${xmlEscape(answerAction)}" method="POST" />
+  <Record maxLength="60" timeout="3" playBeep="false" trim="trim-silence" transcribe="true" transcribeCallback="${xmlEscape(transcribeCb)}" action="${xmlEscape(answerAction)}" method="POST" />
 </Response>`,
     )
   }

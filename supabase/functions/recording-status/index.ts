@@ -31,6 +31,19 @@ serve(async (req: Request) => {
     const callSid = formGet(params, 'CallSid')
     const ticketId = url.searchParams.get('ticketId') ?? ''
 
+    // Trace the callback hit itself (before validation) for diagnostics.
+    try {
+      const { data: t } = await supabase.from('review_tickets').select('user_id').eq('id', ticketId).maybeSingle()
+      if (t?.user_id) {
+        await audit(supabase, t.user_id, callSid, 'full_recording_callback_hit', 'twilio', {
+          recording_sid: recordingSid || null,
+          has_signature: !!req.headers.get('x-twilio-signature'),
+        })
+      }
+    } catch (e) {
+      console.error('recording-status trace failed:', e)
+    }
+
     if (recordingSid && ticketId) {
       await supabase
         .from('review_tickets')

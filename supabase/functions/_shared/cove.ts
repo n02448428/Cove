@@ -395,8 +395,20 @@ export function startFullCallRecording(callSid: string, ticketId: string): void 
 }
 
 async function _startFullCallRecording(callSid: string, ticketId: string): Promise<void> {
+  const note = async (event: string, payload: Record<string, unknown> = {}) => {
+    try {
+      const supabase = createSupabase()
+      const { data: t } = await supabase.from('review_tickets').select('user_id').eq('id', ticketId).maybeSingle()
+      if (t?.user_id) await audit(supabase, t.user_id, callSid, event, 'twilio', payload)
+    } catch (e) {
+      console.error('full recording audit failed:', e)
+    }
+  }
   try {
-    if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !SUPABASE_URL) return
+    if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !SUPABASE_URL) {
+      await note('full_recording_skipped', { reason: 'missing_config' })
+      return
+    }
     const creds = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`)
     const cb = `${fnUrl('recording-status')}?ticketId=${encodeURIComponent(ticketId)}`
     const res = await fetch(
@@ -414,9 +426,15 @@ async function _startFullCallRecording(callSid: string, ticketId: string): Promi
         signal: AbortSignal.timeout(8000),
       },
     )
-    if (!res.ok) console.error('startFullCallRecording failed:', res.status, await res.text())
+    if (!res.ok) {
+      await note('full_recording_start_failed', { status: res.status, body: (await res.text()).slice(0, 300) })
+      return
+    }
+    const rec = await res.json().catch(() => ({}))
+    await note('full_recording_started', { recording_sid: rec.sid ?? null })
   } catch (e) {
     console.error('startFullCallRecording error:', e)
+    await note('full_recording_error', { error: String(e).slice(0, 300) })
   }
 }
 

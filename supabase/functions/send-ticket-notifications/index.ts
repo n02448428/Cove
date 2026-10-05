@@ -35,10 +35,11 @@ function esc(s: string): string {
   return (s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
-function fmtTime(iso: string): string {
+function fmtTime(iso: string, tz?: string): string {
   try {
     return new Date(iso).toLocaleString('en-US', {
       month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+      timeZone: tz || 'America/Los_Angeles',
     })
   } catch {
     return iso
@@ -90,15 +91,16 @@ serve(async (req) => {
       .select('id, user_id, call_sid, caller_number, urgent, ended_reason, status, notifications_sent_at, created_at')
       .eq('id', ticketId)
       .maybeSingle()
-    if (!ticket || ticket.status !== 'new' || ticket.notifications_sent_at) {
-      return json(200, { ...result, skipped: 'already_sent_or_not_new' })
+    if (!ticket || ticket.notifications_sent_at) {
+      return json(200, { ...result, skipped: 'already_sent' })
     }
 
     const { data: answers } = await supabase
       .from('review_ticket_answers')
-      .select('question_ord, question_text, transcript, transcription_status')
+      .select('question_ord, attempt, question_text, transcript, transcription_status')
       .eq('ticket_id', ticketId)
       .order('question_ord', { ascending: true })
+      .order('attempt', { ascending: true })
     const rows = answers ?? []
     if (rows.some((a) => !TERMINAL_TRANSCRIPTION.includes(a.transcription_status))) {
       return json(200, { ...result, skipped: 'transcripts_pending' })
@@ -106,7 +108,7 @@ serve(async (req) => {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('email, email_mode, display_name')
+      .select('email, email_mode, display_name, timezone, greeting')
       .eq('id', ticket.user_id)
       .maybeSingle()
 
@@ -134,40 +136,74 @@ serve(async (req) => {
     }
 
     const caller = ticket.caller_number || 'Unknown caller'
-    const when = fmtTime(ticket.created_at)
+    const when = fmtTime(ticket.created_at, profile?.timezone)
     const name = profile?.display_name || ''
-    const qa = rows.map((a) => ({
-      q: a.question_text || '',
-      a: a.transcript || '(no answer recorded)',
-    }))
+    // Full conversation transcript: Cove's scripted lines + caller's answers.
+    // Groups attempts per question so a misfire retry shows the apology.
+    const greetingText = (profile?.greeting || '').replace(/\{name\}/g, name || 'there')
+    const convo: { who: string; text: string }[] = []
+    if (greetingText) convo.push({ who: 'Cove', text: greetingText })
+    const byQ = new Map<number, typeof rows>()
+    for (const a of rows) {
+      const k = a.question_ord ?? 0
+      if (!byQ.has(k)) byQ.set(k, [])
+      byQ.get(k)!.push(a)
+    }
+    for (const [, attempts] of [...byQ.entries()].sort((x, y) => x[0] - y[0])) {
+      for (let i = 0; i < attempts.length; i++) {
+        const a = attempts[i]
+        if (i > 0) convo.push({ who: 'Cove', text: "Sorry, I didn't quite catch that." })
+        if (a.question_text) convo.push({ who: 'Cove', text: a.question_text })
+        convo.push({ who: 'Caller', text: a.transcript || '(no answer recorded)' })
+      }
+    }
+    convo.push({ who: 'Cove', text: 'Thank you. I will pass this along. Goodbye from Cove.' })
+    const convoHtml = convo.map((c) =>
+      `<p style="margin:0 0 14px;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;"><strong class="${c.who === 'Cove' ? 'e-q' : 'e-caller'}" style="color:${c.who === 'Cove' ? '#f2f5f6' : '#5b9a9a'};">${c.who}:</strong> <span class="e-a" style="color:#9fb0ba;">${esc(c.text)}</span></p>`
+    ).join('')
 
     // ---- Email ----
     let emailSent = false
     if (emailMode !== 'off' && profile?.email) {
       const subject = urgent ? `Urgent call from ${caller} — Cove` : `Call from ${caller} — Cove`
-      const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0B1016;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1016;padding:32px 16px;">
+      const html = `<!DOCTYPE html><html><head><meta name="color-scheme" content="light dark"><style>
+@media (prefers-color-scheme: light) {
+  .e-bg { background-color: #eef1f4 !important; }
+  .e-card { background-color: #ffffff !important; border-color: #dfe5ea !important; }
+  .e-wordmark { color: #1a2332 !important; }
+  .e-meta { color: #6b7a89 !important; }
+  .e-headline { color: #1a2332 !important; }
+  .e-caller { color: #3d7a7a !important; }
+  .e-sub { color: #6b7a89 !important; }
+  .e-q { color: #1a2332 !important; }
+  .e-a { color: #4a5560 !important; }
+  .e-btn { background-color: #487878 !important; color: #ffffff !important; }
+  .e-foot { color: #8a9aa5 !important; }
+  .e-signoff { color: #8a9aa5 !important; }
+}
+</style></head><body style="margin:0;padding:0;background:#0B1016;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="e-bg" style="background:#0B1016;padding:32px 16px;">
 <tr><td align="center">
-<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#111820;border:1px solid #22303a;border-radius:16px;overflow:hidden;">
+<table role="presentation" width="560" cellpadding="0" cellspacing="0" class="e-card" style="max-width:560px;width:100%;background:#111820;border:1px solid #22303a;border-radius:16px;overflow:hidden;">
 <tr><td style="padding:32px 32px 8px;text-align:center;">
-<p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:26px;letter-spacing:0.14em;color:#ffffff;"><span style="color:#5b9a9a;">C</span>OVE</p>
-<p style="margin:10px 0 0;font-family:Georgia,serif;font-size:12px;letter-spacing:0.08em;color:#8a9aa5;">Cove &middot; ${esc(when)}${name ? ` &middot; for ${esc(name)}` : ''}</p>
+<img src="https://www.withcove.co/cove-c.png" width="32" height="32" alt="C" style="display:inline-block;vertical-align:middle;margin-right:4px;"><span class="e-wordmark" style="font-family:Georgia,'Times New Roman',serif;font-size:30px;letter-spacing:0.1em;color:#ffffff;vertical-align:middle;">OVE</span>
+<p class="e-meta" style="margin:10px 0 0;font-family:Georgia,serif;font-size:12px;letter-spacing:0.08em;color:#8a9aa5;">Cove &middot; ${esc(when)}${name ? ` &middot; for ${esc(name)}` : ''}</p>
 </td></tr>
 <tr><td style="padding:0 32px;"><div style="height:1px;background:#B88848;opacity:0.55;margin:16px 0 0;"></div></td></tr>
 <tr><td style="padding:24px 32px 8px;">
-<h1 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-weight:600;font-size:24px;color:#f2f5f6;">${urgent ? 'Urgent call' : 'New screened call'}</h1>
-<p style="margin:10px 0 0;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:20px;font-weight:600;color:#5b9a9a;">${esc(caller)}</p>
-${ticket.ended_reason ? `<p style="margin:6px 0 0;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;color:#8a9aa5;">${esc(ticket.ended_reason)}</p>` : ''}
+<h1 class="e-headline" style="margin:0;font-family:Georgia,'Times New Roman',serif;font-weight:600;font-size:24px;color:#f2f5f6;">${urgent ? 'Urgent call' : 'New screened call'}</h1>
+<p class="e-caller" style="margin:10px 0 0;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:20px;font-weight:600;color:#5b9a9a;">${esc(caller)}</p>
+${ticket.ended_reason ? `<p class="e-sub" style="margin:6px 0 0;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;color:#8a9aa5;">${esc(ticket.ended_reason)}</p>` : ''}
 </td></tr>
 <tr><td style="padding:8px 32px 8px;">
-${qa.length ? qa.map((x) => `<p style="margin:0 0 16px;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:#cfd8dd;"><strong style="color:#f2f5f6;">${esc(x.q)}</strong><br><span style="color:#9fb0ba;">${esc(x.a)}</span></p>`).join('') : '<p style="font-family:-apple-system,\'Segoe UI\',Helvetica,Arial,sans-serif;font-size:14px;color:#9fb0ba;">They hung up before answering.</p>'}
+${convo.length ? convoHtml : '<p class="e-a" style="font-family:-apple-system,\'Segoe UI\',Helvetica,Arial,sans-serif;font-size:14px;color:#9fb0ba;">They hung up before answering.</p>'}
 </td></tr>
 <tr><td style="padding:8px 32px 32px;text-align:center;">
-<a href="https://withcove.co/dashboard" style="display:inline-block;background:#5b9a9a;color:#0B1016;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;text-decoration:none;padding:13px 34px;border-radius:999px;">Open in Cove</a>
-<p style="margin:18px 0 0;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;color:#5f6f79;">Hear the recordings and manage this call in your dashboard.</p>
+<a href="https://withcove.co/dashboard" class="e-btn" style="display:inline-block;background:#5b9a9a;color:#0B1016;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;text-decoration:none;padding:13px 34px;border-radius:999px;">Open in Cove</a>
+<p class="e-foot" style="margin:18px 0 0;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;color:#5f6f79;">Hear the recordings and manage this call in your dashboard.</p>
 </td></tr>
 </table>
-<p style="margin:20px 0 0;font-family:Georgia,serif;font-size:12px;font-style:italic;color:#5f6f79;">Silence, except for the voices you love.</p>
+<p class="e-signoff" style="margin:20px 0 0;font-family:Georgia,serif;font-size:12px;font-style:italic;color:#5f6f79;">Silence, except for the voices you love.</p>
 </td></tr>
 </table>
 </body></html>`

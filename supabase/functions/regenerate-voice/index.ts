@@ -16,11 +16,15 @@ const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY') || ''
 const VOICE_ID = 'NDTYOmYEjbDIVCKB35i3' // Paige — Cove's voice
 const MODEL_ID = 'eleven_multilingual_v2'
 
+const CORS = {
+  'Content-Type': 'application/json',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+}
+
 function json(status: number, body: Record<string, unknown>) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  })
+  return new Response(JSON.stringify(body), { status, headers: CORS })
 }
 
 async function sha256Hex(text: string): Promise<string> {
@@ -30,6 +34,7 @@ async function sha256Hex(text: string): Promise<string> {
 }
 
 serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: CORS })
   if (req.method !== 'POST') return json(405, { error: 'POST only' })
   if (!ELEVENLABS_API_KEY) return json(500, { error: 'voice service not configured' })
 

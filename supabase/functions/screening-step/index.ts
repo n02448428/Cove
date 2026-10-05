@@ -30,19 +30,12 @@ import {
 
 const TERMINAL = ['new', 'reviewed', 'actioned', 'failed']
 
-// Cove's voice: pre-generated ElevenLabs audio (Jessica), cached as static
-// files. Known texts play the recording; anything new falls back to <Say>
-// until its audio is generated.
+// Cove's voice: Paige (ElevenLabs) clips, hash-addressed in Supabase Storage.
+// Generated on save via regenerate-voice; falls back to <Say> if missing.
 const VOICE_BASE = 'https://www.withcove.co/voice'
-const VOICE_FILES: Record<string, string> = {
-  "Hello \u2014 you've reached Dmitry. I'm Cove, his AI receptionist. This call may be recorded.": 'paige_greeting.mp3',
-  'May I ask who is calling, and what I can help you with?': 'paige_q1.mp3',
-  'What\u2019s the best number to reach you back on?': 'paige_q2.mp3',
-  'Thank you. I will pass this along. Goodbye from Cove.': 'paige_goodbye.mp3',
-  'No answer. Goodbye.': 'paige_noanswer.mp3',
-  'Please leave a message after the tone.': 'paige_voicemail.mp3',
-  "Sorry, I didn't quite catch that.": 'paige_sorry.mp3',
-}
+// Legacy static files retired 2026-10-05: all lines now use hash-based
+// Paige clips from Supabase Storage (generated via regenerate-voice).
+const VOICE_FILES: Record<string, string> = {}
 async function sha256Hex(text: string): Promise<string> {
   const data = new TextEncoder().encode(text)
   const hash = await crypto.subtle.digest('SHA-256', data)

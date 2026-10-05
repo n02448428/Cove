@@ -38,6 +38,7 @@ export default function KernelManager({ userId, callerLists, onAddCallerList, on
   // voice identity
   const [greeting, setGreeting] = useState('');
   const [greetingDraft, setGreetingDraft] = useState(null);
+  const [templateIdx, setTemplateIdx] = useState(0);
   const [displayName, setDisplayName] = useState('');
   const [displayNameDraft, setDisplayNameDraft] = useState(null);
 
@@ -122,6 +123,16 @@ export default function KernelManager({ userId, callerLists, onAddCallerList, on
       // Voice refresh is best-effort; the save already succeeded.
     }
   }
+
+
+// Curated greeting templates — text-only previews, voice generates on save.
+const GREETING_TEMPLATES = [
+  "Thanks for calling. I\u2019m Cove, the AI receptionist. How can I help you today?",
+  "Hello \u2014 I\u2019m Cove, answering for the office. Who\u2019s calling, please?",
+  "Hi, this is Cove, {name}\u2019s assistant. They can\u2019t come to the phone right now \u2014 may I take a message?",
+  "Hello \u2014 I\u2019m Cove, {name}\u2019s AI receptionist. What can I help you with?",
+  "You\u2019ve reached {name}. I\u2019m Cove, and I\u2019ll make sure your message gets through. This call may be recorded.",
+];
 
   async function saveGreeting() {
     setError('');
@@ -290,9 +301,14 @@ export default function KernelManager({ userId, callerLists, onAddCallerList, on
               {greetingDraft !== null ? (
                 <>
                   <textarea value={greetingDraft} onChange={e => setGreetingDraft(e.target.value)} rows={3} style={{ width: '100%', marginBottom: '0.5rem' }} placeholder="Hello, this is Cove, {name}'s assistant." aria-label="Greeting" />
-                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
                     <button className="btn btn-primary" onClick={saveGreeting}>Save</button>
                     <button className="btn btn-ghost" onClick={() => setGreetingDraft(null)}>Cancel</button>
+                    <button className="btn btn-ghost" onClick={() => {
+                      const next = GREETING_TEMPLATES[templateIdx % GREETING_TEMPLATES.length];
+                      setTemplateIdx(i => i + 1);
+                      setGreetingDraft(next);
+                    }}>Try another</button>
                   </div>
                 </>
               ) : (

@@ -1,5 +1,6 @@
 // supabase/functions/send-digest-emails/index.ts
-// Cove — hourly digest sender. Called by pg_cron (see migration
+// Cove — daily digest sender (cron ticks hourly; each user gets one
+// digest per day at their chosen digest_time). Called by pg_cron (see migration
 // 20261003000001 note / cron job 'cove-hourly-digest').
 //
 // For every user with email_mode 'daily' or 'urgent' whose local time has
@@ -136,20 +137,49 @@ serve(async (req) => {
 
       const cards = items.map((t) => {
         const caller = t.caller_name || t.caller_number || 'Unknown caller'
-        return `<div style="border:1px solid #e5e0d8;border-radius:12px;padding:14px 16px;margin:0 0 12px">
-<p style="margin:0 0 4px;font-size:15px"><strong>${esc(caller)}</strong>${t.urgent ? ' <span style="background:#c0392b;color:#fff;font-size:11px;padding:2px 8px;border-radius:999px">Urgent</span>' : ''}</p>
-<p style="margin:0;font-size:13px;color:#888">${esc(fmtTime(t.created_at, tz))}${t.ended_reason ? ` &mdash; ${esc(t.ended_reason)}` : ''}</p>
+        return `<div class="e-digestcard" style="border:1px solid #22303a;border-radius:12px;padding:14px 16px;margin:0 0 12px;background:#111820;">
+<p style="margin:0 0 4px;font-size:15px;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;"><strong class="e-q" style="color:#f2f5f6;">${esc(caller)}</strong>${t.urgent ? ' <span style="background:#c0392b;color:#fff;font-size:11px;padding:2px 8px;border-radius:999px">Urgent</span>' : ''}</p>
+<p class="e-sub" style="margin:0;font-size:13px;color:#8a9aa5;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;">${esc(fmtTime(t.created_at, tz))}${t.ended_reason ? ` &mdash; ${esc(t.ended_reason)}` : ''}</p>
 </div>`
       }).join('')
 
       const n = items.length
       const subject = n === 1 ? '1 call — your Cove digest' : `${n} calls — your Cove digest`
-      const html = `<!DOCTYPE html><html><body style="font-family:Georgia,serif;color:#1c1c1c;max-width:560px;margin:0 auto;padding:24px">
-<p style="font-size:13px;color:#888;margin:0 0 16px">Cove &middot; digest for ${esc(today)}${p.display_name ? ` &middot; for ${esc(p.display_name)}` : ''}</p>
-<h2 style="font-weight:600;margin:0 0 16px">${n === 1 ? '1 call since your last digest' : `${n} calls since your last digest`}</h2>
-${cards}
-<p style="margin-top:24px"><a href="${DASHBOARD_URL}" target="_blank" style="display:inline-block;background:#1c1c1c;color:#fff;text-decoration:none;padding:12px 24px;border-radius:999px;font-size:14px">Manage in your tickets dashboard</a></p>
-<p style="font-size:12px;color:#aaa;margin-top:16px">You're getting the daily digest. Change this anytime in your Cove dashboard, under your call preview.</p>
+      const html = `<!DOCTYPE html><html><head><meta name="color-scheme" content="light dark"><style>
+@media (prefers-color-scheme: light) {
+  .e-bg { background-color: #eef1f4 !important; }
+  .e-card { background-color: #ffffff !important; border-color: #dfe5ea !important; }
+  .e-wordmark { color: #1a2332 !important; }
+  .e-meta { color: #6b7a89 !important; }
+  .e-headline { color: #1a2332 !important; }
+  .e-sub { color: #6b7a89 !important; }
+  .e-q { color: #1a2332 !important; }
+  .e-digestcard { background-color: #f7f9fa !important; border-color: #dfe5ea !important; }
+  .e-btn { background-color: #487878 !important; color: #ffffff !important; }
+  .e-foot { color: #8a9aa5 !important; }
+  .e-signoff { color: #8a9aa5 !important; }
+}
+</style></head><body style="margin:0;padding:0;background:#0B1016;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="e-bg" style="background:#0B1016;padding:32px 16px;">
+<tr><td align="center">
+<table role="presentation" width="560" cellpadding="0" cellspacing="0" class="e-card" style="max-width:560px;width:100%;background:#111820;border:1px solid #22303a;border-radius:16px;overflow:hidden;">
+<tr><td style="padding:32px 32px 8px;text-align:center;">
+<img src="https://www.withcove.co/cove-c.png" width="32" height="32" alt="C" style="display:inline-block;vertical-align:middle;margin-right:4px;"><span class="e-wordmark" style="font-family:Georgia,'Times New Roman',serif;font-size:30px;letter-spacing:0.1em;color:#ffffff;vertical-align:middle;">OVE</span>
+<p class="e-meta" style="margin:10px 0 0;font-family:Georgia,serif;font-size:12px;letter-spacing:0.08em;color:#8a9aa5;">Cove &middot; digest for ${esc(today)}${p.display_name ? ` &middot; for ${esc(p.display_name)}` : ''}</p>
+</td></tr>
+<tr><td style="padding:0 32px;"><div style="height:1px;background:#B88848;opacity:0.55;margin:16px 0 0;"></div></td></tr>
+<tr><td style="padding:24px 32px 8px;">
+<h2 class="e-headline" style="margin:0;font-family:Georgia,'Times New Roman',serif;font-weight:600;font-size:24px;color:#f2f5f6;">${n === 1 ? '1 call since your last digest' : `${n} calls since your last digest`}</h2>
+</td></tr>
+<tr><td style="padding:8px 32px 8px;">${cards}</td></tr>
+<tr><td style="padding:8px 32px 32px;text-align:center;">
+<a href="${DASHBOARD_URL}" class="e-btn" style="display:inline-block;background:#5b9a9a;color:#0B1016;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;text-decoration:none;padding:13px 34px;border-radius:999px;">Open in Cove</a>
+<p class="e-foot" style="margin:18px 0 0;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;color:#5f6f79;">You're getting the daily digest. Change this anytime in Settings.</p>
+</td></tr>
+</table>
+<p class="e-signoff" style="margin:20px 0 0;font-family:Georgia,serif;font-size:12px;font-style:italic;color:#5f6f79;">Silence, except for the voices you love.</p>
+</td></tr>
+</table>
 </body></html>`
 
       const sent = await sendEmail(p.email, subject, html)

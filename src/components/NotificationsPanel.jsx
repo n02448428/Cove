@@ -10,9 +10,14 @@ const MODES = [
 
 // Email notification preferences. Email is Cove's notification method:
 // the user picks how often, and at what time the digest lands.
+// Kernel v0.4: per-classification toggles filter WHAT gets emailed.
 export default function NotificationsPanel() {
   const [mode, setMode] = useState('instant');
   const [digestTime, setDigestTime] = useState('08:00');
+  const [emailLead, setEmailLead] = useState(true);
+  const [emailCustomer, setEmailCustomer] = useState(true);
+  const [emailSolicitation, setEmailSolicitation] = useState(false);
+  const [emailUrgent, setEmailUrgent] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedNote, setSavedNote] = useState('');
   const [error, setError] = useState('');
@@ -32,6 +37,17 @@ export default function NotificationsPanel() {
         const m = ['off', 'instant', 'daily', 'urgent'].includes(data.email_mode) ? data.email_mode : 'instant';
         setMode(m);
         if (data.digest_time) setDigestTime(String(data.digest_time).slice(0, 5));
+      }
+      const { data: phone } = await supabase
+        .from('phone_numbers')
+        .select('notify_email_lead, notify_email_customer, notify_email_solicitation, notify_email_urgent')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (phone) {
+        setEmailLead(phone.notify_email_lead ?? true);
+        setEmailCustomer(phone.notify_email_customer ?? true);
+        setEmailSolicitation(phone.notify_email_solicitation ?? false);
+        setEmailUrgent(phone.notify_email_urgent ?? true);
       }
     }
     load();
@@ -59,6 +75,44 @@ export default function NotificationsPanel() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function saveToggles(next) {
+    setSaving(true);
+    setError('');
+    setSavedNote('');
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not signed in.');
+      const { error: upErr } = await supabase.from('phone_numbers').upsert({
+        user_id: user.id,
+        notify_email_lead: next.lead,
+        notify_email_customer: next.customer,
+        notify_email_solicitation: next.solicitation,
+        notify_email_urgent: next.urgent,
+      }, { onConflict: 'user_id' });
+      if (upErr) throw upErr;
+      setEmailLead(next.lead);
+      setEmailCustomer(next.customer);
+      setEmailSolicitation(next.solicitation);
+      setEmailUrgent(next.urgent);
+      setSavedNote('Saved.');
+    } catch (err) {
+      setError(err.message || "Couldn't save that. Try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function toggle(key) {
+    const next = {
+      lead: emailLead,
+      customer: emailCustomer,
+      solicitation: emailSolicitation,
+      urgent: emailUrgent,
+    };
+    next[key] = !next[key];
+    saveToggles(next);
   }
 
   function pickMode(id) {
@@ -125,6 +179,35 @@ export default function NotificationsPanel() {
       {savedNote && !error && (
         <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', marginTop: '0.5rem' }}>{savedNote}</p>
       )}
+
+      <h3 className="kernel-section-title" style={{ margin: '1.25rem 0 0.5rem', fontSize: '1.05rem' }}>What to email about</h3>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        {[
+          { key: 'lead', label: 'New leads', checked: emailLead },
+          { key: 'customer', label: 'Existing customers', checked: emailCustomer },
+          { key: 'solicitation', label: 'Solicitations', checked: emailSolicitation },
+          { key: 'urgent', label: 'Urgent calls (overrides above)', checked: emailUrgent },
+        ].map(t => (
+          <label
+            key={t.key}
+            style={{
+              display: 'flex', gap: '0.7rem', alignItems: 'center',
+              padding: '0.6rem 0.85rem', borderRadius: '0.75rem',
+              border: '1px solid var(--color-border)',
+              cursor: saving ? 'wait' : 'pointer',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={t.checked}
+              onChange={() => toggle(t.key)}
+              disabled={saving}
+              style={{ width: 'auto' }}
+            />
+            <span style={{ fontSize: '0.9rem' }}>{t.label}</span>
+          </label>
+        ))}
+      </div>
     </div>
   );
 }

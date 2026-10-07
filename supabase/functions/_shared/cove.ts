@@ -182,6 +182,7 @@ export async function audit(
 export const SCRIPT = {
   noAnswer: 'No answer. Goodbye.',
   thanksGoodbye: 'Thank you. I will pass this along. Goodbye from Cove.',
+  solicitationClose: 'Thanks for calling. Goodbye.',
   notConfigured: 'This number is not configured yet.',
   voicemailMissed: "Sorry, they couldn't pick up. Please leave a message after the tone.",
   voicemailPrompt: 'Please leave a message after the tone.',
@@ -242,6 +243,63 @@ function customKeywordsRe(extra: string[]): RegExp | null {
     `\\b(${words.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`,
     'i',
   )
+}
+
+// Solicitation keywords — phrases only (single words cause false positives).
+// Mirrors the emergency pattern. Triggers SOLICITATION classification.
+// See: docs/Cove-Voice-Lines.md
+const SOLICITATION_KEYWORDS = [
+  'we offer',
+  "i'm calling about your business",
+  'extended warranty',
+  'merchant services',
+  'credit card processing',
+  'seo services',
+  'marketing services',
+  'business loan',
+  'timeshare',
+  'directory listing',
+]
+
+const SOLICITATION_RE = new RegExp(
+  `\\b(${SOLICITATION_KEYWORDS.map((k) =>
+    k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+  ).join('|')})\\b`,
+  'i',
+)
+
+export function containsSolicitationKeyword(text: string | null | undefined): boolean {
+  if (!text) return false
+  return SOLICITATION_RE.test(text)
+}
+
+// Redirect a live Twilio call to a new TwiML URL via the REST API.
+// Used to pull a caller out of screening mid-call when an emergency keyword
+// is detected in a transcript. Best-effort: if the call already ended, the
+// API returns 4xx and we just keep the URGENT flag on the ticket.
+export async function redirectLiveCall(
+  callSid: string,
+  twimlUrl: string,
+): Promise<boolean> {
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !callSid) return false
+  try {
+    const creds = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`)
+    const res = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Calls/${callSid}.json`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${creds}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `Url=${encodeURIComponent(twimlUrl)}&Method=POST`,
+      },
+    )
+    return res.ok
+  } catch (e) {
+    console.error('redirectLiveCall failed:', e)
+    return false
+  }
 }
 
 export function containsEmergencyKeyword(text: string | null | undefined, extraKeywords: string[] = []): boolean {

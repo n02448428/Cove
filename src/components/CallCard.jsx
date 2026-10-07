@@ -116,6 +116,16 @@ export default function CallCard({
             <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>No answers captured.</p>
           )}
           <div className="call-actions">
+            {t.classification === 'SOLICITATION' && (
+              <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', width: '100%' }}>
+                Detected as solicitation.
+              </span>
+            )}
+            {(t.classification === 'LEAD' || t.classification === 'CUSTOMER') && (
+              <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', width: '100%' }}>
+                Detected as {t.classification.toLowerCase()}.
+              </span>
+            )}
             {t.caller_number && (
               <a className="call-action" href={`tel:${t.caller_number}`}>Call back</a>
             )}

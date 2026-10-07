@@ -88,7 +88,7 @@ serve(async (req: Request) => {
   // Resolve ticket + user + real number once.
   const { data: ticket } = await supabase
     .from('review_tickets')
-    .select('id, user_id, status, caller_number')
+    .select('id, user_id, status, caller_number, classification')
     .eq('id', ticketId)
     .maybeSingle()
 
@@ -173,6 +173,12 @@ serve(async (req: Request) => {
     // qi>=1 are the saved questions (recorded). Past the last: finalize.
     if (qi < 1 || qi > numQuestions) {
       return await finalize(supabase, callSid, ticketId, user_id, 'completed', 'screened', SCRIPT.thanksGoodbye)
+    }
+    // Kernel v0.4: solicitation short-circuit. If a previous answer's transcript
+    // triggered solicitation classification, close politely and terminate now
+    // instead of asking the next question.
+    if (ticket.classification === 'SOLICITATION') {
+      return await finalize(supabase, callSid, ticketId, user_id, 'solicitation', 'solicitation', SCRIPT.solicitationClose)
     }
     // Every saved question is asked — the greeting never replaces one.
     const q = qs[qi - 1]
@@ -326,7 +332,7 @@ async function finalize(
   callSid: string,
   ticketId: string,
   userId: string,
-  endedReason: 'completed' | 'no_answer' | 'caller_hung_up' | 'failed' | 'voicemail',
+  endedReason: 'completed' | 'no_answer' | 'caller_hung_up' | 'failed' | 'voicemail' | 'solicitation',
   callOutcome: string,
   closingScript: string,
 ): Promise<Response> {

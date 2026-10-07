@@ -11,6 +11,7 @@ import {
   audit,
   validateTwilioSignature,
   containsEmergencyKeyword,
+  containsSolicitationKeyword,
   dispatchTicketWebhook,
   dispatchTicketNotifications,
 } from '../_shared/cove.ts'
@@ -99,6 +100,32 @@ serve(async (req: Request) => {
           question_ord: qi,
           transcript: transcript.slice(0, 500),
         })
+      }
+
+      // Solicitation path (kernel v0.4): a keyword match classifies the ticket
+      // as SOLICITATION. The screening-step checks this before asking the next
+      // question and terminates early with the solicitation close.
+      // Idempotent: only fires once per ticket (first classification wins).
+      if (
+        transcript &&
+        containsSolicitationKeyword(transcript) &&
+        !['new', 'reviewed', 'actioned', 'failed'].includes(ticket.status)
+      ) {
+        const { data: current } = await supabase
+          .from('review_tickets')
+          .select('classification')
+          .eq('id', ticketId)
+          .maybeSingle()
+        if (current && !current.classification) {
+          await supabase
+            .from('review_tickets')
+            .update({ classification: 'SOLICITATION' })
+            .eq('id', ticketId)
+          await audit(supabase, ticket.user_id, ticket.call_sid, 'solicitation_detected', 'kernel', {
+            question_ord: qi,
+            transcript: transcript.slice(0, 500),
+          })
+        }
       }
     }
   }

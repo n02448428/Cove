@@ -139,7 +139,7 @@ export default function Landing() {
                 className="btn btn-primary"
                 onClick={goPrimary}
               >
-                {primaryLabel || 'Start my 7 free days'}
+                {primaryLabel || 'Get Cove'}
               </button>
               {!sessionUser && (
                 <button
@@ -184,9 +184,9 @@ export default function Landing() {
         <section className="price-block" aria-label="Pricing">
           <p className="price-block__eyebrow">Membership</p>
           <p className="landing-quote landing-quote--center">Calm isn&rsquo;t the absence of calls. It&rsquo;s the absence of the wrong ones.</p>
-          <h2 className="price-block__primary">7 days free. Then $49/mo. Cancel anytime.</h2>
+          <h2 className="price-block__primary">$249/mo. Or $2,490/yr. Cancel anytime.</h2>
           <p className="price-block__fine">
-            Card required for the trial. All payments are final — cancel before your next billing date to stop future charges.
+            7-day money-back guarantee. No setup fees. No per-call charges. All payments are final — cancel before your next billing date to stop future charges.
           </p>
           <div className="landing-ctas" style={{ marginTop: '1.25rem', marginBottom: 0 }}>
             <button
@@ -194,9 +194,18 @@ export default function Landing() {
               className="btn btn-primary"
               onClick={goPrimary}
             >
-              {primaryLabel || 'Start my 7 free days'}
+              {primaryLabel || 'Get Cove'}
             </button>
           </div>
+        </section>
+
+        <section className="landing-features" aria-label="Live demo" style={{ marginTop: '3rem', textAlign: 'center' }}>
+          <h2 className="price-block__eyebrow" style={{ marginBottom: '1rem' }}>Hear it working</h2>
+          <p className="landing-quote landing-quote--center">This number rings a working Cove line — the same thing you&rsquo;d get.</p>
+          <p style={{ fontSize: '2rem', margin: '1.5rem 0' }}>
+            <a href="tel:+16193402683" style={{ color: 'var(--color-accent)', textDecoration: 'none' }}>(619) 340-2683</a>
+          </p>
+          <p className="price-block__fine">Call it right now. Ask it anything.</p>
         </section>
 
         <section className="landing-features" aria-label="Begin" style={{ marginTop: '3rem', textAlign: 'center' }}>
@@ -208,7 +217,7 @@ export default function Landing() {
               className="btn btn-primary"
               onClick={goPrimary}
             >
-              {primaryLabel || 'Start my 7 free days'}
+              {primaryLabel || 'Get Cove'}
             </button>
           </div>
         </section>

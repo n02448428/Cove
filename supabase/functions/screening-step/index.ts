@@ -336,6 +336,40 @@ async function finalize(
   callOutcome: string,
   closingScript: string,
 ): Promise<Response> {
+  // Classify LEAD vs CUSTOMER (if not already SOLICITATION).
+  // CUSTOMER: transcript mentions existing relationship (account, appointment, order, etc.)
+  // LEAD: default for completed screenings.
+  const { data: existing } = await supabase
+    .from('review_tickets')
+    .select('classification')
+    .eq('id', ticketId)
+    .maybeSingle()
+
+  if (existing && !existing.classification && endedReason === 'completed') {
+    const { data: answers } = await supabase
+      .from('review_ticket_answers')
+      .select('transcript')
+      .eq('ticket_id', ticketId)
+
+    const allText = (answers || []).map(a => a.transcript || '').join(' ').toLowerCase()
+    const customerHints = [
+      'my account', 'existing', 'already a', 'follow up', 'follow-up',
+      'appointment', 'my order', 'invoice', 'contract', 'previous',
+      'last time', 'we spoke', 'you helped', 'my case', 'member',
+    ]
+    const isCustomer = customerHints.some(h => allText.includes(h))
+    const classification = isCustomer ? 'CUSTOMER' : 'LEAD'
+
+    await supabase
+      .from('review_tickets')
+      .update({ classification })
+      .eq('id', ticketId)
+    await audit(supabase, userId, callSid, 'auto_classified', 'kernel', {
+      ticket_id: ticketId,
+      classification,
+    })
+  }
+
   await supabase
     .from('review_tickets')
     .update({ status: 'new', ended_reason: endedReason })

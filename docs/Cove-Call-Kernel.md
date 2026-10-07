@@ -17,7 +17,7 @@ RED overrides GREEN. Caller never self-classifies.
 3. Record and transcribe each answer.
 4. After each transcript:
    - Emergency keywords → flag URGENT, continue.
-   - Solicitation keywords → classify SOLICITATION, close, ticket, email per settings. Terminate.
+   - Solicitation keywords → classify SOLICITATION, ticket, email per settings. (Classification is post-call; screening completes normally.)
 5. No answer → repeat question once. No answer → no-answer close. Terminate.
 6. Final answer, no flags → close. Terminate.
 7. Classify: LEAD, CUSTOMER, or SOLICITATION.

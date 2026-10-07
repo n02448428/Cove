@@ -103,12 +103,16 @@ serve(async (req: Request) => {
       }
 
       // Solicitation path (kernel v0.4): a keyword match classifies the ticket
-      // as SOLICITATION. The screening-step checks this before asking the next
-      // question and terminates early with the solicitation close.
+      // as SOLICITATION. Checks built-in phrases plus user's custom list.
       // Idempotent: only fires once per ticket (first classification wins).
+      const { data: prof2 } = await supabase
+        .from('profiles')
+        .select('solicitation_keywords')
+        .eq('id', ticket.user_id)
+        .maybeSingle()
       if (
         transcript &&
-        containsSolicitationKeyword(transcript) &&
+        containsSolicitationKeyword(transcript, prof2?.solicitation_keywords ?? []) &&
         !['new', 'reviewed', 'actioned', 'failed'].includes(ticket.status)
       ) {
         const { data: current } = await supabase

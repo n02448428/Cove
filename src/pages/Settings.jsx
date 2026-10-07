@@ -7,6 +7,7 @@ import AppFooter from '../components/AppFooter.jsx';
 import CoveMark from '../components/CoveMark.jsx';
 import NotificationsPanel from '../components/NotificationsPanel.jsx';
 import UrgentWordsField from '../components/UrgentWordsField.jsx';
+import SolicitationWordsField from '../components/SolicitationWordsField.jsx';
 import TestCallPanel from '../components/TestCallPanel.jsx';
 import MfaPanel from '../components/MfaPanel.jsx';
 import KernelManager from '../components/KernelManager.jsx';
@@ -218,6 +219,9 @@ export default function Settings() {
         <NotificationsPanel />
         <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--color-border)' }}>
           <UrgentWordsField />
+        </div>
+        <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--color-border)' }}>
+          <SolicitationWordsField />
         </div>
       </div>
 

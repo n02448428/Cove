@@ -197,12 +197,10 @@ serve(async (req: Request) => {
     // Redirect to the greeting (qi=0); saved questions are qi=1..N.
     const questionRedirect = `${stepBase}?stage=question&qi=0&attempt=1&callSid=${encodeURIComponent(callSid)}&ticketId=${encodeURIComponent(ticketId)}&name=${encodeURIComponent(userName)}`
 
-    // Full-call recording starts here via TwiML (no REST race: the call is
-    // guaranteed in-progress when Twilio executes <Start>). The completed
-    // RecordingSid lands on the ticket through the recording-status callback.
-    const recCb = `${fnUrl('recording-status')}?ticketId=${encodeURIComponent(ticketId)}`
+    // Per-answer recordings (in screening-step) capture all caller speech.
+    // No full-call recording: saves Twilio storage costs, per-answer is sufficient.
     return twiml(
-      `<?xml version="1.0" encoding="UTF-8"?><Response><Start><Recording name="cove-full-call" recordingStatusCallback="${xmlEscape(recCb)}" recordingStatusCallbackEvent="completed"/></Start><Redirect method="POST">${xmlEscape(questionRedirect)}</Redirect></Response>`,
+      `<?xml version="1.0" encoding="UTF-8"?><Response><Redirect method="POST">${xmlEscape(questionRedirect)}</Redirect></Response>`,
     )
   } catch (err) {
     console.error('twilio-voice-inbound error:', err)

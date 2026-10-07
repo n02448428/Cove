@@ -84,13 +84,12 @@ export default function NotificationsPanel() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not signed in.');
-      const { error: upErr } = await supabase.from('phone_numbers').upsert({
-        user_id: user.id,
+      const { error: upErr } = await supabase.from('phone_numbers').update({
         notify_email_lead: next.lead,
         notify_email_customer: next.customer,
         notify_email_solicitation: next.solicitation,
         notify_email_urgent: next.urgent,
-      }, { onConflict: 'user_id' });
+      }).eq('user_id', user.id);
       if (upErr) throw upErr;
       setEmailLead(next.lead);
       setEmailCustomer(next.customer);

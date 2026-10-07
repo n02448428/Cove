@@ -268,9 +268,11 @@ const SOLICITATION_RE = new RegExp(
   'i',
 )
 
-export function containsSolicitationKeyword(text: string | null | undefined): boolean {
+export function containsSolicitationKeyword(text: string | null | undefined, extraKeywords: string[] = []): boolean {
   if (!text) return false
-  return SOLICITATION_RE.test(text)
+  if (SOLICITATION_RE.test(text)) return true
+  const re = customKeywordsRe(extraKeywords)
+  return re ? re.test(text) : false
 }
 
 // Redirect a live Twilio call to a new TwiML URL via the REST API.

@@ -88,7 +88,7 @@ serve(async (req) => {
   try {
     const { data: ticket } = await supabase
       .from('review_tickets')
-      .select('id, user_id, call_sid, caller_number, urgent, ended_reason, status, notifications_sent_at, created_at')
+      .select('id, user_id, call_sid, caller_number, urgent, classification, ended_reason, status, notifications_sent_at, created_at')
       .eq('id', ticketId)
       .maybeSingle()
     if (!ticket || ticket.notifications_sent_at) {
@@ -121,6 +121,29 @@ serve(async (req) => {
     const urgent = !!ticket.urgent
     if (emailMode === 'daily' || (emailMode === 'urgent' && !urgent)) {
       return json(200, { ...result, skipped: `deferred_to_digest (mode=${emailMode})` })
+    }
+
+    // Kernel v0.4: per-classification toggles. Check phone_numbers settings.
+    // URGENT overrides all (if notify_email_urgent is on).
+    const { data: phone } = await supabase
+      .from('phone_numbers')
+      .select('notify_email_lead, notify_email_customer, notify_email_solicitation, notify_email_urgent')
+      .eq('user_id', ticket.user_id)
+      .maybeSingle()
+    if (phone) {
+      const classification = (ticket.classification || 'LEAD').toUpperCase()
+      // Urgent override: if urgent and urgent toggle is on, send regardless.
+      if (urgent && phone.notify_email_urgent) {
+        // proceed to send
+      } else if (urgent && !phone.notify_email_urgent) {
+        return json(200, { ...result, skipped: 'urgent_toggle_off' })
+      } else if (classification === 'LEAD' && !phone.notify_email_lead) {
+        return json(200, { ...result, skipped: 'lead_toggle_off' })
+      } else if (classification === 'CUSTOMER' && !phone.notify_email_customer) {
+        return json(200, { ...result, skipped: 'customer_toggle_off' })
+      } else if (classification === 'SOLICITATION' && !phone.notify_email_solicitation) {
+        return json(200, { ...result, skipped: 'solicitation_toggle_off' })
+      }
     }
 
     // Atomic claim: exactly one sender wins per ticket.

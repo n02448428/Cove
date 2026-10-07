@@ -93,65 +93,41 @@ serve(async (req: Request) => {
       .maybeSingle()
 
     if (greenRow) {
-      // Loop guard: if we just tried to connect this caller (their call got
-      // forwarded back to us), don't dial again — send them to voicemail.
-      const sixtySecsAgo = new Date(Date.now() - 60000).toISOString()
-      const { data: recentDial } = await supabase
-        .from('call_logs')
-        .select('id')
-        .eq('user_id', user_id)
-        .eq('caller_number', from)
-        .eq('outcome', 'connected_live')
-        .gte('created_at', sixtySecsAgo)
-        .limit(1)
-        .maybeSingle()
-      if (recentDial) {
-        await audit(supabase, user_id, callSid, 'green_loop_blocked', 'kernel', {
-          contact_name: greenRow.contact_name,
-        })
-        // Loop blocked: treat like a missed connect — ticket it and take a voicemail.
-        const { data: loopTicket } = await supabase
-          .from('review_tickets')
-          .insert({
-            user_id,
-            call_sid: callSid,
-            caller_number: from,
-            status: 'collecting',
-          })
-          .select('id')
-          .single()
-        if (loopTicket) {
-          const vmAction =
-            `${fnUrl('screening-step')}?stage=voicemail` +
-            `&callSid=${encodeURIComponent(callSid)}` +
-            `&ticketId=${encodeURIComponent(loopTicket.id)}`
-          const transcribeCb =
-            `${fnUrl('call-transcribe')}?ticketId=${encodeURIComponent(loopTicket.id)}&qi=0&attempt=1`
-          return twiml(
-            `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say>Sorry, they couldn't pick up. Please leave a message after the tone.</Say>
-  <Record maxLength="120" timeout="5" playBeep="true" trim="trim-silence" transcribe="true" transcribeCallback="${xmlEscape(transcribeCb)}" action="${xmlEscape(vmAction)}" method="POST" />
-</Response>`,
-          )
-        }
-      }
-      await logCall(supabase, callSid, user_id, {
-        outcome: 'connected_live',
-        status: 'connected_live',
-        call_state: 'connected_live',
-      })
-      await audit(supabase, user_id, callSid, 'green_connected', 'kernel', {
+      // Kernel v0.4: GREEN bypasses screening. Take a message, classify as
+      // CUSTOMER, ticket, email per settings. No live dial.
+      await audit(supabase, user_id, callSid, 'green_message', 'kernel', {
         contact_name: greenRow.contact_name,
       })
-      const statusCb = `${fnUrl('call-status')}?callSid=${encodeURIComponent(callSid)}&userId=${encodeURIComponent(user_id)}&source=green`
+      const { data: greenTicket } = await supabase
+        .from('review_tickets')
+        .insert({
+          user_id,
+          call_sid: callSid,
+          caller_number: from,
+          status: 'collecting',
+          classification: 'CUSTOMER',
+        })
+        .select('id')
+        .single()
+      if (greenTicket) {
+        await logCall(supabase, callSid, user_id, {
+          ticket_id: greenTicket.id,
+          outcome: 'green_message',
+          status: 'green_message',
+          call_state: 'green_message',
+        })
+        const vmAction =
+          `${fnUrl('screening-step')}?stage=voicemail` +
+          `&callSid=${encodeURIComponent(callSid)}` +
+          `&ticketId=${encodeURIComponent(greenTicket.id)}`
+        const transcribeCb =
+          `${fnUrl('call-transcribe')}?ticketId=${encodeURIComponent(greenTicket.id)}&qi=0&attempt=1`
+        return twiml(
+          `<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n  <Say>Please leave your message.</Say>\n  <Record maxLength="120" timeout="5" playBeep="true" trim="trim-silence" transcribe="true" transcribeCallback="${xmlEscape(transcribeCb)}" action="${xmlEscape(vmAction)}" method="POST" />\n</Response>`,
+        )
+      }
       return twiml(
-        `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Dial callerId="${xmlEscape(from)}" action="${xmlEscape(statusCb)}" method="POST" timeout="30">
-    <Number>${xmlEscape(real_number)}</Number>
-  </Dial>
-</Response>`,
+        `<?xml version="1.0" encoding="UTF-8"?><Response><Say>${xmlEscape(SCRIPT.notConfigured)}</Say><Hangup/></Response>`,
       )
     }
 

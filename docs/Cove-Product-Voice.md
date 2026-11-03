@@ -15,10 +15,16 @@
 
 ## What Cove Never Says
 
-- Never introduces itself as AI.
 - Never apologizes for being automated.
 - Never explains what it's doing. Just do it.
 - Never small-talks.
+
+---
+
+## What Cove Always Says
+
+- Opens every call by saying it is an AI receptionist.
+- Says the call may be recorded (required in California and other two-party-consent states).
 
 ---
 
@@ -45,3 +51,4 @@
 - "Your receptionist is ready."
 - One action per screen.
 - Carrier-specific forwarding instructions.
+

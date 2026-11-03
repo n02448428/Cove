@@ -1,6 +1,4 @@
-import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase.js';
 import CoveMark from '../components/CoveMark.jsx';
 import CoveWordmark from '../components/CoveWordmark.jsx';
 import ThemeToggle from '../components/ThemeToggle.jsx';
@@ -50,33 +48,6 @@ const MOMENTS = [
 
 export default function Landing() {
   const navigate = useNavigate();
-  // Remembered sign-in: if a session exists, CTAs open the cove instead of
-  // asking the user to sign up again.
-  const [sessionUser, setSessionUser] = useState(undefined);
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSessionUser(session?.user ?? null);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSessionUser(session?.user ?? null);
-    });
-    return () => listener.subscription.unsubscribe();
-  }, []);
-
-  async function goPrimary() {
-    if (!sessionUser) {
-      navigate('/auth?mode=signup');
-      return;
-    }
-    const { data: phoneRow } = await supabase
-      .from('phone_numbers')
-      .select('provisioning_status')
-      .eq('user_id', sessionUser.id)
-      .maybeSingle();
-    navigate(phoneRow?.provisioning_status === 'active' ? '/dashboard' : '/onboarding');
-  }
-  const primaryLabel = sessionUser ? 'Open your cove' : null;
-
   return (
     <div className="landing">
       <div className="landing-wash" aria-hidden="true">
@@ -134,22 +105,14 @@ export default function Landing() {
             </p>
 
             <div className="landing-ctas">
+              <a className="btn btn-primary" href="tel:+16193402683">Call the live demo</a>
               <button
                 type="button"
-                className="btn btn-primary"
-                onClick={goPrimary}
+                className="btn btn-ghost"
+                onClick={() => navigate('/auth?mode=login')}
               >
-                {primaryLabel || 'Get Cove'}
+                Sign In
               </button>
-              {!sessionUser && (
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() => navigate('/auth?mode=login')}
-                >
-                  Sign In
-                </button>
-              )}
             </div>
             <p className="landing-support" style={{ marginTop: '1.5rem' }}>
               Your pocket stays quiet. Your heart stays full.
@@ -182,20 +145,16 @@ export default function Landing() {
         <WaveDivider />
 
         <section className="price-block" aria-label="Pricing">
-          <p className="price-block__eyebrow">Membership</p>
+          <p className="price-block__eyebrow">Work with Visionary Minds Solutions</p>
           <p className="landing-quote landing-quote--center">Calm isn&rsquo;t the absence of calls. It&rsquo;s the absence of the wrong ones.</p>
-          <h2 className="price-block__primary">$249/mo. Or $2,490/yr. Cancel anytime.</h2>
+          <h2 className="price-block__primary">$500/mo. $2,000 white-glove setup.</h2>
           <p className="price-block__fine">
-            7-day money-back guarantee. No setup fees. No per-call charges. All payments are final — cancel before your next billing date to stop future charges.
+            Done-for-you by Visionary Minds Solutions. Custom questions for your business, live within 24 hours. 30-day money-back guarantee on setup. No per-call charges.
           </p>
-          <div className="landing-ctas" style={{ marginTop: '1.25rem', marginBottom: 0 }}>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={goPrimary}
-            >
-              {primaryLabel || 'Get Cove'}
-            </button>
+          <div className="landing-ctas" style={{ marginTop: '1.25rem', marginBottom: 0, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <a className="btn btn-primary" href="tel:+16193402683">Call the live demo</a>
+            <a className="btn btn-ghost" href="mailto:dmitry@visionaryminds.solutions?subject=Cove%20white-glove%20setup">Email Dmitry</a>
+            <a className="btn btn-ghost" href="https://visionaryminds.solutions" target="_blank" rel="noopener noreferrer">Visit VisionaryMinds</a>
           </div>
         </section>
 
@@ -205,20 +164,14 @@ export default function Landing() {
           <p style={{ fontSize: '2rem', margin: '1.5rem 0' }}>
             <a href="tel:+16193402683" style={{ color: 'var(--color-accent)', textDecoration: 'none' }}>(619) 340-2683</a>
           </p>
-          <p className="price-block__fine">Call it right now. Ask it anything.</p>
+          <p className="price-block__fine">Call it right now. Every call opens by saying it&rsquo;s an AI receptionist and that the call may be recorded.</p>
         </section>
 
         <section className="landing-features" aria-label="Begin" style={{ marginTop: '3rem', textAlign: 'center' }}>
           <h2 className="landing-headline" style={{ fontSize: '2rem' }}>Your phone, finally quiet.</h2>
           <p className="landing-quote landing-quote--center">Your life, uninterrupted &mdash; except by the people you&rsquo;d interrupt anything for.</p>
           <div className="landing-ctas" style={{ justifyContent: 'center', marginTop: '1.5rem' }}>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={goPrimary}
-            >
-              {primaryLabel || 'Get Cove'}
-            </button>
+            <a className="btn btn-primary" href="tel:+16193402683">Call the live demo</a>
           </div>
         </section>
       </div>
@@ -235,3 +188,4 @@ export default function Landing() {
     </div>
   );
 }
+

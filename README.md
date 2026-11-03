@@ -1,8 +1,11 @@
 # Cove
 
-> Personal call screener. RED numbers rejected, GREEN numbers connect live,
-> everyone else gets a keypad code or a short question screening that produces a
-> review ticket. No voicemail, no keyword rules, no AI voice agent — pure Twilio.
+> AI receptionist for the calls you can't take. Every call opens by saying it is
+> an AI receptionist and that the call may be recorded. RED numbers are rejected,
+> GREEN numbers connect live, and everyone else gets a keypad code or a short
+> screening with custom questions (for example name, business type, and best
+> number) that produces a review ticket and emails the owner a summary.
+> No voicemail.
 
 **Source of truth:** [`docs/Cove-Call-Kernel.md`](docs/Cove-Call-Kernel.md) — the
 Cove Call Kernel defines call routing, screening, and the data model. Everything
@@ -33,7 +36,7 @@ and is obsolete.
 | Backend | Supabase Edge Functions (Deno/TypeScript) |
 | Database | Supabase (PostgreSQL) |
 | Telephony | Twilio (voice + transcription; no Retell) |
-| Billing | Stripe (checkout + customer portal) |
+| Billing | Stripe (checkout + customer portal; **self-serve billing is paused** — white-glove only via Visionary Minds Solutions) |
 
 ## Project structure
 
@@ -53,7 +56,7 @@ Cove/
 │       ├── call-transcribe/          # async transcription callback
 │       ├── call-status/              # Dial status + completion
 │       ├── provision-number/         # Twilio number provisioning
-│       ├── create-checkout-session/  # Stripe checkout
+│       ├── create-checkout-session/  # Stripe checkout (self-serve paused; white-glove via VMS)
 │       ├── create-portal-session/    # Stripe portal
 │       └── stripe-webhook/           # Stripe webhook
 ├── src/                              # React frontend
@@ -116,3 +119,4 @@ Point your Twilio number's voice webhook to:
 ## License
 
 Private — all rights reserved.
+

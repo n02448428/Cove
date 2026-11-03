@@ -1,5 +1,8 @@
 # Cove Billing + Number Provision (LOCKED 2026-09-11)
 
+Paused (Nov 2026): self-serve billing is not offered. Cove is currently sold only as a white-glove service by Visionary Minds Solutions at $2,000 setup + $500/mo with a 30-day guarantee. Kept for possible future self-serve tier.
+
+
 ## Product rules
 - Price: **$49/mo**
 - **Card-gated 7-day trial** (no $1 charge)

@@ -12,7 +12,7 @@ RED overrides GREEN. Caller never self-classifies.
 
 ## SCREENING
 
-1. Play greeting.
+1. Play greeting. Every greeting opens by stating this is an AI receptionist and that the call may be recorded.
 2. Ask saved questions (1–5) in order, exactly as written.
 3. Record and transcribe each answer.
 4. After each transcript:
@@ -59,14 +59,15 @@ Active on install, user may override.
 
 ## CUSTOMIZABLE
 
-- Greeting. Questions (1–5). Emergency keywords (additive). Solicitation keywords (additive). RED list. GREEN list. All notification toggles.
+- Greeting (after the required AI and recording disclosure). Questions (1–5). Emergency keywords (additive). Solicitation keywords (additive). RED list. GREEN list. All notification toggles.
 
 ## NOT CUSTOMIZABLE
 
-- Routing order. Screening sequence. Classification categories. Invariants.
+- AI-receptionist and call-recording disclosure at the start of every call. Routing order. Screening sequence. Classification categories. Invariants.
 
 ## INVARIANTS
 
 - No call meets silence.
 - Every call produces a ticket.
 - Classification never deletes. It filters notification only.
+

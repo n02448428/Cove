@@ -16,17 +16,17 @@ import {
 } from '../services/api.js';
 
 const DAILY_LINES = [
-  'Your pocket stays quiet. Your heart stays full.',
-  'Remember when a ringing phone meant someone that mattered? It\u2019s like that again.',
-  'Your life, uninterrupted \u2014 except by the people you\u2019d interrupt anything for.',
-  'Breathe easier. Your phone\u2019s got the noise; you\u2019ve got the people.',
-  'Calm isn\u2019t the absence of calls. It\u2019s the absence of the wrong ones.',
-  'Only the calls that matter make a sound.',
-  'Silence, except for the voices you love.',
-  'Answer less. Live more.',
-  'Your attention is yours again.',
-  'The right calls find you. The rest never existed.',
-  'Less ringing. More living.',
+  'Never miss another job.',
+  'Every missed call screened. Every lead captured.',
+  'A missed call is a job that went to someone else.',
+  'Your receptionist never takes a day off.',
+  'Every missed caller greeted. Every detail in your inbox.',
+  'You answer when you can. Cove covers the rest.',
+  'No more jobs lost to voicemail.',
+  'Nights and weekends included.',
+  'Every missed call, answered.',
+  'The job is still yours \u2014 call them back.',
+  'Your phone, working as hard as you do.',
 ];
 
 const TICKET_FILTERS = [

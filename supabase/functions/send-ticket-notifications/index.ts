@@ -46,6 +46,20 @@ function fmtTime(iso: string, tz?: string): string {
   }
 }
 
+// Split a Retell transcript ("Agent: ...\nUser: ...") into per-turn lines.
+function splitRetellTranscript(t: string): { who: string; text: string }[] {
+  const turns: { who: string; text: string }[] = []
+  for (const line of t.split('\n')) {
+    const m = line.match(/^\s*(Agent|User):\s*(.*)$/)
+    if (!m) {
+      if (line.trim() && turns.length) turns[turns.length - 1].text += ' ' + line.trim()
+      continue
+    }
+    turns.push({ who: m[1] === 'Agent' ? 'Cove' : 'Caller', text: m[2].trim() })
+  }
+  return turns.filter((x) => x.text)
+}
+
 async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
   if (!RESEND_API_KEY) {
     console.log('send-ticket-notifications: RESEND_API_KEY unset, skipping email')
@@ -88,7 +102,7 @@ serve(async (req) => {
   try {
     const { data: ticket } = await supabase
       .from('review_tickets')
-      .select('id, user_id, call_sid, caller_number, urgent, classification, ended_reason, status, notifications_sent_at, created_at')
+      .select('id, user_id, call_sid, caller_number, caller_name, summary, urgent, classification, ended_reason, status, notifications_sent_at, created_at')
       .eq('id', ticketId)
       .maybeSingle()
     if (!ticket || ticket.notifications_sent_at) {
@@ -163,9 +177,13 @@ serve(async (req) => {
     const name = profile?.display_name || ''
     // Full conversation transcript: Cove's scripted lines + caller's answers.
     // Groups attempts per question so a misfire retry shows the apology.
+    // Retell calls store the whole conversation as one transcript row: split
+    // it into turns, and skip the canned greeting/closing — the transcript
+    // already holds the real greeting and ending.
+    const isRetell = rows.some((a) => a.question_text === 'Retell call transcript')
     const greetingText = (profile?.greeting || '').replace(/\{name\}/g, name || 'there')
     const convo: { who: string; text: string }[] = []
-    if (greetingText) convo.push({ who: 'Cove', text: greetingText })
+    if (greetingText && !isRetell) convo.push({ who: 'Cove', text: greetingText })
     const byQ = new Map<number, typeof rows>()
     for (const a of rows) {
       const k = a.question_ord ?? 0
@@ -175,12 +193,16 @@ serve(async (req) => {
     for (const [, attempts] of [...byQ.entries()].sort((x, y) => x[0] - y[0])) {
       for (let i = 0; i < attempts.length; i++) {
         const a = attempts[i]
+        if (isRetell && a.question_text === 'Retell call transcript') {
+          for (const turn of splitRetellTranscript(a.transcript || '')) convo.push(turn)
+          continue
+        }
         if (i > 0) convo.push({ who: 'Cove', text: "Sorry, I didn't quite catch that." })
         if (a.question_text) convo.push({ who: 'Cove', text: a.question_text })
         convo.push({ who: 'Caller', text: a.transcript || '(no answer recorded)' })
       }
     }
-    convo.push({ who: 'Cove', text: 'Thank you. I will pass this along. Goodbye from Cove.' })
+    if (!isRetell) convo.push({ who: 'Cove', text: 'Thank you. I will pass this along. Goodbye from Cove.' })
     const convoHtml = convo.map((c) =>
       `<p style="margin:0 0 14px;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;"><strong class="${c.who === 'Cove' ? 'e-q' : 'e-caller'}" style="color:${c.who === 'Cove' ? '#f2f5f6' : '#5b9a9a'};">${c.who}:</strong> <span class="e-a" style="color:#9fb0ba;">${esc(c.text)}</span></p>`
     ).join('')
@@ -189,6 +211,15 @@ serve(async (req) => {
     let emailSent = false
     if (emailMode !== 'off' && profile?.email) {
       const subject = urgent ? `Urgent call from ${caller} — Cove` : `Call from ${caller} — Cove`
+      // Who called, in one glance: name, type, and the AI summary — not buried
+      // in the transcript. (callback number = caller number unless the caller
+      // gave a different one; that lives in the transcript + summary.)
+      const titleCase = (s: string) => s ? s.charAt(0) + s.slice(1).toLowerCase() : s
+      const detailsHtml = [
+        ticket.caller_name ? `<p style="margin:10px 0 0;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;color:#9fb0ba;"><strong style="color:#f2f5f6;">Name:</strong> ${esc(ticket.caller_name)}</p>` : '',
+        ticket.classification ? `<p style="margin:4px 0 0;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;color:#9fb0ba;"><strong style="color:#f2f5f6;">Type:</strong> ${esc(titleCase(ticket.classification))}</p>` : '',
+        ticket.summary ? `<p style="margin:10px 0 0;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:#9fb0ba;"><strong style="color:#f2f5f6;">Summary:</strong> ${esc(ticket.summary)}</p>` : '',
+      ].filter(Boolean).join('')
       const html = `<!DOCTYPE html><html><head><meta name="color-scheme" content="light dark"><style>
 @media (prefers-color-scheme: light) {
   .e-bg { background-color: #eef1f4 !important; }
@@ -204,7 +235,7 @@ serve(async (req) => {
   .e-foot { color: #8a9aa5 !important; }
   .e-signoff { color: #8a9aa5 !important; }
 }
-</style></head><body style="margin:0;padding:0;background:#0B1016;">
+</style></head><body class="e-bg" style="margin:0;padding:0;background:#0B1016;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="e-bg" style="background:#0B1016;padding:32px 16px;">
 <tr><td align="center">
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" class="e-card" style="max-width:560px;width:100%;background:#111820;border:1px solid #22303a;border-radius:16px;overflow:hidden;">
@@ -217,6 +248,7 @@ serve(async (req) => {
 <h1 class="e-headline" style="margin:0;font-family:Georgia,'Times New Roman',serif;font-weight:600;font-size:24px;color:#f2f5f6;">${urgent ? 'Urgent call' : 'New screened call'}</h1>
 <p class="e-caller" style="margin:10px 0 0;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:20px;font-weight:600;color:#5b9a9a;">${esc(caller)}</p>
 ${ticket.ended_reason ? `<p class="e-sub" style="margin:6px 0 0;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;color:#8a9aa5;">${esc(ticket.ended_reason)}</p>` : ''}
+${detailsHtml}
 </td></tr>
 <tr><td style="padding:8px 32px 8px;">
 ${convo.length ? convoHtml : '<p class="e-a" style="font-family:-apple-system,\'Segoe UI\',Helvetica,Arial,sans-serif;font-size:14px;color:#9fb0ba;">They hung up before answering.</p>'}
@@ -226,7 +258,7 @@ ${convo.length ? convoHtml : '<p class="e-a" style="font-family:-apple-system,\'
 <p class="e-foot" style="margin:18px 0 0;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;color:#5f6f79;">Hear the recordings and manage this call in your dashboard.</p>
 </td></tr>
 </table>
-<p class="e-signoff" style="margin:20px 0 0;font-family:Georgia,serif;font-size:12px;font-style:italic;color:#5f6f79;">Silence, except for the voices you love.</p>
+<p class="e-signoff" style="margin:20px 0 0;font-family:Georgia,serif;font-size:12px;font-style:italic;color:#5f6f79;">Never miss another job.</p>
 </td></tr>
 </table>
 </body></html>`
@@ -248,7 +280,7 @@ ${convo.length ? convoHtml : '<p class="e-a" style="font-family:-apple-system,\'
         .eq('user_id', ticket.user_id)
       const payload = JSON.stringify({
         title: urgent ? 'Cove — urgent call' : 'Cove — new call',
-        body: `${caller}${qa[0]?.a ? ` — ${qa[0].a.slice(0, 90)}` : ''}`,
+        body: ticket.summary ? `${caller} — ${ticket.summary.slice(0, 90)}` : caller,
         url: '/dashboard',
       })
       for (const s of subs ?? []) {

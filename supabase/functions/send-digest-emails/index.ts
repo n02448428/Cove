@@ -177,7 +177,7 @@ serve(async (req) => {
 <p class="e-foot" style="margin:18px 0 0;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;color:#5f6f79;">You're getting the daily digest. Change this anytime in Settings.</p>
 </td></tr>
 </table>
-<p class="e-signoff" style="margin:20px 0 0;font-family:Georgia,serif;font-size:12px;font-style:italic;color:#5f6f79;">Silence, except for the voices you love.</p>
+<p class="e-signoff" style="margin:20px 0 0;font-family:Georgia,serif;font-size:12px;font-style:italic;color:#5f6f79;">Never miss another job.</p>
 </td></tr>
 </table>
 </body></html>`

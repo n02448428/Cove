@@ -102,7 +102,6 @@ Cove/
 │   ├── Cove-Call-Kernel.md          # Kernel spec v0.4 — source of truth for call rules
 │   ├── TECHNICAL_SPECIFICATIONS.md  # Deep technical spec: architecture, flows, schema
 │   ├── RETELL_AGENT.md              # Live Retell agent (v7) — IDs, prompt, greeting, history
-│   ├── BILLING.md                   # Paused self-serve billing (kept for reference)
 │   ├── Cove-Offer.md                # Older offer doc (see pricing note below)
 │   ├── Cove-Product-Voice.md        # Product voice and dashboard language
 │   ├── Cove-Voice-Lines.md          # Default greeting, questions, keywords
@@ -121,7 +120,6 @@ Cove/
 │       ├── send-ticket-notifications/ # Ticket summary emails
 │       ├── send-digest-emails/      # Email digests
 │       ├── stripe-webhook/          # Stripe lifecycle events (billing paused)
-│       ├── create-checkout-session/ # Stripe Checkout (billing paused)
 │       ├── create-portal-session/   # Stripe Customer Portal (billing paused)
 │       ├── provision-number/        # Twilio number provisioning (billing paused)
 │       └── sweep-stale-tickets/     # Ticket housekeeping
@@ -189,9 +187,8 @@ Cove is currently sold as a white-glove service by VisionaryMinds Solutions:
 **$2,000 setup + $500/month**. Self-serve billing is paused.
 
 Note: older docs in this repo used to quote different prices. Those are now
-aligned: `docs/BILLING.md` describes the paused $49/month self-serve tier
-(clearly marked as paused, not the current offer) and `docs/Cove-Offer.md`
-states the current price above.
+aligned: `docs/Cove-Offer.md` states the current price above, and the
+paused self-serve tier's docs and checkout were removed Nov 10, 2026.
 
 ## Setup
 

@@ -344,7 +344,6 @@ All functions live under `supabase/functions/`. Shared helpers are in
 
 | Function | Trigger | What it does |
 |----------|---------|--------------|
-| `create-checkout-session` | Frontend, user JWT | Creates/reuses the Stripe customer and returns a Checkout URL (subscription, card-gated 7-day trial). |
 | `create-portal-session` | Frontend, user JWT | Returns a Stripe Customer Portal session (cancel / update card). |
 | `stripe-webhook` | Stripe events | Handles `checkout.session.completed`, `customer.subscription.created/updated/deleted`, `invoice.payment_failed`. Stores customer/subscription IDs, triggers number provisioning, manages the 30-day cancel grace and lazy DID release. Stripe-signature auth, `verify_jwt=false`. |
 | `provision-number` | Called by `stripe-webhook` | Buys a Twilio number idempotently, sets its VoiceUrl to `twilio-voice-inbound`, saves `phone_numbers.twilio_number`. Also performs lazy release of expired numbers. |
@@ -530,22 +529,17 @@ Current state (Nov 2026): **self-serve billing is paused.** Cove is sold as
 a white-glove service by VisionaryMinds Solutions at **$2,000 setup +
 $500/month**.
 
-The billing code is kept in the repo for a possible future self-serve tier:
+The self-serve checkout was removed Nov 10, 2026: the
+`create-checkout-session` edge function was deleted from Supabase and its
+source removed from this repo, along with the paused-tier pricing docs
+(`docs/BILLING.md` deleted). The remaining billing functions
+(`stripe-webhook`, `provision-number`, `create-portal-session`) are still
+deployed but have no checkout path feeding them; they are kept for a
+possible future self-serve tier.
 
-- Stripe product `prod_VEle9mZGSVfiUT` ("Cove"), price
-  `price_1UEI7KBGpVuNZeuZ03lbTAtF` ($49/month, lookup key
-  `cove_monthly_49`), card-gated 7-day trial.
-- Flow: signup → Checkout → webhook stores customer/subscription →
-  `provision-number` buys a Twilio DID and points its VoiceUrl at
-  `twilio-voice-inbound` → sticky DID while subscribed, 30-day cancel grace,
-  lazy DID release after grace.
-- Full flow, env vars, and deploy checklist: `docs/BILLING.md`.
-
-Pricing docs in this repo are now aligned with the current price:
-`docs/BILLING.md` describes the paused $49/month self-serve tier (clearly
-marked as paused, not the current offer) and `docs/Cove-Offer.md` states
-the current white-glove price. The current price is $2,000 setup +
-$500/month, white-glove only.
+Pricing docs in this repo state the current price: `docs/Cove-Offer.md`
+states the current white-glove price ($2,000 setup + $500/month,
+white-glove only).
 
 ## Security and auth
 
@@ -568,8 +562,8 @@ $500/month, white-glove only.
   Bad/missing signature → 400, no database mutation.
 - **Twilio webhooks (legacy path):** Twilio signature auth,
   `verify_jwt=false`.
-- **Edge functions called from the frontend** (`create-checkout-session`,
-  `create-portal-session`) use the user's JWT.
+- **Edge functions called from the frontend** (`create-portal-session`)
+  use the user's JWT.
 - **Database:** row-level security on all kernel tables; users see only
   their own rows. Service-role key is server-side only, never in the
   frontend or the repo.
@@ -662,12 +656,11 @@ Still open:
 
 4. **`RETELL_API_KEY` secret is not set.** The webhook's HMAC gate is
    inactive; only the URL token protects it.
-5. ~~**Pricing docs are stale and inconsistent.** `docs/BILLING.md` ($49/mo)
-   and `docs/Cove-Offer.md` ($249/mo, "no white-glove") contradict each
-   other and the current white-glove price ($2,000 setup + $500/mo).~~
-   **Resolved Nov 10, 2026:** `docs/BILLING.md` now clearly marks the
-   $49/mo tier as paused/superseded, and `docs/Cove-Offer.md` was rewritten
-   to the current price ($2,000 setup + $500/mo, white-glove only).
+5. ~~**Pricing docs were stale and inconsistent.**~~ **Resolved
+   Nov 10, 2026:** the stale pricing docs were removed (`docs/BILLING.md`
+   deleted, self-serve checkout deleted) and `docs/Cove-Offer.md` was
+   rewritten to the current price ($2,000 setup + $500/mo, white-glove
+   only).
 6. ~~**Email subject in `docs/Cove-Product-Voice.md`** ("New call — [Name],
    [description]") does not match the subject the code actually sends
    (`Call from {caller} — Cove`).~~ **Resolved Nov 10, 2026:**

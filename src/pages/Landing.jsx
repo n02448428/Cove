@@ -149,7 +149,7 @@ export default function Landing() {
           <p className="landing-quote landing-quote--center">Every missed call screened. Every lead captured.</p>
           <h2 className="price-block__primary">$500/mo. $2,000 white-glove setup.</h2>
           <p className="price-block__fine">
-            Done-for-you by Visionary Minds Solutions. Custom questions for your business, live within 24 hours. 30-day money-back guarantee on setup. No per-call charges.
+            Done-for-you by Visionary Minds Solutions. Custom questions for your business, live within 24 hours. No per-call charges.
           </p>
           <div className="landing-ctas" style={{ marginTop: '1.25rem', marginBottom: 0, flexWrap: 'wrap', justifyContent: 'center' }}>
             <a className="btn btn-primary" href="tel:+16193402683">Call the live demo</a>

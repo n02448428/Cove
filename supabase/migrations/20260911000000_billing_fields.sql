@@ -1,4 +1,4 @@
--- Billing + grace fields for Cove ($49 card-gated trial)
+-- Billing + grace fields for Cove
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS stripe_customer_id text UNIQUE,
   ADD COLUMN IF NOT EXISTS stripe_subscription_id text UNIQUE,

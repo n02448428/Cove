@@ -25,9 +25,8 @@ owing nothing.
 
 ## Guarantee
 
-30-day money-back guarantee on the setup fee. No refunds on the monthly
-fee. There is no per-missed-call guarantee — no payment or credit is owed
-for a call the service does not answer.
+No refunds. All payments are final. There is no per-missed-call guarantee —
+no payment or credit is owed for a call the service does not answer.
 
 Cancel anytime after the trial; no refund for the current month.
 

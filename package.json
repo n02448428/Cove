@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && mkdir -p dist/privacy dist/terms && cp dist/index.html dist/privacy/index.html && cp dist/index.html dist/terms/index.html",
     "preview": "vite preview",
     "lint": "eslint src/"
   },

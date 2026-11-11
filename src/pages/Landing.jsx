@@ -29,7 +29,7 @@ const MOMENTS = [
     desc: 'They\u2019re greeted, asked your questions, and the summary lands in your inbox.',
   },
   {
-    title: 'A patient calls after hours.',
+    title: 'A homeowner calls after hours.',
     desc: 'Screened and summarized. Waiting in your inbox in the morning.',
   },
   {
@@ -145,11 +145,14 @@ export default function Landing() {
         <WaveDivider />
 
         <section className="price-block" aria-label="Pricing">
-          <p className="price-block__eyebrow">Work with Visionary Minds Solutions</p>
+          <p className="price-block__eyebrow">Work with VisionaryMinds Solutions</p>
           <p className="landing-quote landing-quote--center">Every missed call screened. Every lead captured.</p>
           <h2 className="price-block__primary">$500/mo. $2,000 white-glove setup.</h2>
           <p className="price-block__fine">
-            Done-for-you by Visionary Minds Solutions. Custom questions for your business, live within 24 hours. No per-call charges.
+            Done-for-you by VisionaryMinds Solutions. Custom questions for your business, live within 24 hours. No per-call charges.
+          </p>
+          <p className="price-block__fine">
+            Free 30-day trial — one home-service business per area. Founding deal: setup waived for the first 3 businesses per trade. Walk away free at day 30 owing nothing.
           </p>
           <div className="landing-ctas" style={{ marginTop: '1.25rem', marginBottom: 0, flexWrap: 'wrap', justifyContent: 'center' }}>
             <a className="btn btn-primary" href="tel:+16193402683">Call the live demo</a>

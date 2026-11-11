@@ -13,37 +13,38 @@ export default function Terms() {
       <main className="page-narrow" style={{ paddingTop: '2rem', paddingBottom: '4rem' }}>
         <h1 className="page-title">Terms of Service</h1>
         <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '2rem' }}>
-          Last updated November 10, 2026
+          Last updated November 11, 2026
         </p>
 
         <section style={{ marginBottom: '1.75rem' }}>
           <h3 style={{ marginBottom: '0.5rem' }}>What Cove is</h3>
           <p style={{ fontSize: '0.9rem', lineHeight: 1.7, color: 'var(--color-text-muted)' }}>
-            Cove is an AI-powered call screening service. You forward your calls to a Cove number;
-            Cove answers unknown callers, asks your screening questions, records and transcribes
-            their answers, and routes calls based on rules you set. Trusted contacts ring through;
-            blocked contacts are declined; everyone else is screened.
+            Cove is an AI receptionist for home-service businesses. You answer your phone when
+            you can; when you miss a call, conditional call forwarding sends it to Cove. Cove
+            answers, asks the caller their name and what they need, takes the best number to
+            reach them, and emails you the details so you can call back. Cove does not book
+            appointments, connect calls live, or send text messages — it takes the message and
+            delivers it to your inbox.
           </p>
         </section>
 
         <section style={{ marginBottom: '1.75rem' }}>
           <h3 style={{ marginBottom: '0.5rem' }}>Trial and billing</h3>
           <p style={{ fontSize: '0.9rem', lineHeight: 1.7, color: 'var(--color-text-muted)' }}>
-            New accounts receive a 30-day free trial, which requires a payment method on file.
-            After the trial, the subscription is $500/month until cancelled. You can cancel anytime
-            from the customer portal; cancellation takes effect at the end of the current billing
-            period. After cancellation you have a 30-day grace period before your Cove number is
-            released. Your Cove number provisions after your payment method is saved and remains
-            yours while your subscription is active. All payments are final — Cove does not offer
-            refunds. Cancel before your next billing date to stop future charges.
+            New businesses receive a free 30-day trial — one home-service business per local
+            area. After the trial, the service is $2,000 one-time setup plus $500/month until
+            cancelled. Founding businesses (the first 3 per trade) have the $2,000 setup waived.
+            All payments are final — Cove does not offer refunds. Cancel before your next
+            billing date to stop future charges. After cancellation you have a 30-day grace
+            period before your Cove number is released.
           </p>
         </section>
 
         <section style={{ marginBottom: '1.75rem' }}>
           <h3 style={{ marginBottom: '0.5rem' }}>Call forwarding is your responsibility</h3>
           <p style={{ fontSize: '0.9rem', lineHeight: 1.7, color: 'var(--color-text-muted)' }}>
-            Setting up call forwarding on your phone and with your carrier is done by you, using
-            instructions we provide. Forwarding codes, availability, and charges vary by carrier
+            Setting up conditional forwarding of your missed calls on your phone and with your
+            carrier is done by you, using instructions we provide. Forwarding codes, availability, and charges vary by carrier
             and country. Cove numbers are currently US-based; forwarding from non-US numbers may
             incur international charges. We are not responsible for carrier fees, failed
             forwarding setup, or calls that do not reach Cove because forwarding was not active.

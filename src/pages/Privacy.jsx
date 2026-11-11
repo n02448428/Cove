@@ -13,16 +13,17 @@ export default function Privacy() {
       <main className="page-narrow" style={{ paddingTop: '2rem', paddingBottom: '4rem' }}>
         <h1 className="page-title">Privacy Policy</h1>
         <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '2rem' }}>
-          Last updated September 24, 2026
+          Last updated November 11, 2026
         </p>
 
         <section style={{ marginBottom: '1.75rem' }}>
           <h3 style={{ marginBottom: '0.5rem' }}>What we collect</h3>
           <p style={{ fontSize: '0.9rem', lineHeight: 1.7, color: 'var(--color-text-muted)' }}>
             To provide the service, we collect: your account information (email, name), your Cove
-            and forwarding phone numbers, your screening rules and contact lists, and the content
-            of screened calls — including audio recordings, transcripts, and call metadata
-            (caller number, time, duration). We also collect payment information through our
+            and forwarding phone numbers, and the content of the missed calls Cove answers — the
+            caller's name, what they need, and the best number to reach them — along with call
+            metadata (caller number, time, duration). Calls may be recorded and transcribed so
+            the details can be emailed to you. We also collect payment information through our
             payment processor; we never see or store your full card number.
           </p>
         </section>
@@ -30,10 +31,10 @@ export default function Privacy() {
         <section style={{ marginBottom: '1.75rem' }}>
           <h3 style={{ marginBottom: '0.5rem' }}>How we use it</h3>
           <p style={{ fontSize: '0.9rem', lineHeight: 1.7, color: 'var(--color-text-muted)' }}>
-            Your data is used solely to operate Cove: answering and screening your calls,
-            showing you transcripts and call history, and billing your subscription. We do not
-            sell your personal information or your callers&rsquo; information to anyone, and we
-            do not use call content for advertising.
+            Your data is used solely to operate Cove: answering your missed calls and emailing
+            you the caller's details, and billing your subscription. We do not sell your personal
+            information or your callers&rsquo; information to anyone, and we do not use call
+            content for advertising.
           </p>
         </section>
 
@@ -49,18 +50,19 @@ export default function Privacy() {
         <section style={{ marginBottom: '1.75rem' }}>
           <h3 style={{ marginBottom: '0.5rem' }}>Retention and deletion</h3>
           <p style={{ fontSize: '0.9rem', lineHeight: 1.7, color: 'var(--color-text-muted)' }}>
-            Call recordings and transcripts are kept while your account is active so you can
-            review your history. If you cancel, your number is held for a 30-day grace period,
-            then released.
+            Call details are emailed to you as they come in. Records of answered calls are kept
+            while your account is active so we can operate the service. If you cancel, your
+            number is held for a 30-day grace period, then released.
           </p>
         </section>
 
         <section style={{ marginBottom: '1.75rem' }}>
           <h3 style={{ marginBottom: '0.5rem' }}>Your rights</h3>
           <p style={{ fontSize: '0.9rem', lineHeight: 1.7, color: 'var(--color-text-muted)' }}>
-            You can access and update your personal information from your dashboard at any
-            time. If you are in a jurisdiction with additional privacy rights (such as the EU
-            or California), we honor applicable access, deletion, and opt-out requests.
+            You can access, update, or request deletion of your personal information by
+            contacting us at dmitry@visionaryminds.solutions. If you are in a jurisdiction with
+            additional privacy rights (such as the EU or California), we honor applicable access,
+            deletion, and opt-out requests.
           </p>
         </section>
 

@@ -5,7 +5,6 @@ import { formatPhone } from '../lib/format.js';
 import AppHeader from '../components/AppHeader.jsx';
 import AppFooter from '../components/AppFooter.jsx';
 import CoveMark from '../components/CoveMark.jsx';
-import { createCheckoutSession } from '../services/api.js';
 
 export default function ForwardingInstructions() {
   const navigate = useNavigate();
@@ -13,8 +12,6 @@ export default function ForwardingInstructions() {
   const [conciergeNumber, setConciergeNumber] = useState('');
   const [provisioningStatus, setProvisioningStatus] = useState('');
   const [loading, setLoading] = useState(true);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [checkoutError, setCheckoutError] = useState('');
   const checkoutFlag = searchParams.get('checkout');
 
   const fetchNumber = useCallback(async () => {
@@ -51,19 +48,6 @@ export default function ForwardingInstructions() {
     return () => { cancelled = true; };
   }, [checkoutFlag, fetchNumber]);
 
-  async function startCheckout() {
-    setCheckoutError('');
-    setCheckoutLoading(true);
-    try {
-      const { url } = await createCheckoutSession();
-      if (!url) throw new Error('No checkout URL returned');
-      window.location.href = url;
-    } catch (err) {
-      setCheckoutError(err.message || 'Could not start checkout');
-      setCheckoutLoading(false);
-    }
-  }
-
   function copyNumber() {
     if (conciergeNumber) navigator.clipboard.writeText(conciergeNumber);
   }
@@ -83,13 +67,6 @@ export default function ForwardingInstructions() {
   function copyText(text) {
     if (text) navigator.clipboard.writeText(text);
   }
-
-  const needsCheckout =
-    !conciergeNumber &&
-    (provisioningStatus === 'pending' ||
-      provisioningStatus === 'failed' ||
-      checkoutFlag === 'needed' ||
-      checkoutFlag === 'canceled');
 
   const displayNumber = loading
     ? 'Loading...'
@@ -115,29 +92,6 @@ export default function ForwardingInstructions() {
       {checkoutFlag === 'success' && !conciergeNumber && (
         <div className="card" style={{ marginBottom: '1.5rem', borderColor: 'var(--color-accent, #3b82f6)' }}>
           <p style={{ fontSize: '0.9rem' }}>Checkout complete — assigning your Cove number. This page updates automatically.</p>
-        </div>
-      )}
-
-      {needsCheckout && (
-        <div className="card section-card" style={{ marginBottom: '1.5rem' }}>
-          <p className="price-block__eyebrow" style={{ marginBottom: '0.5rem' }}>Trial</p>
-          <h3 className="price-block__primary" style={{ fontSize: '1.35rem', marginBottom: '0.5rem' }}>
-            Try Cove free for 7 days. $49/mo after — cancel anytime.
-          </h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.75rem', lineHeight: 1.55 }}>
-            Card on file for the trial · your Cove number provisions after payment method is saved ·
-            number stays yours while subscribed · 30-day grace if you cancel.
-          </p>
-          <p className="price-block__plan">7-day trial → $49/mo</p>
-          {checkoutError && <p className="error-msg">{checkoutError}</p>}
-          <button
-            className="btn btn-primary"
-            style={{ width: '100%' }}
-            onClick={startCheckout}
-            disabled={checkoutLoading}
-          >
-            {checkoutLoading ? 'Redirecting…' : 'Continue to checkout'}
-          </button>
         </div>
       )}
 
@@ -286,7 +240,7 @@ export default function ForwardingInstructions() {
         </ul>
       </div>
 
-      <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => navigate('/dashboard')} disabled={!conciergeNumber && needsCheckout}>
+      <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => navigate('/dashboard')}>
         I&apos;ve set it up → Go to Dashboard
       </button>
       <AppFooter />

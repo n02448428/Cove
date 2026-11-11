@@ -163,7 +163,7 @@ export default function Auth() {
         </h1>
         <p style={{ margin: 0 }}>
           {mode === 'signup'
-            ? 'Seven days of quiet starts after checkout — card on file for the trial.'
+            ? 'Your free 30-day trial starts once your setup is complete.'
             : mode === 'forgot'
               ? 'We’ll email a reset link if an account exists.'
               : 'Sign in to your cove.'}

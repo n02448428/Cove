@@ -13,7 +13,7 @@ export default function Terms() {
       <main className="page-narrow" style={{ paddingTop: '2rem', paddingBottom: '4rem' }}>
         <h1 className="page-title">Terms of Service</h1>
         <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '2rem' }}>
-          Last updated September 24, 2026
+          Last updated November 10, 2026
         </p>
 
         <section style={{ marginBottom: '1.75rem' }}>
@@ -29,8 +29,8 @@ export default function Terms() {
         <section style={{ marginBottom: '1.75rem' }}>
           <h3 style={{ marginBottom: '0.5rem' }}>Trial and billing</h3>
           <p style={{ fontSize: '0.9rem', lineHeight: 1.7, color: 'var(--color-text-muted)' }}>
-            New accounts receive a 7-day free trial, which requires a payment method on file.
-            After the trial, the subscription is $49/month until cancelled. You can cancel anytime
+            New accounts receive a 30-day free trial, which requires a payment method on file.
+            After the trial, the subscription is $500/month until cancelled. You can cancel anytime
             from the customer portal; cancellation takes effect at the end of the current billing
             period. After cancellation you have a 30-day grace period before your Cove number is
             released. Your Cove number provisions after your payment method is saved and remains

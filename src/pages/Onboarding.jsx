@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase.js';
 import { toE164, isValidE164, E164_ERROR } from '../lib/phone.js';
 import AppHeader from '../components/AppHeader.jsx';
 import CoveMark from '../components/CoveMark.jsx';
-import { createCheckoutSession } from '../services/api.js';
 
 const MAX_QUESTIONS = 5;
 
@@ -138,22 +137,8 @@ export default function Onboarding() {
         if (qErr) throw new Error(`Could not save questions: ${qErr.message}`);
       }
 
-      // Card-gated trial: send to Stripe Checkout unless already provisioned
-      if (!alreadyActive) {
-        try {
-          const { url } = await createCheckoutSession();
-          if (url) {
-            window.location.href = url;
-            return;
-          }
-        } catch (checkoutErr) {
-          console.error('Checkout start failed:', checkoutErr);
-          // Fall through to forwarding with retry CTA
-          navigate('/forwarding?checkout=needed');
-          return;
-        }
-      }
-
+      // Self-serve checkout is paused — white-glove setup only. Save the
+      // config and go to forwarding; the number is provisioned after setup.
       navigate('/forwarding');
     } catch (err) {
       setError(err.message);
@@ -170,7 +155,7 @@ export default function Onboarding() {
           <CoveMark size={30} />
           Set up your cove
         </h2>
-        <p className="page-lede" style={{ marginBottom: 24 }}>Takes about 2 minutes. Your Cove number provisions after payment method is saved.</p>
+        <p className="page-lede" style={{ marginBottom: 24 }}>Takes about 2 minutes. Your Cove number provisions once your setup is complete.</p>
         <form onSubmit={handleSubmit}>
           <div className="field">
             <label>Your Real Phone Number</label>
@@ -230,7 +215,7 @@ export default function Onboarding() {
           </div>
           {error && <p className="error-msg">{error}</p>}
           <button className="btn btn-primary" type="submit" disabled={loading} style={{ width: '100%', marginTop: '0.5rem' }}>
-            {loading ? 'Saving...' : 'Continue to checkout · 7-day trial → $49/mo'}
+            {loading ? 'Saving...' : 'Save setup'}
           </button>
           <p className="hint" style={{ marginTop: '0.75rem' }}>
             You can add or edit RED/GREEN lists and questions anytime on the Dashboard.

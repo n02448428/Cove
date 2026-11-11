@@ -1,13 +1,19 @@
 # Cove Offer
 
-**$249/month.** Flat. No per-call charges.
+**$2,000 setup + $500/month.** White-glove, done-for-you by VisionaryMinds
+Solutions. No per-call charges.
 
-**$2,490/year.** Two months free.
+**Founding deal:** setup waived for the first 3 clients per trade
+($500/mo from day one). Testimonial after 30 days, one referral intro.
+
+**Free trial:** one free 30-day trial per local group — the winner pays
+$0 during the trial, then $500/mo if they stay. Walk away free at day 30
+owing nothing.
 
 ## Included
 
 - Dedicated Cove phone number
-- Custom greeting
+- Custom greeting and questions written for your business
 - Up to 5 custom questions
 - Call recordings + transcripts
 - Email briefing after every call
@@ -15,17 +21,23 @@
 - Solicitation filtering
 - RED/GREEN caller lists
 - Dashboard (Quiet Inbox)
+- Personal onboarding — live within 24 hours
 
 ## Guarantee
 
-7-day money-back. Cancel within 7 days → full refund.
+30-day money-back guarantee on the setup fee. No refunds on the monthly
+fee. There is no per-missed-call guarantee — no payment or credit is owed
+for a call the service does not answer.
 
-After 7 days: cancel anytime, no refund for current month.
+Cancel anytime after the trial; no refund for the current month.
 
 ## Signup
 
-withcove.co → enter info → pay $249 → number provisioned (~10 min) → forward line → live.
+Call (619) 340-2683 or email VisionaryMinds Solutions → short intake call
+→ build → test and sign-off → launch via conditional call forwarding.
 
 ## Not Included
 
-- No sales call. No setup fee. No white-glove (that's VMS).
+- No SMS/text notifications (email only).
+- No calendar booking or appointment scheduling.
+- No CRM integrations.

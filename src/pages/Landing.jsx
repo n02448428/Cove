@@ -15,14 +15,14 @@ const STEPS = [
   },
   {
     title: 'Never miss a job',
-    desc: 'Cove screens, asks, and emails you every detail.',
+    desc: 'Cove screens, asks, and sends you every detail.',
   },
 ];
 
 const MOMENTS = [
   {
     title: 'Mid-job, phone ringing in your pocket.',
-    desc: 'You don\u2019t stop. Cove screens it and emails you the details \u2014 you call back when you\u2019re free.',
+    desc: 'You don\u2019t stop. Cove screens it and sends you the details \u2014 you call back when you\u2019re free.',
   },
   {
     title: 'Your hands are busy. Your next client is calling.',
@@ -101,7 +101,7 @@ export default function Landing() {
           <div className="landing-copy">
             <h1 className="landing-headline">Never miss another job.</h1>
             <p className="landing-subhead">
-              Cove screens the calls you can&apos;t take, asks your questions, and emails you a summary.
+              Cove screens the calls you can&apos;t take, asks your questions, and sends you a summary.
             </p>
 
             <div className="landing-ctas">

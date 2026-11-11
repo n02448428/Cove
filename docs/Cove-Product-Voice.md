@@ -39,9 +39,9 @@
 
 ## Notifications (Email Only)
 
-- Subject: "New call — [Name], [description]"
+- Subject: "Call from {caller} — Cove"
 - Body: answers only. Name. Need. Number. Time. Classification.
-- Urgent: "URGENT" prefix.
+- Urgent: subject "Urgent call from {caller} — Cove".
 - No marketing. No "Powered by Cove."
 
 ---

@@ -1,7 +1,7 @@
 # Cove
 
 > The AI receptionist for home-service businesses. It answers the calls you
-> can't take, screens the caller, and emails you the details. No voicemail.
+> can't take, screens the caller, and sends you the details. No voicemail.
 
 Cove is the flagship product of [VisionaryMinds Solutions](https://visionaryminds.solutions).
 Live site: [withcove.co](https://withcove.co). Live demo line: **(619) 340-2683**.
@@ -101,7 +101,8 @@ Cove/
 ├── docs/
 │   ├── Cove-Call-Kernel.md          # Kernel spec v0.4 — source of truth for call rules
 │   ├── TECHNICAL_SPECIFICATIONS.md  # Deep technical spec: architecture, flows, schema
-│   ├── BILLING.md                   # Self-serve billing (paused — kept for reference)
+│   ├── RETELL_AGENT.md              # Live Retell agent (v7) — IDs, prompt, greeting, history
+│   ├── BILLING.md                   # Paused self-serve billing (kept for reference)
 │   ├── Cove-Offer.md                # Older offer doc (see pricing note below)
 │   ├── Cove-Product-Voice.md        # Product voice and dashboard language
 │   ├── Cove-Voice-Lines.md          # Default greeting, questions, keywords
@@ -187,9 +188,10 @@ their own rows.
 Cove is currently sold as a white-glove service by VisionaryMinds Solutions:
 **$2,000 setup + $500/month**. Self-serve billing is paused.
 
-Note: older docs in this repo quote different prices (`docs/BILLING.md` says
-$49/month self-serve; `docs/Cove-Offer.md` says $249/month). Those describe
-paused or superseded offers, not the current price.
+Note: older docs in this repo used to quote different prices. Those are now
+aligned: `docs/BILLING.md` describes the paused $49/month self-serve tier
+(clearly marked as paused, not the current offer) and `docs/Cove-Offer.md`
+states the current price above.
 
 ## Setup
 

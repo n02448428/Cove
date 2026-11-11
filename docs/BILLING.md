@@ -1,10 +1,19 @@
 # Cove Billing + Number Provision (LOCKED 2026-09-11)
 
+> **SUPERSEDED — PAUSED TIER, NOT THE CURRENT PRICE.** Self-serve billing
+> is not offered (paused Nov 2026). Cove is currently sold only as a
+> white-glove service by VisionaryMinds Solutions at **$2,000 setup +
+> $500/mo** (30-day money-back guarantee on setup; founding deal: setup
+> waived for the first 3 clients per trade). Everything below describes the
+> **paused $49/mo self-serve tier** and is kept only as the implementation
+> reference for a possible future self-serve tier. Do not quote $49/mo as
+> the price.
+
 Paused (Nov 2026): self-serve billing is not offered. Cove is currently sold only as a white-glove service by Visionary Minds Solutions at $2,000 setup + $500/mo with a 30-day guarantee. Kept for possible future self-serve tier.
 
 
 ## Product rules
-- Price: **$49/mo**
+- Price: **$49/mo** (paused self-serve tier — not the current price)
 - **Card-gated 7-day trial** (no $1 charge)
 - Provision Twilio DID **only after** payment method is saved
 - Sticky DID while subscribed + **30-day cancel grace** (keep number, disable screening webhooks)
@@ -15,7 +24,7 @@ Paused (Nov 2026): self-serve billing is not offered. Cove is currently sold onl
 | Object | ID | Notes |
 |--------|----|--------|
 | Product | `prod_VEle9mZGSVfiUT` | Cove |
-| Price | `price_1UEI7KBGpVuNZeuZ03lbTAtF` | $49/mo USD recurring; lookup key `cove_monthly_49` |
+| Price | `price_1UEI7KBGpVuNZeuZ03lbTAtF` | $49/mo USD recurring (paused self-serve tier); lookup key `cove_monthly_49` |
 | Env override | `STRIPE_PRICE_ID_49_MONTHLY` | Prefer this in Edge Functions |
 
 ## Flow
@@ -109,7 +118,7 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_live_...   # optional until Elements
   - `subscription.deleted` already in `grace` → **do not reset** `grace_ends_at` / `reserved_until` (preserves 30d clock on retries).
 - **Defensive acks**: missing customer / `user_id` / unknown profile → **log + 200** (Stripe would retry forever on 5xx for non-retryable linkage gaps). Unexpected errors → **500** for retry.
 - **`invoice.payment_failed`**: set `subscription_status=past_due` only — **never** release DID or touch `phone_numbers.reserved_until`.
-- Pricing locked: $49 card-gated 7-day trial; sticky DID 30d cancel grace. Do not change `twilio-voice-inbound` screening in webhook harden PRs.
+- Pricing locked (paused tier): $49 card-gated 7-day trial; sticky DID 30d cancel grace. Do not change `twilio-voice-inbound` screening in webhook harden PRs.
 
 ## Tables
 See migrations `20260911000000_billing_fields.sql`, `20260911010000_provisioning_status_released.sql`

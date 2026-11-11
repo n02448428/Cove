@@ -94,6 +94,9 @@ flowchart LR
 5. **Retell answers** with the greeting:
    > "Hi, thanks for calling VisionaryMinds Solutions. This is Cove, our AI
    > receptionist. This call may be recorded. May I ask your name?"
+   The agent waits 1 second before speaking (`begin_message_delay_ms:
+   1000`, added Nov 10, 2026) so the first words aren't clipped as the
+   audio path opens.
 6. **Retell screens the caller**: name, then business type / what they need,
    then the best callback number, then a plain close ("someone will follow
    up shortly"). Caps: **3 minutes per call**, hangup after **15 seconds of
@@ -132,14 +135,15 @@ flowchart LR
 
 ## Retell agent configuration
 
-Live agent (Nov 9, 2026):
+Live agent (Nov 10, 2026 — v7):
 
 | Field | Value |
 |-------|-------|
-| Agent | `agent_470bd9eae0ad1bca50e9783590` — "Cove - VMS AI Receptionist" |
-| LLM | `llm_231a7f700878e62c13c5781e7274` |
+| Agent | `agent_b23acca7c483af15d691a7ba21` — "Cove - VMS AI Receptionist" |
+| LLM | `llm_1192e4454479bb6ccafd84403b13` |
 | Model | `gpt-5.4-mini` (via `model_config`, cascading) |
 | Voice | `retell-Cimo` |
+| Begin-message delay | `begin_message_delay_ms: 1000` (1 s of silence before the greeting, so the first words aren't clipped as the audio path opens — added Nov 10, 2026) |
 | Post-call analysis model | `gpt-4.1-mini` |
 | Post-call analysis fields | `caller_name`, `business_type`, `callback_number`, `is_solicitation`, `is_existing_customer` |
 | Max call duration | 180,000 ms (3 min) |
@@ -155,7 +159,12 @@ Greeting (begin message):
 
 Screening flow: name → business type / need → callback number → close.
 The closer is plain ("someone will follow up shortly") and the call ends
-immediately after.
+immediately after (via the `end_call` tool).
+
+Previous agent (kept as fallback, not deleted): v6
+`agent_470bd9eae0ad1bca50e9783590` with LLM
+`llm_231a7f700878e62c13c5781e7274` — identical to v7 except it has no
+begin-message delay. Full agent history: `docs/RETELL_AGENT.md`.
 
 Notes:
 
@@ -483,10 +492,6 @@ from Retell's analysis fields only).
   (VAPID keys in env).
 - **No SMS.** Email only.
 
-Note: the email subject in `docs/Cove-Product-Voice.md`
-("New call — [Name], [description]") does not match the code. The code's
-subject format above is what is actually sent.
-
 ## Dashboard — the Quiet Inbox
 
 `src/pages/Dashboard.jsx` (+ `src/components/InboxView.jsx`), at
@@ -511,7 +516,7 @@ withcove.co/dashboard.
 - **Pages:** `Landing`, `Auth`, `Onboarding`, `Dashboard`, `Settings`,
   `Admin`, `ForwardingInstructions`, `Privacy`, `Terms`, `ResetPassword`.
 - **Landing copy (live):** headline "Never miss another job.", subhead "Cove
-  screens the calls you can't take, asks your questions, and emails you a
+  screens the calls you can't take, asks your questions, and sends you a
   summary." Call to action: "Call the live demo" (`tel:+16193402683`).
 - **Deploy:** push to `main` → `.github/workflows/deploy.yml` builds with
   Vite and deploys to GitHub Pages. Custom domain withcove.co, `base: '/'`.
@@ -536,10 +541,11 @@ The billing code is kept in the repo for a possible future self-serve tier:
   lazy DID release after grace.
 - Full flow, env vars, and deploy checklist: `docs/BILLING.md`.
 
-Pricing docs in this repo disagree with each other and with the current
-price: `docs/BILLING.md` says $49/month self-serve, `docs/Cove-Offer.md`
-says $249/month flat with no white-glove. Both describe paused or superseded
-offers. The current price is $2,000 setup + $500/month, white-glove only.
+Pricing docs in this repo are now aligned with the current price:
+`docs/BILLING.md` describes the paused $49/month self-serve tier (clearly
+marked as paused, not the current offer) and `docs/Cove-Offer.md` states
+the current white-glove price. The current price is $2,000 setup +
+$500/month, white-glove only.
 
 ## Security and auth
 
@@ -656,20 +662,31 @@ Still open:
 
 4. **`RETELL_API_KEY` secret is not set.** The webhook's HMAC gate is
    inactive; only the URL token protects it.
-5. **Pricing docs are stale and inconsistent.** `docs/BILLING.md` ($49/mo)
+5. ~~**Pricing docs are stale and inconsistent.** `docs/BILLING.md` ($49/mo)
    and `docs/Cove-Offer.md` ($249/mo, "no white-glove") contradict each
-   other and the current white-glove price ($2,000 setup + $500/mo).
-6. **Email subject in `docs/Cove-Product-Voice.md`** ("New call — [Name],
+   other and the current white-glove price ($2,000 setup + $500/mo).~~
+   **Resolved Nov 10, 2026:** `docs/BILLING.md` now clearly marks the
+   $49/mo tier as paused/superseded, and `docs/Cove-Offer.md` was rewritten
+   to the current price ($2,000 setup + $500/mo, white-glove only).
+6. ~~**Email subject in `docs/Cove-Product-Voice.md`** ("New call — [Name],
    [description]") does not match the subject the code actually sends
-   (`Call from {caller} — Cove`).
+   (`Call from {caller} — Cove`).~~ **Resolved Nov 10, 2026:**
+   `docs/Cove-Product-Voice.md` now states the code's subject
+   (`Call from {caller} — Cove` / `Urgent call from {caller} — Cove`).
 7. **Legacy voice path is retained but not live.** `twilio-voice-inbound`,
    `screening-step`, `call-transcribe`, and `call-status` describe a
    keypad-code flow callers no longer experience. They are the reference
    implementation of the kernel rules, not the current call path.
-8. **`retell_screened` is outside the `call_logs` enum.** The kernel
-   migration constrains `outcome` / `status` / `call_state` to eight legacy
-   values, but the live webhook writes `retell_screened` for all three.
-   `logCall` awaits the upsert and ignores errors, so if the deployed
-   database still enforces that constraint, the live call-log row silently
-   fails to write. Whether the deployed constraint was relaxed is
-   unverified — worth checking with a direct look at the live schema.
+8. **`retell_screened` is outside the `call_logs` enum — verified Nov 10,
+   2026.** The kernel migration constrains `outcome` / `status` /
+   `call_state` to eight legacy values, and the live schema still enforces
+   exactly those eight (`call_logs_outcome_check`, `call_logs_status_check`,
+   `call_logs_call_state_check`). The live webhook writes
+   `retell_screened` for all three fields (`retell-webhook/index.ts`
+   lines 204–206), so those upserts fail the constraint — and `logCall`
+   ignores errors, so the failure is silent. Confirmed in the live
+   database: **zero** `call_logs` rows have outcome `retell_screened`,
+   so Retell calls currently produce no `call_logs` row at all. Fixing it
+   is a separate decision: either relax the three constraints to admit
+   `retell_screened`, or have the webhook write a legacy value (e.g.
+   `screened`). Do not change the live schema without that decision.

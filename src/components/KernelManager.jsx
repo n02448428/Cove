@@ -247,7 +247,7 @@ const GREETING_TEMPLATES = [
         id: 'trusted',
         dot: 'dot--green',
         label: 'Trusted',
-        hint: `${greenList.length} number${greenList.length === 1 ? '' : 's'} · ring straight through`,
+        hint: `${greenList.length} number${greenList.length === 1 ? '' : 's'} · greeted by name, message taken`,
         open: (
           <div className="gate-row-body">
             {greenList.length === 0 ? (

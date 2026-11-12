@@ -8,9 +8,7 @@ export default function Auth() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const modeParam = searchParams.get('mode');
-  const [mode, setMode] = useState(
-    modeParam === 'signup' ? 'signup' : modeParam === 'forgot' ? 'forgot' : 'login'
-  );
+  const [mode, setMode] = useState(modeParam === 'forgot' ? 'forgot' : 'login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -22,8 +20,7 @@ export default function Auth() {
   const [mfaFactorId, setMfaFactorId] = useState(null);
 
   useEffect(() => {
-    const next =
-      modeParam === 'signup' ? 'signup' : modeParam === 'forgot' ? 'forgot' : 'login';
+    const next = modeParam === 'forgot' ? 'forgot' : 'login';
     setMode(next);
   }, [modeParam]);
 
@@ -43,13 +40,7 @@ export default function Auth() {
     setMfaRequired(false);
     setMfaCode('');
     setMfaFactorId(null);
-    setSearchParams(
-      next === 'signup'
-        ? { mode: 'signup' }
-        : next === 'forgot'
-          ? { mode: 'forgot' }
-          : { mode: 'login' }
-    );
+    setSearchParams(next === 'forgot' ? { mode: 'forgot' } : { mode: 'login' });
   }
 
   async function handleForgotSubmit(e) {
@@ -77,34 +68,24 @@ export default function Auth() {
     setInfo('');
     setLoading(true);
     try {
-      if (mode === 'signup') {
-        const { data, error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        // Email confirmation may leave no session — don't navigate blindly.
-        if (!data.session) {
-          setInfo('Check your email to confirm your account before signing in.');
+      // White-glove only: no public sign-up. Accounts are created by
+      // VisionaryMinds Solutions during setup; owners sign in here.
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      // 2FA (opt-in): password gets you to aal1; a verified TOTP factor
+      // requires a second step before the session is fully trusted.
+      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aal?.nextLevel === 'aal2' && aal?.currentLevel !== 'aal2') {
+        const { data: factors } = await supabase.auth.mfa.listFactors();
+        const verified = (factors?.totp || []).find(f => f.status === 'verified');
+        if (verified) {
+          setMfaFactorId(verified.id);
+          setMfaRequired(true);
+          setLoading(false);
           return;
         }
-        // Profile row is created by the auth.users trigger; complete setup next.
-        navigate('/onboarding');
-      } else {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        // 2FA (opt-in): password gets you to aal1; a verified TOTP factor
-        // requires a second step before the session is fully trusted.
-        const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        if (aal?.nextLevel === 'aal2' && aal?.currentLevel !== 'aal2') {
-          const { data: factors } = await supabase.auth.mfa.listFactors();
-          const verified = (factors?.totp || []).find(f => f.status === 'verified');
-          if (verified) {
-            setMfaFactorId(verified.id);
-            setMfaRequired(true);
-            setLoading(false);
-            return;
-          }
-        }
-        await afterSignIn(data.user.id);
       }
+      await afterSignIn(data.user.id);
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.');
     } finally {
@@ -159,14 +140,12 @@ export default function Auth() {
           <CoveMark size={36} />
         </div>
         <h1 className="page-title" style={{ marginBottom: '0.35rem' }}>
-          {mode === 'login' ? 'Welcome back.' : mode === 'signup' ? 'Create your account.' : 'Reset your password.'}
+          {mode === 'login' ? 'Welcome back.' : 'Reset your password.'}
         </h1>
         <p style={{ margin: 0 }}>
-          {mode === 'signup'
-            ? 'Your free 30-day trial starts once your setup is complete.'
-            : mode === 'forgot'
-              ? 'We’ll email a reset link if an account exists.'
-              : 'Sign in to your cove.'}
+          {mode === 'forgot'
+            ? 'We’ll email a reset link if an account exists.'
+            : 'Sign in to your cove.'}
         </p>
       </div>
 
@@ -254,7 +233,7 @@ export default function Auth() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                autoComplete="current-password"
               />
             </div>
             {mode === 'login' && (
@@ -287,7 +266,7 @@ export default function Auth() {
               disabled={loading}
               style={{ width: '100%', marginTop: '1rem' }}
             >
-              {loading ? 'Loading...' : mode === 'login' ? 'Sign In' : 'Create Account'}
+              {loading ? 'Loading...' : 'Sign In'}
             </button>
           </form>
         )}
@@ -319,20 +298,14 @@ export default function Auth() {
             </>
           ) : (
             <>
-              {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
-              <button
-                type="button"
-                onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--color-accent)',
-                  cursor: 'pointer',
-                  fontSize: '0.85rem',
-                }}
+              New accounts are set up by VisionaryMinds Solutions —{' '}
+              <a
+                href="mailto:dmitry@visionaryminds.solutions?subject=Cove%20white-glove%20setup"
+                style={{ color: 'var(--color-accent)' }}
               >
-                {mode === 'login' ? 'Sign up' : 'Sign in'}
-              </button>
+                email Dmitry
+              </a>{' '}
+              to get started.
             </>
           )}
         </p>

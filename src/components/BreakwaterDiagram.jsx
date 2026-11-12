@@ -1,7 +1,7 @@
 /**
  * BreakwaterDiagram — the Cove visual language in one image.
  * Storm on the left, rock breakwater in the middle, calm cove on the right.
- * Three call paths: trusted (green, straight through the channel),
+ * Three call paths: trusted (green, greeted by name, message taken),
  * blocked (red, breaks on the rocks), screened (gold, held gently in the cove).
  * Theme-aware via CSS variables.
  */
@@ -10,7 +10,7 @@ export default function BreakwaterDiagram() {
     <svg
       viewBox="0 0 1200 440"
       role="img"
-      aria-label="Diagram: trusted calls flow through the breakwater channel, blocked calls break on the rocks, unknown callers are held in the calm cove"
+      aria-label="Diagram: trusted callers are greeted by name and their message is taken, blocked calls break on the rocks, unknown callers are held in the calm cove"
       style={{ width: '100%', height: 'auto', display: 'block' }}
     >
       <defs>
@@ -86,7 +86,7 @@ export default function BreakwaterDiagram() {
       <rect x="505" y="180" width="70" height="90" fill="var(--color-accent)" opacity="0.12" />
 
       {/* ——— paths ——— */}
-      {/* GREEN: trusted — straight through the channel */}
+      {/* GREEN: trusted — greeted by name, message taken */}
       <path
         d="M-10,225 C180,225 320,225 505,225 L575,225 C750,225 950,225 1210,225"
         stroke="var(--color-success)" strokeWidth="4" fill="none"
@@ -111,7 +111,7 @@ export default function BreakwaterDiagram() {
 
       {/* ——— labels ——— */}
       <g fontSize="16" fontWeight="600">
-        <text x="1010" y="208" fill="var(--color-success)">Trusted — straight through</text>
+        <text x="990" y="208" fill="var(--color-success)">Trusted — greeted by name</text>
         <text x="60" y="278" fill="var(--color-danger)">Blocked — breaks on the rock</text>
         <text x="60" y="108" fill="var(--color-warning)">Unknown — held gently in the cove</text>
       </g>

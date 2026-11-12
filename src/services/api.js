@@ -2,9 +2,8 @@ import { supabase } from '../lib/supabase';
 import { toE164, isValidE164, E164_ERROR } from '../lib/phone';
 
 // — Auth ————————————————————————————————————————
-export const signUp = (email, password) =>
-  supabase.auth.signUp({ email, password });
-
+// NOTE: white-glove only — no public sign-up. Accounts are created by
+// VisionaryMinds Solutions during setup; owners sign in with signIn below.
 export const signIn = (email, password) =>
   supabase.auth.signInWithPassword({ email, password });
 

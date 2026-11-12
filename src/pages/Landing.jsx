@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import CoveMark from '../components/CoveMark.jsx';
 import CoveWordmark from '../components/CoveWordmark.jsx';
 import ThemeToggle from '../components/ThemeToggle.jsx';
@@ -14,7 +13,7 @@ const STEPS = [
     desc: 'Dial one code on your phone. Undo anytime.',
   },
   {
-    title: 'Never miss a job',
+    title: 'Your missed calls, covered',
     desc: 'Cove screens, asks, and sends you every detail.',
   },
 ];
@@ -42,12 +41,11 @@ const MOMENTS = [
   },
   {
     title: 'A customer calls on a Sunday.',
-    desc: 'Cove screens it \u2014 nights and weekends included. The job\u2019s still yours on Monday.',
+    desc: 'Cove screens it \u2014 nights and weekends included. The details are waiting Monday morning.',
   },
 ];
 
 export default function Landing() {
-  const navigate = useNavigate();
   return (
     <div className="landing">
       <div className="landing-wash" aria-hidden="true">
@@ -66,13 +64,6 @@ export default function Landing() {
           <CoveWordmark markSize={32} />
         </a>
         <div className="app-header-actions">
-          <button
-            type="button"
-            className="header-link"
-            onClick={() => navigate('/auth?mode=login')}
-          >
-            Sign In
-          </button>
           <ThemeToggle />
         </div>
       </header>
@@ -99,23 +90,16 @@ export default function Landing() {
         <section className="landing-hero">
           <CoveMark size={220} className="cove-hero-mark" />
           <div className="landing-copy">
-            <h1 className="landing-headline">Never miss another job.</h1>
+            <h1 className="landing-headline">Missed calls, handled.</h1>
             <p className="landing-subhead">
               Cove screens the calls you can&apos;t take, asks your questions, and sends you a summary.
             </p>
 
             <div className="landing-ctas">
               <a className="btn btn-primary" href="tel:+16193402683">Call the live demo</a>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => navigate('/auth?mode=login')}
-              >
-                Sign In
-              </button>
             </div>
             <p className="landing-support" style={{ marginTop: '1.5rem' }}>
-              Every missed call screened. Every lead captured.
+              Missed calls screened. Spam rejected before it rings. Leads in your inbox.
             </p>
           </div>
         </section>
@@ -146,7 +130,7 @@ export default function Landing() {
 
         <section className="price-block" aria-label="Pricing">
           <p className="price-block__eyebrow">Work with VisionaryMinds Solutions</p>
-          <p className="landing-quote landing-quote--center">Every missed call screened. Every lead captured.</p>
+          <p className="landing-quote landing-quote--center">Missed calls screened. Leads in your inbox.</p>
           <h2 className="price-block__primary">$500/mo. $2,000 white-glove setup.</h2>
           <p className="price-block__fine">
             Done-for-you by VisionaryMinds Solutions. Custom questions for your business, live within 24 hours. No per-call charges.
@@ -171,8 +155,8 @@ export default function Landing() {
         </section>
 
         <section className="landing-features" aria-label="Begin" style={{ marginTop: '3rem', textAlign: 'center' }}>
-          <h2 className="landing-headline" style={{ fontSize: '2rem' }}>Never miss another job.</h2>
-          <p className="landing-quote landing-quote--center">Every missed call screened. Every lead in your inbox.</p>
+          <h2 className="landing-headline" style={{ fontSize: '2rem' }}>Missed calls, handled.</h2>
+          <p className="landing-quote landing-quote--center">Missed calls screened. Leads in your inbox.</p>
           <div className="landing-ctas" style={{ justifyContent: 'center', marginTop: '1.5rem' }}>
             <a className="btn btn-primary" href="tel:+16193402683">Call the live demo</a>
           </div>
@@ -181,7 +165,8 @@ export default function Landing() {
 
       <footer className="cove-footer">
         <CoveWordmark markSize={28} />
-        <p className="cove-footer-tag">Never miss another job.</p>
+        <p className="cove-footer-tag">Missed calls, handled.</p>
+        <p className="cove-footer-legal">VisionaryMinds Solutions · La Mesa, San Diego, CA</p>
         <p className="cove-footer-links">
           <a href="/terms">Terms</a>
           {' · '}

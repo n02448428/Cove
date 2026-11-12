@@ -167,7 +167,7 @@ export default function Onboarding() {
               required
             />
             <p className="hint">
-              Trusted callers ring this number. 10-digit US numbers like 9175387426 are fine (we add +1).
+              Your own phone number — the one your missed calls forward from. 10-digit US numbers like 9175387426 are fine (we add +1).
             </p>
           </div>
 
@@ -190,7 +190,7 @@ export default function Onboarding() {
               placeholder={"Mom +16195550001\nDad +16195550002"}
               rows={3}
             />
-            <p className="hint">Family, doctors, schools — anyone who should always reach you directly. One per line: Name then number.</p>
+            <p className="hint">Family, regulars, suppliers — trusted callers Cove greets by name and takes a message from, without screening. One per line: Name then number.</p>
           </div>
 
           <div className="field">

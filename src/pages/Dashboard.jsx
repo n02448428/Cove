@@ -16,16 +16,16 @@ import {
 } from '../services/api.js';
 
 const DAILY_LINES = [
-  'Never miss another job.',
-  'Every missed call screened. Every lead captured.',
+  'Missed calls, handled.',
+  'Missed calls screened. Leads in your inbox.',
   'A missed call is a job that went to someone else.',
-  'Your receptionist never takes a day off.',
-  'Every missed caller greeted. Every detail in your inbox.',
+  'Your receptionist, day and night.',
+  'Missed callers greeted. Details in your inbox.',
   'You answer when you can. Cove covers the rest.',
-  'No more jobs lost to voicemail.',
+  'Fewer jobs lost to voicemail.',
   'Nights and weekends included.',
-  'Every missed call, answered.',
-  'The job is still yours \u2014 call them back.',
+  'Missed calls, answered.',
+  'Call them back — the details are waiting.',
   'Your phone, working as hard as you do.',
 ];
 
